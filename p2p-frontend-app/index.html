@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLink - Saudi Manufacturing Network</title>
+    <!-- Saudi Riyal Font -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@emran-alhaddad/saudi-riyal-font/index.css">
+    <style>
+      /* Ensure font loads with correct paths */
+      @font-face {
+        font-family: 'saudi_riyal';
+        src: url('https://cdn.jsdelivr.net/npm/@emran-alhaddad/saudi-riyal-font/fonts/saudi_riyal.woff2') format('woff2'),
+             url('https://cdn.jsdelivr.net/npm/@emran-alhaddad/saudi-riyal-font/fonts/saudi_riyal.woff') format('woff'),
+             url('https://cdn.jsdelivr.net/npm/@emran-alhaddad/saudi-riyal-font/fonts/saudi_riyal.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      
+      .icon-saudi_riyal:before {
+        content: "\e900";
+        font-family: 'saudi_riyal';
+        font-style: normal;
+        font-weight: normal;
+        font-variant: normal;
+        text-transform: none;
+        line-height: 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

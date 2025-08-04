@@ -175,6 +175,61 @@ Phase 1: Backend Foundation - Build actual API endpoints with database integrati
 
 ---
 
+### Date: 2025-01-05 (Continued)
+
+#### Task: P1.DB.01 - Database Connection Setup
+
+#### What We Did
+- Implemented async database connections with proper connection pooling
+- Created SQLAlchemy async engine with AsyncPG driver for PostgreSQL
+- Migrated from deprecated Motor to PyMongo's new AsyncMongoClient for MongoDB
+- Set up connection pooling (PostgreSQL: 20+10 overflow, MongoDB: 50 max/10 min)
+- Created FastAPI dependencies for database session management
+- Implemented health check functions for both databases
+- Updated main.py with lifespan events for connection lifecycle
+- Fixed CORS configuration to handle edge cases (empty strings, JSON arrays)
+
+#### Key Decisions
+1. **Migrated from Motor to PyMongo Async**: Motor is deprecated as of May 2025, so we used PyMongo's new AsyncMongoClient
+2. **Connection Pool Sizes**: Conservative defaults that can be tuned based on load
+3. **Health Checks**: Integrated into the main health endpoint for monitoring
+4. **Dependency Injection**: Used FastAPI's dependency system for clean session management
+5. **Raw Connection Access**: Provided get_asyncpg_connection for advanced PostgreSQL features
+
+#### Challenges & Solutions
+1. **Motor Deprecation**: Discovered Motor is deprecated with PyMongo 4.13+
+   - Solution: Migrated to PyMongo's AsyncMongoClient
+2. **Import Compatibility**: Motor's imports were incompatible with latest PyMongo
+   - Solution: Updated all imports to use pymongo directly
+3. **CORS Configuration Parsing**: Empty or malformed BACKEND_CORS_ORIGINS caused crashes
+   - Solution: Added robust parsing with fallbacks for various formats
+
+#### Testing Results
+- ✅ Database connection code compiles without errors
+- ✅ Semgrep security scan: 0 findings
+- ✅ Health check endpoints properly report database status
+- ✅ Connection pooling configured for both databases
+
+#### Lessons Learned
+1. Always check for deprecation notices when using third-party libraries
+2. PyMongo's async API is now mature enough to replace Motor
+3. Configuration parsing needs to be defensive to handle edge cases
+4. Connection pooling is critical for production async applications
+
+#### Files Created/Modified
+- `/app/db/session.py` - Complete database connection management
+- `/app/db/__init__.py` - Database module exports
+- `/app/api/v1/api.py` - Updated health check with database status
+- `/app/main.py` - Added lifespan events for connection management
+- `/app/core/config.py` - Fixed CORS parsing logic
+
+#### Next Steps
+- P1.MODEL.01: Create SQLModel base classes with timestamps and UUID support
+- P1.MODEL.02: Implement User and Organization models with relationships
+- P1.MIGRATE.01: Set up Alembic for database migrations
+
+---
+
 ## Future Phases
 (To be filled as we progress)
 

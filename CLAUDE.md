@@ -85,6 +85,35 @@ All backend code should use async/await patterns for:
    - Frontend-backend integration tests
    - Performance tests for async operations
 
+## Code Writing Requirements
+
+### Ref MCP Tool Usage
+
+When writing any code for this project, Claude MUST:
+
+1. **Always Use Ref MCP Tool**: Before writing any code, consult the Ref MCP tool to ensure using the latest and most up-to-date:
+   - Language features and syntax
+   - Framework versions and best practices
+   - Security patterns and recommendations
+   - Performance optimizations
+
+2. **Verify Current Practices**: Check for:
+   - Latest React 19 patterns and hooks
+   - Current FastAPI async patterns
+   - Modern TypeScript features
+   - Updated library APIs
+
+3. **Implementation Process**:
+   - First, query Ref for current best practices
+   - Verify version compatibility with project dependencies
+   - Implement using the most recent recommended patterns
+   - Document any significant updates or changes
+
+### Example Workflow:
+1. Before implementing a React component → Check latest React patterns
+2. Before writing FastAPI endpoints → Verify current async best practices
+3. Before database operations → Confirm latest SQLModel usage patterns
+
 ## Documentation Guidelines
 
 When working in the `/docs` folder:

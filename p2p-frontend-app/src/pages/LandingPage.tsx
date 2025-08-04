@@ -2,12 +2,10 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Users, BookOpen, TrendingUp, Star, Sparkles, Globe, Building2, Cog, BarChart3, Factory, Wrench, CheckCircle, MapPin } from "lucide-react"
 import InteractiveMap from "@/components/InteractiveMap"
 import { SaudiRiyalCurrency } from "@/components/SaudiRiyal"
+import { useNavigate } from "react-router-dom"
 
-interface LandingPageProps {
-  onNavigate?: (page: string) => void
-}
-
-export default function LandingPage({ onNavigate }: LandingPageProps) {
+export default function LandingPage() {
+  const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -45,7 +43,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               <Button 
                 size="lg" 
                 className="text-lg px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg"
-                onClick={() => onNavigate?.('usecases')}
+                onClick={() => navigate('/usecases')}
               >
                 Explore Success Stories
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -54,7 +52,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                 variant="outline" 
                 size="lg" 
                 className="text-lg px-8 py-4 text-white border-white/30 hover:bg-white/10 backdrop-blur-sm"
-                onClick={() => onNavigate?.('forum')}
+                onClick={() => navigate('/forum')}
               >
                 Join Discussions
               </Button>
@@ -169,7 +167,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             <Button 
               variant="outline" 
               className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => onNavigate?.('usecase-detail')}
+              onClick={() => navigate('/usecase-detail')}
             >
               View Full Case Study
             </Button>
@@ -196,7 +194,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             <Button 
               variant="outline" 
               className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => onNavigate?.('usecase-detail')}
+              onClick={() => navigate('/usecase-detail')}
             >
               View Full Case Study
             </Button>
@@ -250,12 +248,21 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               Connect with factory owners across Saudi Arabia, browse proven use cases, and optimize your operations - completely free
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg font-semibold">
-                Start Optimizing Now
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg font-semibold"
+                onClick={() => navigate('/signup')}
+              >
+                Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg">
-                Browse Use Cases
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg"
+                onClick={() => navigate('/login')}
+              >
+                Sign In
               </Button>
             </div>
           </div>

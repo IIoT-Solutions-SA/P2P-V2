@@ -1,28 +1,24 @@
 import { Button } from "@/components/ui/button"
 import { Zap, Home, MessageSquare, BookOpen, BarChart3, Bell, Plus, LogOut, User } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavigate, useLocation } from 'react-router-dom'
 
-export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management'
-
-interface NavigationProps {
-  currentPage: Page
-  onPageChange: (page: Page) => void
-}
-
-export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
+export default function Navigation() {
   const { user, organization, isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   
   const navigationItems = [
-    { id: 'landing' as Page, label: 'Home', icon: Home },
-    { id: 'dashboard' as Page, label: 'Dashboard', icon: BarChart3 },
-    { id: 'forum' as Page, label: 'Forum', icon: MessageSquare },
-    { id: 'usecases' as Page, label: 'Use Cases', icon: BookOpen },
-    { id: 'submit' as Page, label: 'Submit Story', icon: Plus },
+    { id: '/home', label: 'Home', icon: Home },
+    { id: '/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: '/forum', label: 'Forum', icon: MessageSquare },
+    { id: '/usecases', label: 'Use Cases', icon: BookOpen },
+    { id: '/submit', label: 'Submit Story', icon: Plus },
   ]
 
   const handleLogout = () => {
     logout()
-    onPageChange('landing')
+    navigate('/home')
   }
 
   return (
@@ -44,7 +40,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
           <nav className="hidden md:flex items-center space-x-1">
             {navigationItems.map((item) => {
               const IconComponent = item.icon
-              const isActive = currentPage === item.id
+              const isActive = location.pathname === item.id
               return (
                 <Button
                   key={item.id}
@@ -54,7 +50,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                       ? "bg-blue-600 text-white hover:bg-blue-700" 
                       : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
                   }`}
-                  onClick={() => onPageChange(item.id)}
+                  onClick={() => navigate(item.id)}
                 >
                   <IconComponent className="h-4 w-4" />
                   <span>{item.label}</span>
@@ -72,19 +68,26 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
               </Button>
             )}
             
-            {!isAuthenticated || currentPage === 'landing' ? (
+            {!isAuthenticated || location.pathname === '/home' ? (
               <div className="flex items-center space-x-3">
-                <Button variant="ghost" className="text-slate-600 hover:text-blue-600">
+                <Button 
+                  variant="ghost" 
+                  className="text-slate-600 hover:text-blue-600"
+                  onClick={() => navigate('/login')}
+                >
                   Sign In
                 </Button>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => navigate('/signup')}
+                >
                   Sign Up
                 </Button>
               </div>
             ) : (
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => onPageChange('dashboard')}
+                  onClick={() => navigate('/dashboard')}
                   className="flex items-center space-x-3 hover:opacity-80 cursor-pointer"
                 >
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
@@ -119,13 +122,16 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
 }
 
 // Mobile Navigation Component
-export function MobileNavigation({ currentPage, onPageChange }: NavigationProps) {
+export function MobileNavigation() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  
   const navigationItems = [
-    { id: 'landing' as Page, label: 'Home', icon: Home },
-    { id: 'dashboard' as Page, label: 'Dashboard', icon: BarChart3 },
-    { id: 'forum' as Page, label: 'Forum', icon: MessageSquare },
-    { id: 'usecases' as Page, label: 'Cases', icon: BookOpen },
-    { id: 'submit' as Page, label: 'Submit', icon: Plus },
+    { id: '/home', label: 'Home', icon: Home },
+    { id: '/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: '/forum', label: 'Forum', icon: MessageSquare },
+    { id: '/usecases', label: 'Cases', icon: BookOpen },
+    { id: '/submit', label: 'Submit', icon: Plus },
   ]
 
   return (
@@ -133,11 +139,11 @@ export function MobileNavigation({ currentPage, onPageChange }: NavigationProps)
       <div className="grid grid-cols-5 gap-1 p-2">
         {navigationItems.map((item) => {
           const IconComponent = item.icon
-          const isActive = currentPage === item.id
+          const isActive = location.pathname === item.id
           return (
             <button
               key={item.id}
-              onClick={() => onPageChange(item.id)}
+              onClick={() => navigate(item.id)}
               className={`flex flex-col items-center space-y-1 p-3 rounded-lg transition-colors ${
                 isActive 
                   ? "bg-blue-600 text-white" 

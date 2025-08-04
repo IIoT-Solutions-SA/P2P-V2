@@ -24,14 +24,11 @@ import {
   Users
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import type { SignupData } from '@/types/auth'
 
-interface SignupProps {
-  onNavigateToLogin: () => void
-  onSignupSuccess: () => void
-}
-
-export default function Signup({ onNavigateToLogin, onSignupSuccess }: SignupProps) {
+export default function Signup() {
+  const navigate = useNavigate()
   const { signup } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [showPassword, setShowPassword] = useState(false)
@@ -87,7 +84,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }: SignupPro
 
     try {
       await signup(formData)
-      onSignupSuccess()
+      navigate('/dashboard')
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Signup failed')
     } finally {
@@ -123,7 +120,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }: SignupPro
             </div>
             <Button 
               variant="outline" 
-              onClick={onNavigateToLogin}
+              onClick={() => navigate('/login')}
               className="flex items-center space-x-2"
             >
               <span>Already have an account?</span>

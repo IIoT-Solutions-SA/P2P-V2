@@ -12,13 +12,12 @@ import {
   ArrowRight 
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavigate, useLocation } from 'react-router-dom'
 
-interface LoginProps {
-  onNavigateToSignup: () => void
-  onLoginSuccess: () => void
-}
-
-export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps) {
+export default function Login() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state?.from?.pathname || '/dashboard'
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,7 +32,7 @@ export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps
 
     try {
       await login({ email, password })
-      onLoginSuccess()
+      navigate(from, { replace: true })
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed')
     } finally {
@@ -159,7 +158,7 @@ export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps
                 <p className="text-slate-600">
                   Don't have an account?{' '}
                   <button
-                    onClick={onNavigateToSignup}
+                    onClick={() => navigate('/signup')}
                     className="text-blue-600 hover:text-blue-700 font-medium"
                   >
                     Create organization

@@ -16,22 +16,32 @@ from app.core.exceptions import (
     validation_exception_handler,
     general_exception_handler
 )
+from app.db.session import init_db, close_db
+import logging
+
+# Configure logging
+logging.basicConfig(level=settings.LOG_LEVEL)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
     # Startup
-    print("Starting up P2P Sandbox Backend...")
-    # TODO: Initialize database connections
-    # TODO: Initialize Redis connection
-    # TODO: Initialize MongoDB connection
+    logger.info("Starting up P2P Sandbox Backend...")
+    try:
+        await init_db()
+        logger.info("Database connections initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize databases: {e}")
+        raise
+    
     yield
+    
     # Shutdown
-    print("Shutting down P2P Sandbox Backend...")
-    # TODO: Close database connections
-    # TODO: Close Redis connection
-    # TODO: Close MongoDB connection
+    logger.info("Shutting down P2P Sandbox Backend...")
+    await close_db()
+    logger.info("Database connections closed successfully")
 
 
 # Create FastAPI instance

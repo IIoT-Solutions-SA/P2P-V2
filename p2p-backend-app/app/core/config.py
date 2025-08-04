@@ -24,11 +24,22 @@ class Settings(BaseSettings):
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+        if isinstance(v, str):
+            # Handle empty string
+            if not v:
+                return []
+            # Handle comma-separated string
+            if not v.startswith("["):
+                return [i.strip() for i in v.split(",") if i.strip()]
+            # Handle JSON array string
+            try:
+                import json
+                return json.loads(v)
+            except:
+                return []
+        elif isinstance(v, list):
             return v
-        raise ValueError(v)
+        return []
     
     # Database
     POSTGRES_SERVER: str = "postgres"
@@ -43,14 +54,7 @@ class Settings(BaseSettings):
     def assemble_db_connection(cls, v: Optional[str], values: dict) -> str:
         if isinstance(v, str):
             return v
-        return PostgresDsn.build(
-            scheme="postgresql+asyncpg",
-            username=values.data.get("POSTGRES_USER"),
-            password=values.data.get("POSTGRES_PASSWORD"),
-            host=values.data.get("POSTGRES_SERVER"),
-            port=values.data.get("POSTGRES_PORT"),
-            path=values.data.get("POSTGRES_DB"),
-        )
+        return f"postgresql+asyncpg://{values.data.get('POSTGRES_USER')}:{values.data.get('POSTGRES_PASSWORD')}@{values.data.get('POSTGRES_SERVER')}:{values.data.get('POSTGRES_PORT')}/{values.data.get('POSTGRES_DB')}"
     
     # MongoDB
     MONGODB_URL: str = "mongodb://mongodb:27017"

@@ -8,6 +8,7 @@ from app.api.v1.organizations import organizations_router
 from app.api.v1.forum import forum_router
 from app.api.v1.use_cases import use_cases_router
 from app.api.v1.messaging import messaging_router
+from app.db.session import check_postgres_health, check_mongodb_health
 
 api_router = APIRouter()
 
@@ -22,12 +23,23 @@ api_router.include_router(messaging_router, prefix="/messaging", tags=["messagin
 
 @api_router.get("/health")
 async def health_check():
-    """API health check endpoint."""
+    """API health check endpoint with database status."""
+    # Run health checks in parallel
+    postgres_health = await check_postgres_health()
+    mongodb_health = await check_mongodb_health()
+    
+    # Determine overall status
+    all_healthy = (
+        postgres_health["status"] == "healthy" and 
+        mongodb_health["status"] == "healthy"
+    )
+    
     return {
-        "status": "healthy",
+        "status": "healthy" if all_healthy else "degraded",
         "service": "p2p-backend-api-v1",
         "checks": {
             "api": "operational",
-            # Database checks will be added in later phases
+            "postgresql": postgres_health,
+            "mongodb": mongodb_health,
         }
     }

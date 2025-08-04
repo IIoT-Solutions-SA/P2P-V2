@@ -1,25 +1,73 @@
 """
 P2P Sandbox Backend API
-A minimal FastAPI application to test our container setup
+FastAPI application with async support for industrial SME collaboration platform
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException
+from starlette.middleware.errors import ServerErrorMiddleware
+
+from app.core.config import settings
+from app.api.v1.api import api_router
+from app.core.exceptions import (
+    http_exception_handler,
+    validation_exception_handler,
+    general_exception_handler
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events."""
+    # Startup
+    print("Starting up P2P Sandbox Backend...")
+    # TODO: Initialize database connections
+    # TODO: Initialize Redis connection
+    # TODO: Initialize MongoDB connection
+    yield
+    # Shutdown
+    print("Shutting down P2P Sandbox Backend...")
+    # TODO: Close database connections
+    # TODO: Close Redis connection
+    # TODO: Close MongoDB connection
+
 
 # Create FastAPI instance
 app = FastAPI(
-    title="P2P Sandbox API",
-    description="Backend API for P2P Sandbox platform",
-    version="0.1.0",
+    title=settings.PROJECT_NAME,
+    description="Backend API for P2P Sandbox platform - Empowering Saudi industrial SMEs through peer collaboration",
+    version=settings.VERSION,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan,
 )
 
-# Configure CORS for frontend
+# Add server error middleware
+app.add_middleware(ServerErrorMiddleware, handler=general_exception_handler)
+
+# Configure CORS
+# Parse CORS origins - ensure we have defaults for development
+cors_origins = [str(origin) for origin in settings.BACKEND_CORS_ORIGINS]
+if not cors_origins and settings.ENVIRONMENT == "development":
+    cors_origins = ["http://localhost:5173", "http://localhost:3000"]
+
+print(f"CORS Origins configured: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add exception handlers
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+
+# Include API router
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")

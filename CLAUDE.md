@@ -114,6 +114,35 @@ When writing any code for this project, Claude MUST:
 2. Before writing FastAPI endpoints → Verify current async best practices
 3. Before database operations → Confirm latest SQLModel usage patterns
 
+### Semgrep Security Scanning
+
+When writing any code for this project, Claude MUST:
+
+1. **Always Run Security Scans**: After writing any code, use the Semgrep MCP tool to scan for:
+   - Security vulnerabilities (OWASP Top 10)
+   - Authentication and authorization issues
+   - Injection vulnerabilities (SQL, NoSQL, Command)
+   - Cross-site scripting (XSS) risks
+   - Insecure data exposure
+   - Configuration security issues
+
+2. **Fix Identified Issues**: When Semgrep identifies security issues:
+   - Address all high and critical severity findings immediately
+   - Document why medium/low severity issues are acceptable if not fixed
+   - Re-scan after fixes to ensure issues are resolved
+
+3. **Security Scanning Process**:
+   - Write the initial code implementation
+   - Run Semgrep scan on the new/modified files
+   - Review and fix any security findings
+   - Document any security considerations in comments
+
+### Security Workflow Example:
+1. After implementing API endpoints → Scan for injection vulnerabilities
+2. After authentication code → Check for auth bypass issues
+3. After file handling code → Verify path traversal protection
+4. After database queries → Ensure proper parameterization
+
 ## Documentation Guidelines
 
 When working in the `/docs` folder:

@@ -1,0 +1,257 @@
+[
+  {
+    "id": 1,
+    "title": "AI Quality Inspection System",
+    "description": "Computer vision system reduces defects by 85% in electronics manufacturing.",
+    "factoryName": "Advanced Electronics Co.",
+    "city": "Riyadh",
+    "latitude": 24.7136,
+    "longitude": 46.6753,
+    "image": "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=400&h=250&fit=crop",
+    "category": "Quality Control",
+    "implementationTime": "6 months implementation",
+    "benefits": [
+      "85% reduction in defects",
+      "$2.3M annual cost savings",
+      "40% faster inspection process"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Predictive Maintenance IoT System",
+    "description": "Smart sensors prevent equipment failures and reduce downtime significantly.",
+    "factoryName": "Gulf Plastics Industries",
+    "city": "Dammam",
+    "latitude": 26.4207,
+    "longitude": 50.0888,
+    "image": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop",
+    "category": "Predictive Maintenance",
+    "implementationTime": "4 months implementation",
+    "benefits": [
+      "60% downtime reduction",
+      "$1.8M maintenance savings",
+      "25% productivity increase"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Energy Management Optimization",
+    "description": "Smart energy monitoring cuts factory operational costs by 30%.",
+    "factoryName": "Saudi Steel Works",
+    "city": "Jubail",
+    "latitude": 27.0174,
+    "longitude": 49.6251,
+    "image": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=250&fit=crop",
+    "category": "Sustainability",
+    "implementationTime": "3 months implementation",
+    "benefits": [
+      "30% energy cost reduction",
+      "$950K annual savings",
+      "40% less carbon emissions"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Automated Inventory Management",
+    "description": "RFID-based system optimizes supply chain and reduces waste.",
+    "factoryName": "Arabian Food Processing",
+    "city": "Jeddah",
+    "latitude": 21.3891,
+    "longitude": 39.8579,
+    "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=250&fit=crop",
+    "category": "Process Optimization",
+    "implementationTime": "5 months implementation",
+    "benefits": [
+      "45% inventory optimization",
+      "35% waste reduction",
+      "90% reduction in stockouts"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Robotic Process Automation",
+    "description": "Automated assembly line increases production efficiency dramatically.",
+    "factoryName": "Precision Manufacturing Ltd",
+    "city": "Riyadh",
+    "latitude": 24.7506,
+    "longitude": 46.6444,
+    "image": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=250&fit=crop",
+    "category": "Factory Automation",
+    "implementationTime": "8 months implementation",
+    "benefits": [
+      "50% faster production",
+      "95% accuracy improvement",
+      "$3.2M productivity gains"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Smart Water Management",
+    "description": "IoT sensors monitor and optimize water usage across manufacturing processes.",
+    "factoryName": "Eco-Green Industries",
+    "city": "Riyadh",
+    "latitude": 24.6877,
+    "longitude": 46.7219,
+    "image": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=250&fit=crop",
+    "category": "Sustainability",
+    "implementationTime": "4 months implementation",
+    "benefits": [
+      "40% water usage reduction",
+      "$650K cost savings",
+      "Environmental compliance achieved"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Digital Twin Technology",
+    "description": "Virtual factory models optimize operations and predict maintenance needs.",
+    "factoryName": "Future Tech Manufacturing",
+    "city": "Khobar",
+    "latitude": 26.2041,
+    "longitude": 50.1971,
+    "image": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=250&fit=crop",
+    "category": "Innovation & R&D",
+    "implementationTime": "6 months implementation",
+    "benefits": [
+      "30% operational efficiency",
+      "Real-time optimization",
+      "$1.5M process improvements"
+    ]
+  },
+  {
+    "id": 8,
+    "title": "Blockchain Supply Chain",
+    "description": "Transparent supply chain tracking ensures quality and reduces fraud.",
+    "factoryName": "Secure Supply Co.",
+    "city": "Mecca",
+    "latitude": 21.3891,
+    "longitude": 39.8579,
+    "image": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=250&fit=crop",
+    "category": "Supply Chain",
+    "implementationTime": "7 months implementation",
+    "benefits": [
+      "100% supply transparency",
+      "Zero counterfeit products",
+      "25% faster logistics"
+    ]
+  },
+  {
+    "id": 9,
+    "title": "Machine Learning Quality Control",
+    "description": "AI algorithms detect microscopic defects in pharmaceutical production.",
+    "factoryName": "Pharma Excellence Ltd",
+    "city": "Riyadh",
+    "latitude": 24.7180,
+    "longitude": 46.6820,
+    "image": "https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=400&h=250&fit=crop",
+    "category": "Quality Control",
+    "implementationTime": "5 months implementation",
+    "benefits": [
+      "99.9% defect detection",
+      "FDA compliance achieved",
+      "$2.8M quality improvements"
+    ]
+  },
+  {
+    "id": 10,
+    "title": "Augmented Reality Training",
+    "description": "AR systems train workers faster and reduce safety incidents.",
+    "factoryName": "Safety First Industries",
+    "city": "Yanbu",
+    "latitude": 24.0889,
+    "longitude": 38.0617,
+    "image": "https://images.unsplash.com/photo-1592478411213-6153e4ebc696?w=400&h=250&fit=crop",
+    "category": "Training & Safety",
+    "implementationTime": "3 months implementation",
+    "benefits": [
+      "70% faster training",
+      "80% fewer accidents",
+      "Enhanced worker safety"
+    ]
+  },
+  {
+    "id": 11,
+    "title": "Smart Factory Lighting System",
+    "description": "Automated LED lighting system reduces energy consumption and improves worker productivity.",
+    "factoryName": "Eastern Industries",
+    "city": "Dammam",
+    "latitude": 26.3800,
+    "longitude": 50.1280,
+    "image": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=250&fit=crop",
+    "category": "Energy Efficiency",
+    "implementationTime": "2 months implementation",
+    "benefits": [
+      "45% energy savings",
+      "Better worker visibility",
+      "Reduced maintenance costs"
+    ]
+  },
+  {
+    "id": 12,
+    "title": "Automated Packaging Line",
+    "description": "Robotic packaging system increases speed and reduces material waste in food processing.",
+    "factoryName": "Red Sea Food Processing",
+    "city": "Jeddah",
+    "latitude": 21.4520,
+    "longitude": 39.8680,
+    "image": "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=400&h=250&fit=crop",
+    "category": "Factory Automation",
+    "implementationTime": "4 months implementation",
+    "benefits": [
+      "300% faster packaging",
+      "Zero product contamination",
+      "$1.2M annual savings"
+    ]
+  },
+  {
+    "id": 13,
+    "title": "AI-Powered Production Planning",
+    "description": "Machine learning algorithms optimize production schedules and resource allocation.",
+    "factoryName": "Capital Manufacturing Hub",
+    "city": "Riyadh",
+    "latitude": 24.6950,
+    "longitude": 46.7150,
+    "image": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop",
+    "category": "Process Optimization",
+    "implementationTime": "6 months implementation",
+    "benefits": [
+      "35% efficiency increase",
+      "Optimized resource usage",
+      "$890K cost reduction"
+    ]
+  },
+  {
+    "id": 14,
+    "title": "Smart Warehouse Management",
+    "description": "RFID and IoT sensors create fully automated warehouse operations with real-time tracking.",
+    "factoryName": "North Riyadh Logistics",
+    "city": "Riyadh",
+    "latitude": 24.7950,
+    "longitude": 46.7680,
+    "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=250&fit=crop",
+    "category": "Supply Chain",
+    "implementationTime": "5 months implementation",
+    "benefits": [
+      "99% inventory accuracy",
+      "50% faster order fulfillment",
+      "Reduced labor costs"
+    ]
+  },
+  {
+    "id": 15,
+    "title": "Renewable Energy Integration",
+    "description": "Solar panel installation with smart grid integration reduces factory carbon footprint.",
+    "factoryName": "South Valley Industries",
+    "city": "Riyadh",
+    "latitude": 24.6320,
+    "longitude": 46.6380,
+    "image": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=250&fit=crop",
+    "category": "Sustainability",
+    "implementationTime": "8 months implementation",
+    "benefits": [
+      "60% renewable energy",
+      "$750K annual savings",
+      "Carbon neutral operations"
+    ]
+  }
+]

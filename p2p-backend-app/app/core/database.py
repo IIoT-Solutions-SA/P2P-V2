@@ -71,7 +71,7 @@ class DatabaseManager:
             from app.models.mongo_models import User, ForumPost, UseCase, ForumReply
             await init_beanie(
                 database=self.mongo_db,
-                document_models=[User, ForumPost, UseCase, ForumReply]
+                document_models=[User, ForumPost, ForumReply, UseCase]
             )
             
             logger.info("MongoDB connection established")

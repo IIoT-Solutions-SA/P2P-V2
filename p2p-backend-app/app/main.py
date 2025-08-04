@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.v1.api import api_router
+from app.core.database import db_manager
 
 # Setup logging
 logger = setup_logging()
@@ -12,9 +13,13 @@ logger = setup_logging()
 async def lifespan(app: FastAPI):
     # Startup
     logger.info(f"Starting {settings.PROJECT_NAME}")
+    await db_manager.init_postgres()
+    await db_manager.init_mongodb()
+    logger.info("Database connections initialized")
     yield
     # Shutdown
     logger.info("Shutting down")
+    await db_manager.close_connections()
 
 app = FastAPI(
     title=settings.API_TITLE,

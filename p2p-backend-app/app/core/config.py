@@ -24,6 +24,10 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
     
+    # Database URLs
+    DATABASE_URL: str = "postgresql+asyncpg://p2p_user:iiot123@localhost:5432/p2p_sandbox"
+    MONGODB_URL: str = "mongodb://p2p_user:iiot123@localhost:27017/"
+    
     # Environment
     ENVIRONMENT: str = "development"
     DEBUG: bool = True

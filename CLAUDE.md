@@ -118,7 +118,7 @@ When writing any code for this project, Claude MUST:
 
 When writing any code for this project, Claude MUST:
 
-1. **Always Run Security Scans**: After writing any code, use the Semgrep MCP tool to scan for:
+1. **Always Run Security Scans**: After writing any code, use Semgrep via the Bash tool to scan for:
    - Security vulnerabilities (OWASP Top 10)
    - Authentication and authorization issues
    - Injection vulnerabilities (SQL, NoSQL, Command)
@@ -133,15 +133,15 @@ When writing any code for this project, Claude MUST:
 
 3. **Security Scanning Process**:
    - Write the initial code implementation
-   - Run Semgrep scan on the new/modified files
+   - Run Semgrep scan using: `~/.local/bin/semgrep --config=auto <file_or_directory>`
    - Review and fix any security findings
    - Document any security considerations in comments
 
 ### Security Workflow Example:
-1. After implementing API endpoints → Scan for injection vulnerabilities
-2. After authentication code → Check for auth bypass issues
-3. After file handling code → Verify path traversal protection
-4. After database queries → Ensure proper parameterization
+1. After implementing API endpoints → `~/.local/bin/semgrep --config=auto app/api/`
+2. After authentication code → `~/.local/bin/semgrep --config=auto app/auth/`
+3. After file handling code → `~/.local/bin/semgrep --config=auto --pattern 'path.join'`
+4. After database queries → `~/.local/bin/semgrep --config=auto --pattern 'execute|query'`
 
 ## Documentation Guidelines
 

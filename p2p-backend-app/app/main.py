@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from supertokens_python.framework.fastapi import get_middleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.v1.api import api_router
 from app.core.database import db_manager
+from app.core.supertokens import init_supertokens
 
 # Setup logging
 logger = setup_logging()
@@ -13,9 +15,16 @@ logger = setup_logging()
 async def lifespan(app: FastAPI):
     # Startup
     logger.info(f"Starting {settings.PROJECT_NAME}")
+    
+    # Initialize SuperTokens
+    init_supertokens()
+    logger.info("SuperTokens initialized")
+    
+    # Initialize databases
     await db_manager.init_postgres()
     await db_manager.init_mongodb()
     logger.info("Database connections initialized")
+    
     yield
     # Shutdown
     logger.info("Shutting down")
@@ -27,6 +36,9 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan
 )
+
+# SuperTokens middleware (must be before CORS)
+app.add_middleware(get_middleware())
 
 # CORS middleware
 if settings.BACKEND_CORS_ORIGINS:

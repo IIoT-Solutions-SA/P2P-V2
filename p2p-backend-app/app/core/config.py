@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://p2p_user:iiot123@localhost:5432/p2p_sandbox"
     MONGODB_URL: str = "mongodb://p2p_user:iiot123@localhost:27017/"
     
+    # SuperTokens Configuration
+    SUPERTOKENS_CONNECTION_URI: str = "http://localhost:3567"
+    API_DOMAIN: str = "http://localhost:8000"
+    WEBSITE_DOMAIN: str = "http://localhost:3000"
+    COOKIE_DOMAIN: Optional[str] = None  # None = same domain as API
+    
     # Environment
     ENVIRONMENT: str = "development"
     DEBUG: bool = True

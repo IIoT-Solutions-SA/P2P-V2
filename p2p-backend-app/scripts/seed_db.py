@@ -2,6 +2,7 @@ import asyncio
 import json
 import sys
 import os
+import httpx
 
 # Add the parent directory to the path so we can import app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,6 +14,40 @@ from app.models.pg_models import User as PGUser
 from app.core.logging import setup_logging
 from sqlalchemy import select, delete
 import random
+
+async def create_supertokens_user(email: str, password: str, first_name: str, last_name: str, logger):
+    """Create a user via SuperTokens API and return the user ID"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "http://localhost:8000/auth/signup",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "formFields": [
+                        {"id": "email", "value": email},
+                        {"id": "password", "value": password},
+                        {"id": "firstName", "value": first_name},
+                        {"id": "lastName", "value": last_name}
+                    ]
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("status") == "OK":
+                    supertokens_user_id = result["user"]["id"]
+                    logger.info(f"✅ Created SuperTokens user: {email} (ID: {supertokens_user_id})")
+                    return supertokens_user_id
+                else:
+                    logger.error(f"❌ SuperTokens signup failed for {email}: {result}")
+                    return None
+            else:
+                logger.error(f"❌ HTTP error for {email}: {response.status_code} - {response.text}")
+                return None
+                
+    except Exception as e:
+        logger.error(f"❌ Exception creating SuperTokens user {email}: {e}")
+        return None
 
 async def seed_data():
     """Seed development data from high-quality frontend use-cases.json"""
@@ -62,52 +97,159 @@ async def seed_data():
         except Exception as e:
             logger.warning(f"Error during user cleanup: {e}")
 
-        # --- Seed Users (Demo Accounts from Frontend) ---
+        # --- Seed Users (Complete 10-User List with SuperTokens Integration) ---
         test_users = [
+            # Current Seed Users (3 users)
             {
                 "email": "ahmed.faisal@advanced-electronics.com", 
-                "name": "Ahmed Al-Faisal", 
+                "name": "Ahmed Al-Faisal",
+                "first_name": "Ahmed",
+                "last_name": "Al-Faisal", 
+                "password": "password123",
                 "role": "admin",
                 "company": "Advanced Electronics Co.",
                 "title": "Organization Admin"
             },
             {
                 "email": "sara.hassan@advanced-electronics.com", 
-                "name": "Sara Hassan", 
+                "name": "Sara Hassan",
+                "first_name": "Sara",
+                "last_name": "Hassan",
+                "password": "password123", 
                 "role": "member",
                 "company": "Advanced Electronics Co.", 
                 "title": "Team Member"
             },
             {
                 "email": "mohammed.rashid@gulf-plastics.com", 
-                "name": "Mohammed Rashid", 
+                "name": "Mohammed Rashid",
+                "first_name": "Mohammed",
+                "last_name": "Rashid",
+                "password": "password123",
                 "role": "admin",
                 "company": "Gulf Plastics Industries",
                 "title": "Organization Admin"
+            },
+            # Forum Post Authors (4 users)
+            {
+                "email": "sarah.ahmed@electronics-manufacturing.com",
+                "name": "Sarah Ahmed",
+                "first_name": "Sarah",
+                "last_name": "Ahmed",
+                "password": "password123",
+                "role": "member",
+                "company": "Electronics Manufacturing Co.",
+                "title": "Production Manager"
+            },
+            {
+                "email": "mohammed.alshahri@plastic-industries.com",
+                "name": "Mohammed Al-Shahri",
+                "first_name": "Mohammed",
+                "last_name": "Al-Shahri",
+                "password": "password123",
+                "role": "member",
+                "company": "Plastic Industries Co.",
+                "title": "Maintenance Manager"
+            },
+            {
+                "email": "fatima.otaibi@electrical-equipment.com",
+                "name": "Fatima Al-Otaibi",
+                "first_name": "Fatima",
+                "last_name": "Al-Otaibi",
+                "password": "password123",
+                "role": "member",
+                "company": "Electrical Equipment Co.",
+                "title": "Operations Manager"
+            },
+            {
+                "email": "khalid.ghamdi@component-manufacturing.com",
+                "name": "Khalid Al-Ghamdi",
+                "first_name": "Khalid",
+                "last_name": "Al-Ghamdi",
+                "password": "password123",
+                "role": "member",
+                "company": "Component Manufacturing Co.",
+                "title": "Quality Manager"
+            },
+            # Forum Comment Authors (3 users)
+            {
+                "email": "mohammed.alrashid@industrial-solutions.com",
+                "name": "Mohammed Al-Rashid",
+                "first_name": "Mohammed",
+                "last_name": "Al-Rashid",
+                "password": "password123",
+                "role": "admin",
+                "company": "Industrial Solutions Co.",
+                "title": "Technical Director"
+            },
+            {
+                "email": "fatima.hassan@techvision-sa.com",
+                "name": "Fatima Hassan",
+                "first_name": "Fatima",
+                "last_name": "Hassan",
+                "password": "password123",
+                "role": "member",
+                "company": "TechVision SA",
+                "title": "AI Solutions Specialist"
+            },
+            {
+                "email": "ahmed.zahrani@digital-transformation.com",
+                "name": "Ahmed Al-Zahrani",
+                "first_name": "Ahmed",
+                "last_name": "Al-Zahrani",
+                "password": "password123",
+                "role": "admin",
+                "company": "Digital Transformation Co.",
+                "title": "Transformation Consultant"
             }
         ]
 
         created_users = []
+        logger.info(f"🚀 Creating {len(test_users)} users via SuperTokens API...")
+        
         for user_data in test_users:
             try:
-                # Create in PostgreSQL with correct role
-                pg_user = await UserService.create_user_pg(db, name=user_data["name"], email=user_data["email"], role=user_data.get("role", "user"))
-                logger.info(f"Created PostgreSQL user: {user_data['name']} (role: {user_data.get('role', 'user')})")
+                # Step 1: Create user via SuperTokens API
+                supertokens_user_id = await create_supertokens_user(
+                    email=user_data["email"],
+                    password=user_data["password"],
+                    first_name=user_data["first_name"],
+                    last_name=user_data["last_name"],
+                    logger=logger
+                )
+                
+                if not supertokens_user_id:
+                    logger.error(f"❌ Failed to create SuperTokens user for {user_data['email']}, skipping...")
+                    continue
+                
+                # Step 2: Create app profile in PostgreSQL with SuperTokens ID link
+                pg_user = await UserService.create_user_pg(
+                    db, 
+                    name=user_data["name"], 
+                    email=user_data["email"], 
+                    role=user_data.get("role", "user"),
+                    supertokens_id=supertokens_user_id  # Link to SuperTokens user
+                )
+                logger.info(f"✅ Created PostgreSQL profile: {user_data['name']} (role: {user_data.get('role', 'user')}, SuperTokens ID: {supertokens_user_id})")
 
-                # Create in MongoDB with additional fields
+                # Step 3: Create app profile in MongoDB with additional fields
                 mongo_user = await UserService.create_user_mongo(
                     email=user_data["email"],
                     name=user_data["name"],
                     role=user_data.get("role", "user"),
                     industry_sector="Manufacturing",
                     location=user_data.get("company", "Saudi Arabia"),
-                    expertise_tags=["4IR", "IoT", "Digital Transformation"]
+                    expertise_tags=["4IR", "IoT", "Digital Transformation"],
+                    company=user_data.get("company", ""),
+                    title=user_data.get("title", "")
                 )
                 created_users.append(mongo_user)
-                logger.info(f"Created MongoDB user: {user_data['name']} (role: {user_data.get('role', 'user')})")
+                logger.info(f"✅ Created MongoDB profile: {user_data['name']} at {user_data.get('company', 'Unknown Company')}")
 
             except Exception as e:
-                logger.warning(f"Error creating user {user_data['email']}: {e}")
+                logger.error(f"❌ Error creating user {user_data['email']}: {e}")
+        
+        logger.info(f"🎉 Successfully created {len(created_users)} users with SuperTokens integration!")
 
         # --- Seed Use Cases from Frontend JSON ---
         json_path = os.path.join(os.path.dirname(__file__), '..', 'use-cases.json')

@@ -13,9 +13,9 @@ class UserService:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def create_user_pg(db: AsyncSession, name: str, email: str, role: str = "user") -> PGUser:
+    async def create_user_pg(db: AsyncSession, name: str, email: str, role: str = "user", supertokens_id: str = None) -> PGUser:
         """Create a new user in PostgreSQL"""
-        new_user = PGUser(name=name, email=email, role=role)
+        new_user = PGUser(name=name, email=email, role=role, supertokens_id=supertokens_id)
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)

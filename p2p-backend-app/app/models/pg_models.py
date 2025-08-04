@@ -13,6 +13,7 @@ class User(Base, TimestampMixin):
     __tablename__ = "users"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    supertokens_id = Column(String(255), unique=True, nullable=True, index=True)  # Link to SuperTokens user
     email = Column(String(255), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False, default="user")

@@ -252,6 +252,11 @@ git push origin aadil-backend
 - Implementation Tasks: `/docs/aadil_docs/backend-implementation-tasks.md`
 - AWS Deployment Plan: `/docs/aadil_docs/aws-deployment-cicd-plan.md`
 
+### Progress Tracking
+- Development Checklist: `/docs/aadil_docs/development-checklist.md`
+- Implementation Progress: `/docs/aadil_docs/implementation-progress.md`
+- Development Log: `/docs/aadil_docs/development-log.md`
+
 ### Development Guides
 - Frontend-Backend Integration: `/docs/aadil_docs/frontend-backend-integration-guide.md`
 - Type Alignment Guide: `/docs/aadil_docs/type-alignment-guide.md`

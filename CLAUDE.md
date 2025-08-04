@@ -247,10 +247,22 @@ git push origin aadil-backend
 
 ## Resources
 
+### Planning Documents
 - Backend Plan: `/docs/aadil_docs/unified-backend-development-plan.md`
+- Implementation Tasks: `/docs/aadil_docs/backend-implementation-tasks.md`
+- AWS Deployment Plan: `/docs/aadil_docs/aws-deployment-cicd-plan.md`
+
+### Development Guides
+- Frontend-Backend Integration: `/docs/aadil_docs/frontend-backend-integration-guide.md`
+- Type Alignment Guide: `/docs/aadil_docs/type-alignment-guide.md`
+- Authentication Flow: `/docs/aadil_docs/authentication-flow-guide.md`
+- API Communication: `/docs/aadil_docs/api-communication-guide.md`
+- Development Workflow: `/docs/aadil_docs/development-workflow-guide.md`
+
+### Architecture & Testing
+- Architecture: `/docs/architecture/`
 - Async Guide: `/docs/aadil_docs/async-implementation-guide.md`
 - Testing Plan: `/docs/aadil_docs/comprehensive-testing-plan.md`
-- Architecture: `/docs/architecture/`
 
 ## Developer-Specific Context
 

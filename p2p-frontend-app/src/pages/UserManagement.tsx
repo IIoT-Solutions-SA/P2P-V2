@@ -28,7 +28,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { mockUsers, mockOrganizations } from '@/contexts/AuthContext'
 import type { InviteUserData, PendingInvitation } from '@/types/auth'
-import type { Page } from '@/components/Navigation'
+import { type Page } from '@/components/Navigation'
 
 interface UserManagementProps {
   onPageChange?: (page: Page) => void

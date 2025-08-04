@@ -19,12 +19,19 @@ interface LoginProps {
 }
 
 export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps) {
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      onLoginSuccess()
+    }
+  }, [isAuthenticated, onLoginSuccess])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

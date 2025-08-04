@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Zap, Home, MessageSquare, BookOpen, BarChart3, Bell, Plus, LogOut, User } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
-export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management'
+export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management' | 'login' | 'signup'
 
 interface NavigationProps {
   currentPage: Page
@@ -74,10 +74,17 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
             
             {!isAuthenticated || currentPage === 'landing' ? (
               <div className="flex items-center space-x-3">
-                <Button variant="ghost" className="text-slate-600 hover:text-blue-600">
+                <Button 
+                  variant="ghost" 
+                  className="text-slate-600 hover:text-blue-600"
+                  onClick={() => onPageChange('login' as Page)}
+                >
                   Sign In
                 </Button>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => onPageChange('signup' as Page)}
+                >
                   Sign Up
                 </Button>
               </div>

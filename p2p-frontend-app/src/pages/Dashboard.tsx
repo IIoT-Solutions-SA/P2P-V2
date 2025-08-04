@@ -20,7 +20,8 @@ import {
   Settings
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-import type { Page } from '@/components/Navigation'
+import { ConnectionTest } from '@/components/ConnectionTest'
+import { type Page } from '@/components/Navigation'
 
 interface DashboardProps {
   onPageChange?: (page: Page) => void
@@ -43,6 +44,12 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
               </div>
               <h1 className="text-3xl font-bold mb-3">Welcome back, {user?.firstName || 'User'}! 👋</h1>
               <p className="text-slate-300 text-lg">Ready to connect and share knowledge today? Here's what's happening in your professional network.</p>
+            </div>
+
+            {/* Backend Connection Test - TEMPORARY for Phase 0.5 */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">🔧 Phase 0.5: Backend Integration Test</h2>
+              <ConnectionTest />
             </div>
 
             {/* Quick Actions */}

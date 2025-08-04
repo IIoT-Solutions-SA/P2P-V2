@@ -1,11 +1,27 @@
+/**
+ * Authentication Context
+ * 
+ * Current Status: Mock implementation for Phase 0.5 testing
+ * TODO Phase 2: Replace with SuperTokens integration
+ * 
+ * SuperTokens integration will include:
+ * - Session management
+ * - Token refresh
+ * - Secure authentication flow
+ * - Organization-based signup
+ */
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { User, Organization, AuthState, LoginCredentials, SignupData } from '@/types/auth'
+import { api } from '@/services'
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
   signup: (data: SignupData) => Promise<void>
   logout: () => void
   updateUser: (user: User) => void
+  // Future SuperTokens methods
+  refreshSession?: () => Promise<void>
+  checkSession?: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)

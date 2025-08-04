@@ -6,8 +6,9 @@ import UseCases from './pages/UseCases'
 import SubmitUseCase from './pages/SubmitUseCase'
 import UseCaseDetail from './pages/UseCaseDetail'
 import UserManagement from './pages/UserManagement'
-import Navigation, { MobileNavigation } from './components/Navigation'
-import type { Page } from './components/Navigation'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import Navigation, { MobileNavigation, type Page } from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './contexts/AuthContext'
 
@@ -54,6 +55,13 @@ function App() {
             <UserManagement onPageChange={setCurrentPage} />
           </ProtectedRoute>
         )
+      case 'login':
+        return <Login 
+          onLoginSuccess={() => setCurrentPage('dashboard')} 
+          onNavigateToSignup={() => setCurrentPage('signup')} 
+        />
+      case 'signup':
+        return <Signup onSuccess={() => setCurrentPage('dashboard')} />
       default:
         return <LandingPage onNavigate={(page) => setCurrentPage(page as Page)} />
     }

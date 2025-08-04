@@ -125,19 +125,40 @@ When making any changes to the project, Claude MUST follow these version control
 
 ### Commit Workflow
 1. **Every Change Must Be Committed**: No matter how small, every file modification must be committed
-2. **Clear Commit Messages**: Each commit must have a descriptive message following this format:
-   - `feat:` for new features
-   - `fix:` for bug fixes
-   - `docs:` for documentation changes
-   - `refactor:` for code restructuring
-   - `test:` for test additions/changes
-   - `chore:` for maintenance tasks
+2. **Exhaustive Commit Messages**: Each commit must have a detailed message that explains:
+   - **WHAT**: What changes were made
+   - **WHY**: Why the changes were necessary
+   - **HOW**: How the changes were implemented
+3. **Message Format**: Use conventional commit format with detailed description:
+   ```
+   type: brief summary
+   
+   WHAT: Detailed description of changes made
+   WHY: Reason for making these changes
+   HOW: Implementation approach and any important details
+   ```
 
 ### Commit Message Examples:
-- `docs: add frontend-backend integration guide`
-- `feat: create type alignment documentation`
-- `fix: update CORS configuration in backend plan`
-- `refactor: reorganize authentication flow guide`
+```
+docs: add comprehensive frontend-backend integration guide
+
+WHAT: Created a detailed guide covering frontend-backend integration including dependencies, 
+environment setup, API client configuration, authentication flow, error handling, and testing strategies
+WHY: Frontend currently uses mock data and needs proper integration with the FastAPI backend. 
+Developers need clear guidance on how to connect the two systems
+HOW: Documented required npm packages, environment variables, CORS configuration, SuperTokens setup, 
+and provided testing checklists for verifying integration
+```
+
+```
+feat: implement type alignment strategy between frontend and backend
+
+WHAT: Added comprehensive documentation for handling type differences between TypeScript and Python
+WHY: Type mismatches between frontend and backend can cause runtime errors. UUID, date, and enum 
+handling needs standardization
+HOW: Created mapping tables, transformation strategies, and validation approaches for consistent 
+type handling across the stack
+```
 
 ### Required Git Commands:
 After making changes, always execute:

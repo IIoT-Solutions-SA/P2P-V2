@@ -1,26 +1,46 @@
-# FastAPI and Server
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
 
-# Pydantic and Settings Management
-pydantic==2.10.6
-pydantic-settings==2.1.0
-python-dotenv==1.0.0
+# Database - Using SQLModel (combines SQLAlchemy + Pydantic)
+sqlmodel==0.0.14
+sqlalchemy[asyncio]==2.0.23
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# MongoDB
+motor==3.3.2
+pymongo==4.6.0
+
+# Redis
+redis[hiredis]==5.0.1
 
 # Authentication
-supertokens-python==0.30.1
-passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.3.0
+supertokens-python==0.17.0
 
-# Database
-sqlalchemy==2.0.25
-asyncpg==0.29.0
-alembic==1.13.1
-motor==3.3.2
-beanie==1.24.0
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography==41.0.7
+
+# Configuration
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# HTTP Client
+httpx==0.25.2
+
+# AWS SDK (for S3)
+boto3==1.29.7
+
+# Email
+python-emails==0.6.0
+email-validator==2.1.0
 
 # Utilities
-python-multipart==0.0.6
-email-validator==2.1.0
+python-dateutil==2.8.2
+pytz==2023.3
 tenacity==8.2.3
-httpx==0.26.0

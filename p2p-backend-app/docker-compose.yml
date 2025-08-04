@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Our main database for structured data
+  postgres:
+    image: postgres:15-alpine
+    container_name: p2p-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-p2p_sandbox}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/01-init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - p2p-network
+
+  # MongoDB - For document storage (forum posts, use cases)
+  mongodb:
+    image: mongo:7
+    container_name: p2p-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-p2p_sandbox}
+    volumes:
+      - mongo_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - p2p-network
+
+  # Redis - For caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: p2p-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - p2p-network
+
+  # SuperTokens - Authentication service
+  supertokens:
+    image: registry.supertokens.io/supertokens/supertokens-postgresql:7.0
+    container_name: p2p-supertokens
+    environment:
+      POSTGRESQL_CONNECTION_URI: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/supertokens"
+    ports:
+      - "3567:3567"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - p2p-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3567/hello"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend (we'll build this)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: p2p-backend
+    volumes:
+      - ./:/app
+      - /app/__pycache__
+      - /app/.pytest_cache
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # For debugging
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-p2p_sandbox}
+      - MONGODB_URL=mongodb://mongodb:27017/${MONGO_DB_NAME:-p2p_sandbox}
+      - REDIS_URL=redis://redis:6379
+      - SUPERTOKENS_CONNECTION_URI=http://supertokens:3567
+      - PYTHONUNBUFFERED=1
+      - DEBUG=True
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      supertokens:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - p2p-network
+
+volumes:
+  postgres_data:
+    driver: local
+  mongo_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  p2p-network:
+    driver: bridge
+    name: p2p-network

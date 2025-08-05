@@ -28,6 +28,17 @@ class UserCreate(UserBase):
     supertokens_user_id: str  # Will be set after SuperTokens registration
 
 
+class UserCreateInternal(UserBase):
+    """Schema for internal user creation (without password - for SuperTokens flow)."""
+    organization_id: UUID
+    role: UserRole = UserRole.MEMBER
+    supertokens_user_id: str
+    status: UserStatus = UserStatus.ACTIVE
+    email_notifications_enabled: bool = True
+    forum_notifications_enabled: bool = True
+    message_notifications_enabled: bool = True
+
+
 class UserUpdate(BaseModel):
     """Schema for updating a user."""
     email: Optional[EmailStr] = None

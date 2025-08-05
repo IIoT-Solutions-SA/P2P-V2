@@ -1,0 +1,222 @@
+"""SuperTokens configuration and initialization."""
+
+from typing import Any, Dict, Optional
+from supertokens_python import init, InputAppInfo, SupertokensConfig
+from supertokens_python.recipe import emailpassword, session
+from supertokens_python.recipe.emailpassword.interfaces import (
+    APIInterface,
+    APIOptions,
+    SignUpPostOkResult,
+    SignUpOkResult,
+    SignUpPostEmailAlreadyExistsError,
+    EmailExistsGetOkResult,
+    GeneralErrorResponse,
+)
+from supertokens_python.recipe.session.interfaces import SessionContainer
+from supertokens_python.framework.fastapi import get_middleware
+
+from app.core.config import settings
+from app.core.logging import get_logger
+from app.services.auth import auth_service
+from app.db.session import get_db
+from app.models.enums import IndustryType
+
+logger = get_logger(__name__)
+
+
+def init_supertokens() -> None:
+    """Initialize SuperTokens with custom configuration."""
+    
+    logger.info("Initializing SuperTokens...")
+    
+    # Build SuperTokens configuration
+    supertokens_config = SupertokensConfig(
+        connection_uri=settings.SUPERTOKENS_CONNECTION_URI,
+        api_key=settings.SUPERTOKENS_API_KEY,
+    )
+    
+    # Build app info
+    app_info = InputAppInfo(
+        app_name=settings.PROJECT_NAME,
+        api_domain=settings.API_DOMAIN,
+        website_domain=settings.WEBSITE_DOMAIN,
+        api_base_path="/auth",
+        website_base_path="/auth",
+    )
+    
+    # Configure recipes
+    recipes = [
+        # Email Password Recipe with custom signup override
+        emailpassword.init(
+            sign_up_feature=emailpassword.InputSignUpFeature(
+                form_fields=[
+                    emailpassword.InputFormField(id="email"),
+                    emailpassword.InputFormField(id="password"),
+                ]
+            ),
+            override=emailpassword.InputOverrideConfig(
+                apis=lambda original_implementation: EmailPasswordAPIOverride(),
+            )
+        ),
+        # Session Recipe with custom configuration
+        session.init(
+            cookie_domain=None,  # Let browser determine domain
+            cookie_same_site="lax",
+            session_expired_status_code=401,
+            invalid_claim_status_code=403,
+        ),
+    ]
+    
+    # Initialize SuperTokens
+    init(
+        app_info=app_info,
+        supertokens_config=supertokens_config,
+        recipe_list=recipes,
+        framework="fastapi",
+        mode="asgi",
+    )
+    
+    logger.info("SuperTokens initialized successfully")
+
+
+class EmailPasswordAPIOverride(APIInterface):
+    """Custom API overrides for EmailPassword recipe."""
+    
+    async def email_exists_get(
+        self,
+        email: str,
+        tenant_id: str,
+        api_options: APIOptions,
+        user_context: Dict[str, Any],
+    ) -> EmailExistsGetOkResult:
+        """Override email exists check."""
+        logger.info(f"Email exists check for: {email}")
+        
+        # Call the default implementation
+        result = await api_options.recipe_implementation.get_user_by_email(
+            email, tenant_id, user_context
+        )
+        
+        return EmailExistsGetOkResult(exists=result is not None)
+    
+    async def sign_up_post(
+        self,
+        form_fields: list,
+        tenant_id: str,
+        api_options: APIOptions,
+        user_context: Dict[str, Any],
+    ) -> Any:
+        """Override signup with custom organization creation logic."""
+        logger.info("Processing signup request with organization creation")
+        
+        # Parse form fields
+        field_data = auth_service.parse_signup_form_fields(form_fields)
+        email = field_data.get("email")
+        password = field_data.get("password")
+        first_name = field_data.get("firstName", "")
+        last_name = field_data.get("lastName", "")
+        
+        # Validate required fields
+        if not email or not password:
+            return GeneralErrorResponse("Missing required field")
+        
+        # If no name provided, extract from email
+        if not first_name:
+            first_name = email.split("@")[0].title()
+        if not last_name:
+            last_name = "User"
+        
+        logger.info(f"Processing signup for: {email} ({first_name} {last_name})")
+        
+        try:
+            # 1. Call SuperTokens default signup first
+            result = await api_options.recipe_implementation.sign_up(
+                email, password, tenant_id, user_context
+            )
+            
+            # 2. If SuperTokens signup failed, return the error
+            if not isinstance(result, SignUpOkResult):
+                # Convert recipe result to API result format
+                if hasattr(result, 'user'):
+                    return SignUpPostOkResult(result.user)
+                else:
+                    return GeneralErrorResponse("Signup failed")
+            
+            supertokens_user_id = result.user.user_id
+            logger.info(f"SuperTokens user created: {supertokens_user_id}")
+            
+            # 3. Create organization and user in our database
+            await self._create_organization_for_user(
+                supertokens_user_id=supertokens_user_id,
+                email=email,
+                first_name=first_name,
+                last_name=last_name
+            )
+            
+            # Return the proper API result
+            return SignUpPostOkResult(result.user)
+            
+        except ValueError as e:
+            logger.error(f"Validation error during signup: {e}")
+            return GeneralErrorResponse(str(e))
+        except Exception as e:
+            logger.error(f"Unexpected error during signup: {e}")
+            return GeneralErrorResponse("Signup failed. Please try again.")
+    
+    async def _create_organization_for_user(
+        self, 
+        supertokens_user_id: str,
+        email: str, 
+        first_name: str,
+        last_name: str
+    ) -> None:
+        """Create organization and user record for new signup."""
+        logger.info(f"Creating organization for SuperTokens user: {supertokens_user_id}")
+        
+        try:
+            # Get database session
+            async for db in get_db():
+                # Generate organization name from email domain
+                organization_name = auth_service.extract_organization_name_from_email(email)
+                
+                # Create organization and admin user
+                user, organization = await auth_service.create_organization_and_admin_user(
+                    db,
+                    supertokens_user_id=supertokens_user_id,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    organization_name=organization_name,
+                    industry_type=IndustryType.OTHER
+                )
+                
+                logger.info(
+                    f"Successfully created organization '{organization.name}' "
+                    f"with admin user '{user.email}' (ID: {user.id})"
+                )
+                break  # Exit the async generator loop
+                
+        except Exception as e:
+            logger.error(f"Failed to create organization for user {supertokens_user_id}: {e}")
+            # Re-raise to trigger SuperTokens error handling
+            raise
+
+
+def get_supertokens_middleware():
+    """Get the SuperTokens middleware for FastAPI."""
+    return get_middleware()
+
+
+async def get_session_info(session: SessionContainer) -> Dict[str, Any]:
+    """Extract user and organization info from session."""
+    user_id = session.get_user_id()
+    session_data = session.get_session_data_from_database()
+    
+    # TODO: Fetch user and organization data from our database
+    # This will be implemented when we integrate the User model
+    
+    return {
+        "user_id": user_id,
+        "session_handle": session.get_handle(),
+        "session_data": session_data,
+    }

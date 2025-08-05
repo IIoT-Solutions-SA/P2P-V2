@@ -9,6 +9,7 @@ from app.api.v1.organizations import organizations_router
 from app.api.v1.forum import forum_router
 from app.api.v1.use_cases import use_cases_router
 from app.api.v1.messaging import messaging_router
+from app.api.v1.test_auth import router as test_auth_router
 from app.core.config import settings
 from app.db.session import check_postgres_health, check_mongodb_health
 from app.schemas.health import HealthCheckResponse
@@ -22,6 +23,7 @@ api_router.include_router(organizations_router, prefix="/organizations", tags=["
 api_router.include_router(forum_router, prefix="/forum", tags=["forum"])
 api_router.include_router(use_cases_router, prefix="/use-cases", tags=["use-cases"])
 api_router.include_router(messaging_router, prefix="/messaging", tags=["messaging"])
+api_router.include_router(test_auth_router, prefix="/test", tags=["testing"])
 
 
 @api_router.get("/health", response_model=HealthCheckResponse)

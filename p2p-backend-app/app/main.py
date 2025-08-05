@@ -20,11 +20,16 @@ from app.db.session import init_db, close_db, check_postgres_health, check_mongo
 from app.schemas.health import HealthCheckResponse
 from app.core.logging import setup_logging, get_logger
 from app.middleware.logging import LoggingMiddleware, UserContextMiddleware
+from app.core.supertokens import init_supertokens, get_supertokens_middleware
+from supertokens_python import get_all_cors_headers
 from datetime import datetime
 
-# Configure structured logging
+# Configure structured logging and SuperTokens
 setup_logging()
 logger = get_logger(__name__)
+
+# Initialize SuperTokens before creating the app
+init_supertokens()
 
 
 @asynccontextmanager
@@ -60,6 +65,9 @@ app = FastAPI(
 app.add_middleware(LoggingMiddleware, service_name=settings.PROJECT_NAME)
 app.add_middleware(UserContextMiddleware)
 
+# Add SuperTokens middleware (after logging, before error handling)
+app.add_middleware(get_supertokens_middleware())
+
 # Add server error middleware
 app.add_middleware(ServerErrorMiddleware, handler=general_exception_handler)
 
@@ -71,19 +79,22 @@ if not cors_origins and settings.DEBUG:
 
 logger.info(f"CORS Origins configured: {cors_origins}")
 
+# Get SuperTokens CORS headers
+supertokens_cors_headers = get_all_cors_headers()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization"] + supertokens_cors_headers,
 )
 
 # Add exception handlers
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
-# Include API router
+# Include API router  
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 

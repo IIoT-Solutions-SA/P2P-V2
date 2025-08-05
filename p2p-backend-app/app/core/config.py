@@ -67,10 +67,9 @@ class Settings(BaseSettings):
     
     # SuperTokens
     SUPERTOKENS_CONNECTION_URI: str = "http://supertokens:3567"
-    SUPERTOKENS_API_KEY: str = "your-supertokens-api-key"
-    SUPERTOKENS_APP_NAME: str = "P2P Sandbox"
-    SUPERTOKENS_API_DOMAIN: str = "http://localhost:8000"
-    SUPERTOKENS_WEBSITE_DOMAIN: str = "http://localhost:5173"
+    SUPERTOKENS_API_KEY: Optional[str] = None  # Optional for development
+    API_DOMAIN: str = "http://localhost:8000"
+    WEBSITE_DOMAIN: str = "http://localhost:5173"
     
     # AWS S3 (for file storage)
     AWS_ACCESS_KEY_ID: Optional[str] = None

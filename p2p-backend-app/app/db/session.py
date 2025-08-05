@@ -2,7 +2,8 @@
 
 from typing import AsyncGenerator
 import asyncpg
-from pymongo import AsyncMongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import sessionmaker
 import logging
@@ -30,8 +31,8 @@ AsyncSessionLocal = async_sessionmaker(
     autoflush=False,
 )
 
-# MongoDB with PyMongo Async
-mongo_client: AsyncMongoClient | None = None
+# MongoDB with Motor
+mongo_client: AsyncIOMotorClient | None = None
 mongodb = None  # Will be an AsyncDatabase instance
 
 
@@ -41,7 +42,7 @@ async def init_db():
     
     try:
         # Initialize MongoDB connection
-        mongo_client = AsyncMongoClient(
+        mongo_client = AsyncIOMotorClient(
             settings.MONGODB_URL,
             maxPoolSize=50,
             minPoolSize=10,
@@ -56,7 +57,7 @@ async def init_db():
         
         # Test PostgreSQL connection
         async with engine.begin() as conn:
-            await conn.run_sync(lambda x: x.execute("SELECT 1"))
+            await conn.execute(text("SELECT 1"))
         logger.info("PostgreSQL connection established successfully")
         
     except Exception as e:
@@ -130,7 +131,7 @@ async def check_postgres_health() -> dict:
     """Check PostgreSQL connection health."""
     try:
         async with AsyncSessionLocal() as session:
-            result = await session.execute("SELECT 1")
+            result = await session.execute(text("SELECT 1"))
             result.scalar()
         return {"status": "healthy", "database": "postgresql"}
     except Exception as e:

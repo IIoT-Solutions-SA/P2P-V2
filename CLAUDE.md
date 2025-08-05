@@ -257,6 +257,12 @@ git push origin aadil-backend
 - Implementation Progress: `/docs/aadil_docs/implementation-progress.md`
 - Development Log: `/docs/aadil_docs/development-log.md`
 
+### Documentation Update Requirements
+When completing tasks, Claude MUST update the following documents:
+1. **Implementation Progress** (`/docs/aadil_docs/implementation-progress.md`): Update completion percentages and mark tasks complete
+2. **Development Log** (`/docs/aadil_docs/development-log.md`): Add detailed log entries for work completed
+3. **Backend Implementation Tasks** (`/docs/aadil_docs/backend-implementation-tasks.md`): Mark tasks as complete with ✅ and update progress summary
+
 ### Development Guides
 - Frontend-Backend Integration: `/docs/aadil_docs/frontend-backend-integration-guide.md`
 - Type Alignment Guide: `/docs/aadil_docs/type-alignment-guide.md`

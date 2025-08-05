@@ -16,8 +16,10 @@ from app.core.exceptions import (
     validation_exception_handler,
     general_exception_handler
 )
-from app.db.session import init_db, close_db
+from app.db.session import init_db, close_db, check_postgres_health, check_mongodb_health
+from app.schemas.health import HealthCheckResponse
 import logging
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=settings.LOG_LEVEL)
@@ -57,12 +59,12 @@ app = FastAPI(
 app.add_middleware(ServerErrorMiddleware, handler=general_exception_handler)
 
 # Configure CORS
-# Parse CORS origins - ensure we have defaults for development
-cors_origins = [str(origin) for origin in settings.BACKEND_CORS_ORIGINS]
-if not cors_origins and settings.ENVIRONMENT == "development":
+# Get CORS origins from settings
+cors_origins = settings.cors_origins
+if not cors_origins and settings.DEBUG:
     cors_origins = ["http://localhost:5173", "http://localhost:3000"]
 
-print(f"CORS Origins configured: {cors_origins}")
+logger.info(f"CORS Origins configured: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -85,22 +87,41 @@ async def root():
     """Root endpoint"""
     return {
         "message": "Welcome to P2P Sandbox API",
-        "version": "0.1.0",
+        "version": settings.VERSION,
         "status": "Container setup complete! 🎉"
     }
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthCheckResponse)
 async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "p2p-backend",
-        "checks": {
-            "api": "operational",
-            # We'll add database checks later
+    """Health check endpoint with database status"""
+    # Record check timestamp
+    check_timestamp = datetime.utcnow()
+    
+    # Run health checks in parallel
+    postgres_health = await check_postgres_health()
+    mongodb_health = await check_mongodb_health()
+    
+    # Determine overall status
+    all_healthy = (
+        postgres_health["status"] == "healthy" and 
+        mongodb_health["status"] == "healthy"
+    )
+    
+    return HealthCheckResponse(
+        status="healthy" if all_healthy else "degraded",
+        service="p2p-backend",
+        timestamp=check_timestamp.isoformat() + "Z",
+        version=settings.VERSION,
+        checks={
+            "api": {
+                "status": "healthy",
+                "response_time_ms": 1
+            },
+            "postgresql": postgres_health,
+            "mongodb": mongodb_health,
         }
-    }
+    )
 
 
 # This allows us to run the app directly with python

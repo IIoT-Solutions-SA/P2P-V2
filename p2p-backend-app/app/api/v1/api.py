@@ -1,5 +1,6 @@
 """Main API router that combines all endpoint routers."""
 
+from datetime import datetime
 from fastapi import APIRouter
 
 from app.api.v1.auth import auth_router
@@ -8,7 +9,9 @@ from app.api.v1.organizations import organizations_router
 from app.api.v1.forum import forum_router
 from app.api.v1.use_cases import use_cases_router
 from app.api.v1.messaging import messaging_router
+from app.core.config import settings
 from app.db.session import check_postgres_health, check_mongodb_health
+from app.schemas.health import HealthCheckResponse
 
 api_router = APIRouter()
 
@@ -21,9 +24,12 @@ api_router.include_router(use_cases_router, prefix="/use-cases", tags=["use-case
 api_router.include_router(messaging_router, prefix="/messaging", tags=["messaging"])
 
 
-@api_router.get("/health")
+@api_router.get("/health", response_model=HealthCheckResponse)
 async def health_check():
     """API health check endpoint with database status."""
+    # Record check timestamp
+    check_timestamp = datetime.utcnow()
+    
     # Run health checks in parallel
     postgres_health = await check_postgres_health()
     mongodb_health = await check_mongodb_health()
@@ -34,12 +40,17 @@ async def health_check():
         mongodb_health["status"] == "healthy"
     )
     
-    return {
-        "status": "healthy" if all_healthy else "degraded",
-        "service": "p2p-backend-api-v1",
-        "checks": {
-            "api": "operational",
+    return HealthCheckResponse(
+        status="healthy" if all_healthy else "degraded",
+        service="p2p-backend-api-v1",
+        timestamp=check_timestamp.isoformat() + "Z",
+        version=settings.VERSION,
+        checks={
+            "api": {
+                "status": "healthy",
+                "response_time_ms": 1
+            },
             "postgresql": postgres_health,
             "mongodb": mongodb_health,
         }
-    }
+    )

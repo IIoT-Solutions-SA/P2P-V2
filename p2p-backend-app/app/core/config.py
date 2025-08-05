@@ -1,9 +1,26 @@
 """Configuration settings for the P2P Sandbox backend."""
 
-from typing import List, Optional, Union
-from pydantic import AnyHttpUrl, PostgresDsn, field_validator
+from typing import List, Optional, Union, Annotated
+from pydantic import AnyHttpUrl, PostgresDsn, field_validator, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import secrets
+
+
+def parse_cors(v: Union[str, List[str]]) -> List[str]:
+    """Parse CORS origins from string or list."""
+    if isinstance(v, str):
+        if not v:
+            return []
+        if not v.startswith("["):
+            return [i.strip() for i in v.split(",") if i.strip()]
+        try:
+            import json
+            return json.loads(v)
+        except:
+            return []
+    elif isinstance(v, list):
+        return v
+    return []
 
 
 class Settings(BaseSettings):
@@ -19,27 +36,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: str = ""
     
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str):
-            # Handle empty string
-            if not v:
-                return []
-            # Handle comma-separated string
-            if not v.startswith("["):
-                return [i.strip() for i in v.split(",") if i.strip()]
-            # Handle JSON array string
-            try:
-                import json
-                return json.loads(v)
-            except:
-                return []
-        elif isinstance(v, list):
-            return v
-        return []
+    @property
+    def cors_origins(self) -> List[str]:
+        """Get CORS origins as a list."""
+        return parse_cors(self.BACKEND_CORS_ORIGINS)
     
     # Database
     POSTGRES_SERVER: str = "postgres"

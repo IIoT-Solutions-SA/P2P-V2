@@ -8,10 +8,10 @@ from supertokens_python.recipe.emailpassword.interfaces import (
     APIOptions,
     SignUpPostOkResult,
     SignUpOkResult,
-    SignUpPostEmailAlreadyExistsError,
+    EmailAlreadyExistsError,
     SignInPostOkResult,
     SignInOkResult,
-    SignInPostWrongCredentialsError,
+    SignInPostNotAllowedResponse,
     EmailExistsGetOkResult,
     GeneralErrorResponse,
 )
@@ -199,7 +199,7 @@ class EmailPasswordAPIOverride(APIInterface):
                 if hasattr(result, 'user'):
                     return SignInPostOkResult(result.user)
                 else:
-                    return SignInPostWrongCredentialsError()
+                    return SignInPostNotAllowedResponse()
             
             supertokens_user_id = result.user.user_id
             logger.info(f"SuperTokens signin successful: {supertokens_user_id}")

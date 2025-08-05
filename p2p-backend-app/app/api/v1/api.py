@@ -11,6 +11,7 @@ from app.api.v1.use_cases import use_cases_router
 from app.api.v1.messaging import messaging_router
 from app.api.v1.test_auth import router as test_auth_router
 from app.api.v1.test_rbac import router as test_rbac_router
+from app.api.v1.password_reset import router as password_reset_router
 from app.core.config import settings
 from app.db.session import check_postgres_health, check_mongodb_health
 from app.schemas.health import HealthCheckResponse
@@ -26,6 +27,7 @@ api_router.include_router(use_cases_router, prefix="/use-cases", tags=["use-case
 api_router.include_router(messaging_router, prefix="/messaging", tags=["messaging"])
 api_router.include_router(test_auth_router, prefix="/test-auth", tags=["testing"])
 api_router.include_router(test_rbac_router, prefix="/test-rbac", tags=["rbac-testing"])
+api_router.include_router(password_reset_router, prefix="/password-reset", tags=["password-reset"])
 
 
 @api_router.get("/health", response_model=HealthCheckResponse)

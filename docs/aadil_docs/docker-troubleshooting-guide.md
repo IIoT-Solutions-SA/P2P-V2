@@ -56,7 +56,83 @@ from motor.motor_asyncio import AsyncIOMotorClient
 ### Files Modified
 - `/app/db/session.py` - Updated MongoDB client imports
 
-## Issue 3: Docker Container Not Picking Up Code Changes
+## Issue 3: SQL Execution Error - Cannot Execute Raw SQL String
+
+### Problem
+```
+sqlalchemy.exc.ArgumentError: Textual SQL expression 'SELECT 1' should be explicitly declared as text('SELECT 1')
+```
+
+### Root Cause
+SQLAlchemy 2.0 requires explicit text() wrapper for raw SQL strings for security reasons.
+
+### Solution
+```python
+# Before (causes error)
+await conn.execute("SELECT 1")
+
+# After (works correctly)
+from sqlalchemy import text
+await conn.execute(text("SELECT 1"))
+```
+
+### Files Modified
+- `/app/db/session.py` - Added text() wrapper for health check queries
+
+## Issue 4: SQLModel Field Definition Conflicts
+
+### Problem
+```
+RuntimeError: Field 'field_name' has conflict with protected namespace 'model_'.
+ValueError: cannot specify both default and default_factory
+```
+
+### Root Cause
+SQLModel has specific rules about field definitions:
+1. Cannot use both `nullable` parameter and `sa_column` with nullable
+2. Field names cannot conflict with SQLModel's protected namespaces
+3. Cannot use both `default` and `default_factory`
+
+### Solution
+```python
+# Before (causes error)
+field: Optional[str] = Field(nullable=True, sa_column=Column(String, nullable=True))
+
+# After (works correctly)
+field: Optional[str] = Field(sa_column=Column(String, nullable=True))
+
+# For defaults, use only one approach:
+created_at: datetime = Field(default_factory=datetime.utcnow)  # Not both default= and default_factory=
+```
+
+### Files Modified
+- `/app/models/user.py` - Fixed field definitions
+- `/app/models/organization.py` - Fixed field definitions
+
+## Issue 5: Missing Python Package in Running Container
+
+### Problem
+```
+ModuleNotFoundError: No module named 'pythonjsonlogger'
+```
+
+### Root Cause
+New Python dependencies added to requirements.txt but container not rebuilt.
+
+### Solution
+```bash
+# Option A: Quick fix - install in running container (temporary)
+docker exec p2p-backend pip install python-json-logger==2.0.7
+
+# Option B: Proper fix - rebuild container (permanent)
+docker-compose build backend
+docker-compose up -d backend
+```
+
+### Best Practice
+Always rebuild containers after adding new dependencies to requirements.txt
+
+## Issue 6: Docker Container Not Picking Up Code Changes
 
 ### Problem
 Container keeps using old code despite file changes due to volume mounting and caching.
@@ -240,5 +316,146 @@ python test_config.py
 3. Test imports: `docker exec p2p-backend python -c "from app.main import app"`
 4. Check database connections
 5. Verify file permissions in container
+
+## Issue 7: SuperTokens Health Check Failing
+
+### Problem
+SuperTokens container health check fails because curl/nc tools are not available in the container.
+
+### Temporary Solution
+Changed health check from `service_healthy` to `service_started` in docker-compose.yml:
+```yaml
+depends_on:
+  supertokens:
+    condition: service_started  # Changed from service_healthy
+```
+
+### Permanent Solution (TODO)
+Implement proper health check for SuperTokens in Phase 2.
+
+## Comprehensive Docker Troubleshooting Workflow
+
+When encountering Docker issues, follow this systematic approach:
+
+### 1. Initial Diagnosis
+```bash
+# Check all container statuses
+docker-compose ps
+
+# Check specific container logs
+docker-compose logs --tail=50 backend
+
+# Check for Python errors
+docker-compose logs backend | grep -i "error\|exception\|traceback"
+```
+
+### 2. Common Fix Attempts (in order)
+```bash
+# Level 1: Restart (for code changes)
+docker-compose restart backend
+
+# Level 2: Recreate (for config changes)
+docker-compose up -d --force-recreate backend
+
+# Level 3: Rebuild (for dependency changes)
+docker-compose build --no-cache backend
+docker-compose up -d backend
+
+# Level 4: Full reset
+docker-compose down
+docker system prune -f
+docker-compose up -d
+```
+
+### 3. Debugging Inside Container
+```bash
+# Test imports manually
+docker exec p2p-backend python -c "from app.main import app; print('✅ Import successful')"
+
+# Check installed packages
+docker exec p2p-backend pip list | grep package-name
+
+# Run specific module
+docker exec p2p-backend python -m app.main
+```
+
+### 4. Environment Debugging
+```bash
+# Compare .env with container environment
+diff <(sort .env) <(docker exec p2p-backend printenv | sort)
+
+# Test specific config values
+docker exec p2p-backend python -c "from app.core.config import settings; print(settings.dict())"
+```
+
+## Docker Build Optimization Tips
+
+### 1. Use Build Cache Effectively
+```dockerfile
+# Copy requirements first (changes less frequently)
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Then copy code (changes frequently)
+COPY . .
+```
+
+### 2. Speed Up Builds
+```bash
+# Use buildkit for faster builds
+DOCKER_BUILDKIT=1 docker-compose build backend
+
+# Use cache mount for pip
+# Add to Dockerfile:
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+```
+
+### 3. Debug Build Issues
+```bash
+# Build with verbose output
+docker-compose build --progress=plain backend
+
+# Build specific stage
+docker build --target development -t p2p-backend:dev .
+```
+
+## Phase 1 Specific Issues Summary
+
+During Phase 1 implementation, we encountered and solved:
+
+1. **Pydantic CORS parsing** - Changed List[str] to str with property
+2. **MongoDB imports** - Switched to motor.motor_asyncio.AsyncIOMotorClient
+3. **SQL execution** - Added text() wrapper for raw SQL
+4. **SQLModel fields** - Removed conflicting nullable parameters
+5. **Missing packages** - Rebuilt container after requirements.txt changes
+6. **SuperTokens health** - Temporarily disabled health check
+
+All issues were resolved and documented for future reference.
+
+## Claude Code Environment Setup
+
+### Headless Mode Benefits
+During Phase 1 implementation, using Claude Code in "headless mode" provided significant advantages for Docker troubleshooting:
+
+- **Direct Docker Command Execution**: Ability to run `docker-compose` commands directly
+- **Real-time Container Debugging**: Live access to logs and container status
+- **System-level Access**: Can test APIs with `curl`, check processes, etc.
+- **Persistent Shell Session**: Maintains context across multiple commands
+
+### Key Difference
+- **Without Headless Mode**: Limited system access, may need manual command execution
+- **With Headless Mode**: Full terminal access, can debug containers in real-time
+
+### Setup
+*TODO: Document specific headless mode setup steps for future reference*
+
+## Environment Requirements for Docker Troubleshooting
+
+1. **Docker Desktop Running** (Windows/Mac) or Docker daemon (Linux)
+2. **Claude Code with System Access** (headless mode recommended)
+3. **Proper User Permissions** for Docker commands
+4. **Network Access** to container ports (8000, 5432, 27017, etc.)
+5. **File System Access** to project directory
 
 This guide should help resolve most Docker container startup issues. Update this document when encountering new issues and their solutions.

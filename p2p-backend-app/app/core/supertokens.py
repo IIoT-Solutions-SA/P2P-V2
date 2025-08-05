@@ -9,6 +9,9 @@ from supertokens_python.recipe.emailpassword.interfaces import (
     SignUpPostOkResult,
     SignUpOkResult,
     SignUpPostEmailAlreadyExistsError,
+    SignInPostOkResult,
+    SignInOkResult,
+    SignInPostWrongCredentialsError,
     EmailExistsGetOkResult,
     GeneralErrorResponse,
 )
@@ -162,6 +165,93 @@ class EmailPasswordAPIOverride(APIInterface):
         except Exception as e:
             logger.error(f"Unexpected error during signup: {e}")
             return GeneralErrorResponse("Signup failed. Please try again.")
+    
+    async def sign_in_post(
+        self,
+        form_fields: list,
+        tenant_id: str,
+        api_options: APIOptions,
+        user_context: Dict[str, Any],
+    ) -> Any:
+        """Override signin with custom user + organization data retrieval."""
+        logger.info("Processing signin request with organization data")
+        
+        # Parse form fields
+        field_data = auth_service.parse_signup_form_fields(form_fields)
+        email = field_data.get("email")
+        password = field_data.get("password")
+        
+        # Validate required fields
+        if not email or not password:
+            return GeneralErrorResponse("Missing email or password")
+        
+        logger.info(f"Processing signin for: {email}")
+        
+        try:
+            # 1. Call SuperTokens default signin first
+            result = await api_options.recipe_implementation.sign_in(
+                email, password, tenant_id, user_context
+            )
+            
+            # 2. If SuperTokens signin failed, return the error
+            if not isinstance(result, SignInOkResult):
+                # Convert recipe result to API result format if needed
+                if hasattr(result, 'user'):
+                    return SignInPostOkResult(result.user)
+                else:
+                    return SignInPostWrongCredentialsError()
+            
+            supertokens_user_id = result.user.user_id
+            logger.info(f"SuperTokens signin successful: {supertokens_user_id}")
+            
+            # 3. Enhance session with user + organization data
+            await self._enhance_session_with_user_data(
+                supertokens_user_id=supertokens_user_id,
+                user_context=user_context
+            )
+            
+            return SignInPostOkResult(result.user)
+            
+        except Exception as e:
+            logger.error(f"Unexpected error during signin: {e}")
+            return GeneralErrorResponse("Signin failed. Please try again.")
+    
+    async def _enhance_session_with_user_data(
+        self,
+        supertokens_user_id: str,
+        user_context: Dict[str, Any]
+    ) -> None:
+        """Enhance session with user and organization data."""
+        logger.info(f"Enhancing session for SuperTokens user: {supertokens_user_id}")
+        
+        try:
+            # Get database session
+            async for db in get_db():
+                # Get user with organization data
+                user_data = await auth_service.get_user_with_organization(
+                    db, supertokens_user_id=supertokens_user_id
+                )
+                
+                if user_data:
+                    # Store user and organization data in session context
+                    user_context["user_id"] = str(user_data["user"].id)
+                    user_context["organization_id"] = str(user_data["user"].organization_id)
+                    user_context["user_role"] = user_data["user"].role
+                    user_context["organization_name"] = user_data["organization"].name
+                    user_context["permissions"] = user_data["permissions"]
+                    
+                    logger.info(
+                        f"Session enhanced for user {user_data['user'].email} "
+                        f"in organization {user_data['organization'].name}"
+                    )
+                else:
+                    logger.warning(f"No user data found for SuperTokens ID: {supertokens_user_id}")
+                
+                break  # Exit the async generator loop
+                
+        except Exception as e:
+            logger.error(f"Failed to enhance session for user {supertokens_user_id}: {e}")
+            # Don't re-raise here as signin was successful, just log the issue
     
     async def _create_organization_for_user(
         self, 

@@ -190,6 +190,37 @@ class AuthService:
         }
 
     @staticmethod
+    async def get_user_by_email_with_organization(
+        db: AsyncSession,
+        *,
+        email: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get user by email with their organization data.
+        
+        Returns:
+            Dict containing user and organization data, or None if not found
+        """
+        user = await user_crud.get_by_email(db, email=email)
+        
+        if not user:
+            return None
+        
+        # Get organization data
+        organization = await organization_crud.get(db, id=user.organization_id)
+        
+        return {
+            "user": user,
+            "organization": organization,
+            "permissions": {
+                "can_manage_users": user.can_manage_users(),
+                "can_create_content": user.can_create_content(),
+                "is_admin": user.is_admin,
+                "is_active": user.is_active
+            }
+        }
+
+    @staticmethod
     def extract_organization_name_from_email(email: str) -> str:
         """
         Extract organization name from email domain.

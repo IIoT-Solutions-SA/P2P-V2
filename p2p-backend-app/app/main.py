@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from supertokens_python.framework.fastapi import get_middleware
+# from supertokens_python.recipe import emailpassword  # Imported in custom endpoints
+# from supertokens_python.recipe import session  # Imported in custom endpoints
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.v1.api import api_router
@@ -11,14 +13,14 @@ from app.core.supertokens import init_supertokens
 # Setup logging
 logger = setup_logging()
 
+# Initialize SuperTokens 
+init_supertokens()
+logger.info("SuperTokens initialized")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info(f"Starting {settings.PROJECT_NAME}")
-    
-    # Initialize SuperTokens
-    init_supertokens()
-    logger.info("SuperTokens initialized")
     
     # Initialize databases
     await db_manager.init_postgres()
@@ -37,21 +39,28 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# SuperTokens middleware (must be before CORS)
+# DEBUG: Request logging middleware removed
+
+# SuperTokens middleware (MUST BE FIRST - handles auth endpoints)
 app.add_middleware(get_middleware())
 
-# CORS middleware
+# CORS middleware (AFTER SuperTokens - adds headers to all responses)
 if settings.BACKEND_CORS_ORIGINS:
+    from supertokens_python import get_all_cors_headers
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_origins=["http://localhost:5173"],  # Specific origin (not wildcard) for credentials
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type"] + get_all_cors_headers(),
     )
 
 # Include routers  
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Removed catch-all route to test if it interferes with SuperTokens middleware
+# SuperTokens middleware should handle /auth/* routes automatically
 
 # Root endpoint
 @app.get("/")
@@ -61,3 +70,5 @@ async def root():
         "version": settings.API_VERSION,
         "environment": "development"
     }
+
+# DEBUG: Catch-all OPTIONS handler removed

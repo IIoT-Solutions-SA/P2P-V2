@@ -4,11 +4,10 @@ import Session from "supertokens-auth-react/recipe/session";
 
 SuperTokens.init({
     appInfo: {
-        // These match the backend configuration
         appName: "P2P Sandbox for SMEs",
         apiDomain: "http://localhost:8000",
-        websiteDomain: "http://localhost:3000",
-        apiBasePath: "/auth",
+        websiteDomain: "http://localhost:5173",
+        apiBasePath: "/api/v1/auth",
         websiteBasePath: "/auth"
     },
     recipeList: [
@@ -17,24 +16,9 @@ SuperTokens.init({
                 signUpForm: {
                     formFields: [
                         {
-                            id: "email",
-                            label: "Email",
-                            placeholder: "Enter your email"
-                        },
-                        {
-                            id: "password", 
-                            label: "Password",
-                            placeholder: "Enter your password"
-                        },
-                        {
-                            id: "firstName",
-                            label: "First Name",
-                            placeholder: "Enter your first name"
-                        },
-                        {
-                            id: "lastName",
-                            label: "Last Name", 
-                            placeholder: "Enter your last name"
+                            id: "name",
+                            label: "Full Name",
+                            placeholder: "Enter your full name"
                         }
                     ]
                 }

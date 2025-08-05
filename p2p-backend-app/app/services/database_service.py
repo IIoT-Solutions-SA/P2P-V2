@@ -28,6 +28,12 @@ class UserService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    async def get_user_by_supertokens_id(db: AsyncSession, supertokens_id: str) -> Optional[PGUser]:
+        """Get user by SuperTokens ID from PostgreSQL"""
+        result = await db.execute(select(PGUser).where(PGUser.supertokens_id == supertokens_id))
+        return result.scalar_one_or_none()
+
+    @staticmethod
     async def update_user_pg(db: AsyncSession, user_id: UUID, name: str = None, email: str = None) -> Optional[PGUser]:
         """Update user in PostgreSQL"""
         user = await UserService.get_user_by_id_pg(db, user_id)

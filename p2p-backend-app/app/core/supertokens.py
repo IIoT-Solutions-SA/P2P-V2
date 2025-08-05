@@ -16,7 +16,7 @@ def init_supertokens():
             app_name="P2P Sandbox for SMEs",  
             api_domain=settings.API_DOMAIN,
             website_domain=settings.WEBSITE_DOMAIN,
-            api_base_path="/auth",
+            api_base_path="/api/v1/auth",  # Back to /api/v1/auth to match our working CORS
             website_base_path="/auth"
         ),
         supertokens_config=SupertokensConfig(
@@ -49,5 +49,6 @@ def init_supertokens():
                 cookie_secure=settings.ENVIRONMENT == "production"
             )
         ],
-        mode='asgi'
+        mode='asgi',
+        telemetry=False
     )

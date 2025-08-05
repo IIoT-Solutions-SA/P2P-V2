@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)
     
     # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = ["http://localhost:5173"]
     
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # SuperTokens Configuration
     SUPERTOKENS_CONNECTION_URI: str = "http://localhost:3567"
     API_DOMAIN: str = "http://localhost:8000"
-    WEBSITE_DOMAIN: str = "http://localhost:3000"
+    WEBSITE_DOMAIN: str = "http://localhost:5173"
     COOKIE_DOMAIN: Optional[str] = None  # None = same domain as API
     
     # Environment

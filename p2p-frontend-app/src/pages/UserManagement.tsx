@@ -26,7 +26,7 @@ import {
   Home
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-import { mockUsers, mockOrganizations } from '@/contexts/AuthContext'
+// import { mockUsers, mockOrganizations } from '@/contexts/AuthContext' // REMOVED - exports disabled
 import type { InviteUserData, PendingInvitation } from '@/types/auth'
 import { useNavigate } from 'react-router-dom'
 
@@ -72,8 +72,8 @@ export default function UserManagement() {
     }
   ])
 
-  // Filter users for current organization
-  const organizationUsers = mockUsers.filter(u => u.organizationId === organization?.id)
+  // Filter users for current organization (mock data disabled for testing)
+  const organizationUsers = [] // mockUsers.filter(u => u.organizationId === organization?.id)
   const filteredUsers = organizationUsers.filter(u => {
     const matchesSearch = `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === 'all' || u.role === roleFilter

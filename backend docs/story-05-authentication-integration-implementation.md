@@ -544,6 +544,13 @@ async def get_current_user(
 - Automatic session refresh and persistence
 - Logout functionality with session cleanup
 
+**⚠️ Current Limitation - New User Registration**:
+- **Signup Flow**: Creates SuperTokens users but doesn't automatically create PostgreSQL/MongoDB profiles
+- **Workaround**: Only seeded users (created via `seed_db.py`) have complete database profiles
+- **Impact**: New users signing up via frontend won't have profile data until database creation is implemented
+- **Status**: Login works perfectly for all 10 seeded users; signup needs database integration enhancement
+- **Next Phase**: Implement automatic PostgreSQL/MongoDB user profile creation during signup flow
+
 #### Lessons Learned
 - **Routing First**: Authentication systems require proper URL routing as a foundation
 - **State vs Router**: Modern auth flows don't work well with state-based navigation
@@ -595,7 +602,7 @@ async def get_current_user(
 - ✅ Session refresh handling for expired tokens
 
 #### End-to-End Authentication Testing
-- ✅ **Ahmed Al-Faisal** (`ahmed.faisal@advanced-electronics.com`): Login successful, dashboard shows "Advanced Electronics"
+- ✅ **Ahmed Al-Faisal** (`ahmed.faisal@advanced-electronics.com`): Login successful, dashboard shows "Advanced Electronics" 
 - ✅ **Sarah Mohammed** (`sarah.mohammed@green-energy.com`): Login successful, dashboard shows "Green Energy"
 - ✅ **Omar Hassan** (`omar.hassan@logistics-pro.com`): Login successful, dashboard shows "Logistics Pro"
 - ✅ All 10 seed users tested and working with complete authentication flow
@@ -603,10 +610,14 @@ async def get_current_user(
 - ✅ Session cookies properly set and maintained
 - ✅ Logout functionality clearing sessions completely
 
+**Note**: Testing performed with pre-seeded users (created via `seed_db.py`). New user registration via frontend signup creates SuperTokens authentication but requires additional implementation to automatically create PostgreSQL/MongoDB user profiles.
+
 #### Browser Compatibility
 - ✅ Chrome/Edge: All routing and authentication functionality working
 - ✅ Firefox: Route navigation, authentication, and session management functional
 - ✅ Safari: Authentication flow and session persistence working
 - ✅ Mobile browsers: Touch navigation, login, and authentication working
 
-The P2P Sandbox authentication system is now **100% complete and operational**. SuperTokens integration provides enterprise-grade authentication with secure session management, the frontend React app seamlessly handles login/signup flows, and the FastAPI backend properly verifies sessions and serves user-specific data. All 10 seed users are fully authenticated and their profiles are correctly linked across all databases (SuperTokens, PostgreSQL, and MongoDB). The authentication flow has been tested end-to-end and is production-ready.
+The P2P Sandbox authentication system is now **operationally complete for seeded users**. SuperTokens integration provides enterprise-grade authentication with secure session management, the frontend React app seamlessly handles login flows, and the FastAPI backend properly verifies sessions and serves user-specific data. All 10 seed users are fully authenticated and their profiles are correctly linked across all databases (SuperTokens, PostgreSQL, and MongoDB). 
+
+**Current Status**: The authentication infrastructure is production-ready and fully tested with seeded users. New user registration creates SuperTokens accounts but requires additional database integration to automatically create complete user profiles in PostgreSQL and MongoDB.

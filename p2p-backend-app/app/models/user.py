@@ -99,6 +99,13 @@ class User(SQLModel, table=True):
         sa_column=Column(String(255), unique=True, nullable=False, index=True)
     )
     
+    # Email verification status
+    email_verified: bool = Field(default=False)
+    email_verified_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    
     # Additional fields
     bio: Optional[str] = Field(
         default=None,

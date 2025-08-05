@@ -80,6 +80,19 @@ ROLE_PERMISSIONS: Dict[UserRole, List[str]] = {
 }
 
 
+def get_user_permissions(role: UserRole) -> List[str]:
+    """
+    Get permissions for a given user role.
+    
+    Args:
+        role: User role to get permissions for
+        
+    Returns:
+        List of permission strings for the role
+    """
+    return ROLE_PERMISSIONS.get(role, [])
+
+
 class RBACError(HTTPException):
     """Custom exception for RBAC-related errors."""
     

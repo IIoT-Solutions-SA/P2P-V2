@@ -14,6 +14,7 @@ from app.api.v1.test_rbac import router as test_rbac_router
 from app.api.v1.password_reset import router as password_reset_router
 from app.api.v1.email_verification import router as email_verification_router
 from app.api.v1.test_email_verification import router as test_email_verification_router
+from app.api.v1.test_auth_suite import router as test_auth_suite_router
 from app.core.config import settings
 from app.db.session import check_postgres_health, check_mongodb_health
 from app.schemas.health import HealthCheckResponse
@@ -32,6 +33,7 @@ api_router.include_router(test_rbac_router, prefix="/test-rbac", tags=["rbac-tes
 api_router.include_router(password_reset_router, prefix="/password-reset", tags=["password-reset"])
 api_router.include_router(email_verification_router, prefix="/email-verification", tags=["email-verification"])
 api_router.include_router(test_email_verification_router, prefix="/test-email-verification", tags=["email-verification-testing"])
+api_router.include_router(test_auth_suite_router, prefix="/test-auth-suite", tags=["auth-suite-testing"])
 
 
 @api_router.get("/health", response_model=HealthCheckResponse)

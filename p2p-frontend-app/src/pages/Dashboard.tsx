@@ -14,10 +14,150 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+
+interface DashboardStats {
+  questions_asked: number
+  answers_given: number
+  bookmarks_saved: number
+  reputation_score: number
+  activity_level: number
+  use_cases_submitted: number
+  best_answers: number
+  draft_posts: number
+  connections_count: number
+}
+
+interface Activity {
+  type: string
+  user: string
+  action: string
+  content: string
+  time: string
+  category: string
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user, organization } = useAuth()
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showBookmarks, setShowBookmarks] = useState(false)
+  const [showDrafts, setShowDrafts] = useState(false)
+  const [bookmarks, setBookmarks] = useState<any[]>([])
+  const [drafts, setDrafts] = useState<any[]>([])
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
+  const [loadingDrafts, setLoadingDrafts] = useState(false)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch user stats
+        const statsResponse = await fetch('http://localhost:8000/api/v1/dashboard/stats', {
+          credentials: 'include'
+        })
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json()
+          setStats(statsData)
+        }
+        
+        // Fetch community activities
+        const activitiesResponse = await fetch('http://localhost:8000/api/v1/dashboard/activities', {
+          credentials: 'include'
+        })
+        if (activitiesResponse.ok) {
+          const activitiesData = await activitiesResponse.json()
+          setActivities(activitiesData.activities || [])
+        }
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+        // Use fallback data if API fails
+        setStats({
+          questions_asked: 0,
+          answers_given: 0,
+          bookmarks_saved: 0,
+          reputation_score: 0,
+          activity_level: 0,
+          use_cases_submitted: 0,
+          best_answers: 0,
+          draft_posts: 0,
+          connections_count: 0
+        })
+        setActivities([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchDashboardData()
+    }
+  }, [user])
+
+  const fetchBookmarks = async () => {
+    try {
+      setLoadingBookmarks(true)
+      const response = await fetch('http://localhost:8000/api/v1/dashboard/bookmarks', {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setBookmarks(data.bookmarks || [])
+      }
+    } catch (error) {
+      console.error('Error fetching bookmarks:', error)
+      setBookmarks([])
+    } finally {
+      setLoadingBookmarks(false)
+    }
+  }
+
+  const fetchDrafts = async () => {
+    try {
+      setLoadingDrafts(true)
+      const response = await fetch('http://localhost:8000/api/v1/dashboard/drafts', {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setDrafts(data.drafts || [])
+      }
+    } catch (error) {
+      console.error('Error fetching drafts:', error)
+      setDrafts([])
+    } finally {
+      setLoadingDrafts(false)
+    }
+  }
+
+  const handleQuickAccessClick = async (type: string) => {
+    if (type === 'Saved Articles') {
+      await fetchBookmarks()
+      setShowBookmarks(true)
+    } else if (type === 'Draft Posts') {
+      await fetchDrafts()
+      setShowDrafts(true)
+    } else if (type === 'My Connections') {
+      // TODO: Implement connections - for now just show a message
+      alert('Connections feature coming soon!')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -98,41 +238,41 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between mb-4">
                     <MessageSquare className="h-8 w-8 text-blue-200" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">12</div>
+                      <div className="text-2xl font-bold">{stats?.questions_asked || 0}</div>
                       <div className="text-blue-200 text-sm">Questions</div>
                     </div>
                   </div>
-                  <div className="text-sm text-blue-200">+2 this week</div>
+                  <div className="text-sm text-blue-200">Forum posts created</div>
                 </div>
                 <div className="bg-slate-600 p-6 rounded-xl text-white">
                   <div className="flex items-center justify-between mb-4">
                     <Award className="h-8 w-8 text-slate-200" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">24</div>
+                      <div className="text-2xl font-bold">{stats?.answers_given || 0}</div>
                       <div className="text-slate-200 text-sm">Answers</div>
                     </div>
                   </div>
-                  <div className="text-sm text-slate-200">+5 this week</div>
+                  <div className="text-sm text-slate-200">{stats?.best_answers || 0} best answers</div>
                 </div>
                 <div className="bg-blue-500 p-6 rounded-xl text-white">
                   <div className="flex items-center justify-between mb-4">
                     <BookmarkCheck className="h-8 w-8 text-blue-200" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">8</div>
+                      <div className="text-2xl font-bold">{stats?.bookmarks_saved || 0}</div>
                       <div className="text-blue-200 text-sm">Saved</div>
                     </div>
                   </div>
-                  <div className="text-sm text-blue-200">+1 this week</div>
+                  <div className="text-sm text-blue-200">Bookmarked items</div>
                 </div>
                 <div className="bg-slate-700 p-6 rounded-xl text-white">
                   <div className="flex items-center justify-between mb-4">
                     <Star className="h-8 w-8 text-slate-300" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">156</div>
+                      <div className="text-2xl font-bold">{stats?.reputation_score || 0}</div>
                       <div className="text-slate-300 text-sm">Reputation</div>
                     </div>
                   </div>
-                  <div className="text-sm text-slate-300">+12 this week</div>
+                  <div className="text-sm text-slate-300">{stats?.use_cases_submitted || 0} use cases shared</div>
                 </div>
               </div>
             </div>
@@ -149,42 +289,23 @@ export default function Dashboard() {
                 </Button>
               </div>
               <div className="space-y-4">
-                {[
-                  {
-                    type: "question",
-                    user: "Sarah Ahmed",
-                    action: "asked a new question",
-                    content: "How can we improve production line efficiency?",
-                    time: "2 hours ago",
-                    category: "Automation"
-                  },
-                  {
-                    type: "answer",
-                    user: "Mohammed Al-Shahri", 
-                    action: "answered your question",
-                    content: "About implementing quality management systems",
-                    time: "4 hours ago",
-                    category: "Quality Management"
-                  },
-                  {
-                    type: "case",
-                    user: "Fatima Al-Otaibi",
-                    action: "added a new use case",
-                    content: "AI application in predictive maintenance",
-                    time: "Yesterday",
-                    category: "Artificial Intelligence"
-                  }
-                ].map((activity, i) => (
+                {activities.map((activity, i) => (
                   <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
                     <div className="flex items-start space-x-4">
                       <div className={`p-3 rounded-lg ${
                         activity.type === "question" ? "bg-blue-600" :
                         activity.type === "answer" ? "bg-slate-600" :
-                        "bg-blue-500"
+                        activity.type === "usecase" ? "bg-blue-500" :
+                        activity.type === "bookmark" ? "bg-green-600" :
+                        activity.type === "like" ? "bg-red-500" :
+                        "bg-gray-500"
                       }`}>
                         {activity.type === "question" && <MessageSquare className="h-5 w-5 text-white" />}
                         {activity.type === "answer" && <Award className="h-5 w-5 text-white" />}
-                        {activity.type === "case" && <FileText className="h-5 w-5 text-white" />}
+                        {(activity.type === "usecase" || activity.type === "case") && <FileText className="h-5 w-5 text-white" />}
+                        {activity.type === "bookmark" && <BookmarkCheck className="h-5 w-5 text-white" />}
+                        {activity.type === "like" && <Star className="h-5 w-5 text-white" />}
+                        {activity.type === "comment" && <MessageSquare className="h-5 w-5 text-white" />}
                       </div>
                       <div className="flex-1">
                         <p className="text-slate-900 font-medium mb-1">
@@ -236,11 +357,15 @@ export default function Dashboard() {
               <h3 className="font-bold text-gray-900 mb-4">Quick Access</h3>
               <div className="space-y-3">
                 {[
-                  { title: "Saved Articles", count: "8", color: "blue" },
-                  { title: "My Connections", count: "24", color: "slate" },
-                  { title: "Draft Posts", count: "3", color: "blue" }
+                  { title: "Saved Articles", count: String(stats?.bookmarks_saved || 0), color: "blue" },
+                  { title: "My Connections", count: String(stats?.connections_count || 0), color: "slate" },
+                  { title: "Draft Posts", count: String(stats?.draft_posts || 0), color: "blue" }
                 ].map((item, i) => (
-                  <button key={i} className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
+                  <button 
+                    key={i} 
+                    onClick={() => handleQuickAccessClick(item.title)}
+                    className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-slate-900">{item.title}</span>
                       <div className={`px-2 py-1 rounded-lg text-white text-xs font-bold ${
@@ -281,19 +406,23 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-slate-600">Activity Level</p>
-                      <p className="text-2xl font-bold text-blue-600">85%</p>
+                      <p className="text-2xl font-bold text-blue-600">{Math.round(stats?.activity_level || 0)}%</p>
                     </div>
                     <div className="p-2 bg-blue-600 rounded-lg">
                       <Activity className="h-6 w-6 text-white" />
                     </div>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-3">
-                    <div className="bg-blue-600 h-3 rounded-full" style={{ width: "85%" }}></div>
+                    <div className="bg-blue-600 h-3 rounded-full" style={{ width: `${Math.round(stats?.activity_level || 0)}%` }}></div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Target className="h-4 w-4 text-green-500" />
                     <p className="text-xs text-slate-600">
-                      Excellent progress! You're in the top 10%
+                      {(stats?.activity_level || 0) > 70 
+                        ? "Excellent progress! Keep it up!" 
+                        : (stats?.activity_level || 0) > 40 
+                          ? "Good activity level" 
+                          : "Get more active in the community"}
                     </p>
                   </div>
                 </div>
@@ -302,6 +431,126 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Bookmarks Modal */}
+      {showBookmarks && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-slate-900">Saved Articles</h3>
+                <button 
+                  onClick={() => setShowBookmarks(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {loadingBookmarks ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-slate-600 mt-2">Loading bookmarks...</p>
+                </div>
+              ) : bookmarks.length > 0 ? (
+                <div className="space-y-4">
+                  {bookmarks.map((bookmark, i) => (
+                    <div key={i} className="p-4 bg-slate-50 rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-slate-900 mb-1">{bookmark.title}</h4>
+                          <p className="text-sm text-slate-600 mb-2">Type: {bookmark.target_type}</p>
+                          {bookmark.category && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              {bookmark.category}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500 ml-4">
+                          {new Date(bookmark.saved_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <BookmarkCheck className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-600">No saved articles yet</p>
+                  <p className="text-sm text-slate-500">Start bookmarking posts and use cases!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drafts Modal */}
+      {showDrafts && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-slate-900">Draft Posts</h3>
+                <button 
+                  onClick={() => setShowDrafts(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {loadingDrafts ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-slate-600 mt-2">Loading drafts...</p>
+                </div>
+              ) : drafts.length > 0 ? (
+                <div className="space-y-4">
+                  {drafts.map((draft, i) => (
+                    <div key={i} className="p-4 bg-slate-50 rounded-lg">
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="font-medium text-slate-900">{draft.title}</h4>
+                        <span className="text-xs text-slate-500">
+                          {new Date(draft.updated_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-3">{draft.content}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-slate-100 text-slate-700">
+                            {draft.post_type}
+                          </span>
+                          {draft.category && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">  
+                              {draft.category}
+                            </span>
+                          )}
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          Continue Writing
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-600">No draft posts yet</p>
+                  <p className="text-sm text-slate-500">Start writing and save drafts for later!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

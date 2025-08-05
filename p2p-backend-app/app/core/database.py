@@ -68,10 +68,16 @@ class DatabaseManager:
             await self.mongo_client.admin.command('ping')
             
             # Initialize Beanie with document models
-            from app.models.mongo_models import User, ForumPost, UseCase, ForumReply
+            from app.models.mongo_models import (
+                User, ForumPost, UseCase, ForumReply,
+                UserActivity, UserStats, UserBookmark, DraftPost
+            )
             await init_beanie(
                 database=self.mongo_db,
-                document_models=[User, ForumPost, ForumReply, UseCase]
+                document_models=[
+                    User, ForumPost, ForumReply, UseCase,
+                    UserActivity, UserStats, UserBookmark, DraftPost
+                ]
             )
             
             logger.info("MongoDB connection established")

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -26,14 +26,12 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
-const categories = [
-  { id: "all", name: "All Topics", count: 156, color: "bg-gray-100" },
-  { id: "automation", name: "Automation", count: 42, color: "bg-blue-100" },
-  { id: "quality", name: "Quality Management", count: 38, color: "bg-green-100" },
-  { id: "maintenance", name: "Maintenance", count: 29, color: "bg-yellow-100" },
-  { id: "ai", name: "Artificial Intelligence", count: 25, color: "bg-purple-100" },
-  { id: "iot", name: "Internet of Things", count: 22, color: "bg-orange-100" }
-]
+interface Category {
+  id: string
+  name: string
+  count: number
+  color: string
+}
 
 interface Comment {
   id: number
@@ -64,132 +62,7 @@ interface ForumPost {
   comments?: Comment[]
 }
 
-const forumPosts: ForumPost[] = [
-  {
-    id: 1,
-    title: "How to improve production line efficiency using sensors?",
-    author: "Sarah Ahmed",
-    authorTitle: "Production Engineer - Jeddah", 
-    category: "Automation",
-    replies: 12,
-    views: 234,
-    likes: 8,
-    timeAgo: "2 hours ago",
-    isPinned: true,
-    hasBestAnswer: false,
-    isVerified: true,
-    excerpt: "We're facing challenges in monitoring operations on the production line and want to implement smart solutions...",
-    content: `We're currently operating a medium-scale electronics manufacturing facility and facing several challenges in real-time monitoring of our production lines.
-
-**Current Challenges:**
-- Manual quality checks causing delays
-- Difficulty tracking production metrics in real-time
-- Limited visibility into equipment performance
-- High rate of undetected defects reaching final inspection
-
-**What We're Looking For:**
-- Sensor recommendations for real-time monitoring
-- Integration with existing equipment
-- Cost-effective solutions suitable for SMEs
-- Success stories from similar implementations
-
-Has anyone successfully implemented IoT sensors in their production lines? What were the key considerations and ROI achieved?`,
-    comments: [
-      {
-        id: 1,
-        author: "Mohammed Al-Rashid",
-        authorTitle: "IoT Specialist - Riyadh",
-        content: "We implemented a similar solution last year using industrial-grade sensors from Siemens. The key is to start small with critical points in your production line. We started with temperature and vibration sensors on our most critical machines and expanded from there. ROI was visible within 6 months.",
-        timeAgo: "1 hour ago",
-        likes: 5,
-        isVerified: true,
-        replies: [
-          {
-            id: 11,
-            author: "Sarah Ahmed",
-            authorTitle: "Production Engineer - Jeddah",
-            content: "Thanks for sharing! What was the approximate cost per sensor? And did you face any integration challenges with legacy equipment?",
-            timeAgo: "45 minutes ago",
-            likes: 2,
-            isVerified: true
-          },
-          {
-            id: 12,
-            author: "Mohammed Al-Rashid",
-            authorTitle: "IoT Specialist - Riyadh",
-            content: "Sensors ranged from SAR 500-2000 depending on type. For legacy equipment, we used edge computing devices as intermediaries. Happy to share more details if you DM me.",
-            timeAgo: "30 minutes ago",
-            likes: 3,
-            isVerified: true
-          }
-        ]
-      },
-      {
-        id: 2,
-        author: "Fatima Hassan",
-        authorTitle: "Quality Manager - Dammam",
-        content: "Consider starting with vision-based quality inspection systems. We use cameras with AI models to detect defects. Much more cost-effective than traditional sensors for quality control. Local company TechVision SA provides excellent solutions.",
-        timeAgo: "50 minutes ago",
-        likes: 4,
-        isVerified: true
-      },
-      {
-        id: 3,
-        author: "Ahmed Al-Zahrani",
-        authorTitle: "Factory Owner - Mecca",
-        content: "Before investing in sensors, ensure your team is ready for the digital transformation. We made the mistake of implementing too quickly without proper training. Now we have a phased approach: 1) Team training, 2) Pilot project, 3) Full implementation.",
-        timeAgo: "30 minutes ago",
-        likes: 8,
-        isVerified: true
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: "My experience implementing predictive maintenance in a plastic factory",
-    author: "Mohammed Al-Shahri",
-    authorTitle: "Operations Manager - Riyadh",
-    category: "Maintenance", 
-    replies: 18,
-    views: 456,
-    likes: 15,
-    timeAgo: "4 hours ago",
-    isPinned: false,
-    hasBestAnswer: true,
-    isVerified: true,
-    excerpt: "Sharing my experience implementing a predictive maintenance system and how it saved 30% of maintenance costs..."
-  },
-  {
-    id: 3,
-    title: "Best smart inventory management systems for small factories?",
-    author: "Fatima Al-Otaibi",
-    authorTitle: "Factory Owner - Dammam",
-    category: "Quality Management",
-    replies: 9,
-    views: 189,
-    likes: 6,
-    timeAgo: "Yesterday",
-    isPinned: false,
-    hasBestAnswer: false,
-    isVerified: true,
-    excerpt: "Looking for a suitable inventory management system for a small factory that produces electrical equipment..."
-  },
-  {
-    id: 4,
-    title: "Challenges of implementing AI in quality inspection",
-    author: "Khalid Al-Ghamdi",
-    authorTitle: "Quality Engineer - Mecca",
-    category: "Artificial Intelligence",
-    replies: 22,
-    views: 678,
-    likes: 19,
-    timeAgo: "2 days ago",
-    isPinned: false,
-    hasBestAnswer: true,
-    isVerified: true,
-    excerpt: "We're facing difficulties in training AI models to inspect product defects..."
-  }
-]
+// Hardcoded forum posts removed - now using real API data
 
 export default function Forum() {
   const { user } = useAuth()
@@ -199,19 +72,168 @@ export default function Forum() {
   const [newComment, setNewComment] = useState("")
   const [likedPosts, setLikedPosts] = useState<number[]>([])
   const [likedComments, setLikedComments] = useState<number[]>([])
+  
+  // Real data state
+  const [categories, setCategories] = useState<Category[]>([])
+  const [forumPosts, setForumPosts] = useState<ForumPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingPosts, setLoadingPosts] = useState(false)
+  const [forumStats, setForumStats] = useState({
+    total_topics: 0,
+    active_members: 0,
+    helpful_answers: 0
+  })
+  const [topContributors, setTopContributors] = useState<Array<{
+    name: string
+    points: number
+    avatar: string
+    rank: number
+  }>>([])
+  const [loadingContributors, setLoadingContributors] = useState(true)
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/forum/categories', {
+          credentials: 'include'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setCategories(data.categories || [])
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+        // Fallback to empty array
+        setCategories([])
+      }
+    }
+    
+    if (user) {
+      fetchCategories()
+    }
+  }, [user])
+
+  // Fetch posts when category changes
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoadingPosts(true)
+        const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${selectedCategory}&limit=20`, {
+          credentials: 'include'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setForumPosts(data.posts || [])
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error)
+        setForumPosts([])
+      } finally {
+        setLoadingPosts(false)
+        setLoading(false)
+      }
+    }
+    
+    if (user) {
+      fetchPosts()
+    }
+  }, [user, selectedCategory])
+
+  // Fetch forum stats
+  useEffect(() => {
+    const fetchForumStats = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/forum/stats', {
+          credentials: 'include'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setForumStats(data)
+        }
+      } catch (error) {
+        console.error('Error fetching forum stats:', error)
+      }
+    }
+    
+    if (user) {
+      fetchForumStats()
+    }
+  }, [user])
+
+  // Fetch top contributors
+  useEffect(() => {
+    const fetchTopContributors = async () => {
+      try {
+        setLoadingContributors(true)
+        const response = await fetch('http://localhost:8000/api/v1/forum/contributors?limit=3', {
+          credentials: 'include'
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setTopContributors(data.contributors || [])
+        }
+      } catch (error) {
+        console.error('Error fetching top contributors:', error)
+        setTopContributors([])
+      } finally {
+        setLoadingContributors(false)
+      }
+    }
+    
+    if (user) {
+      fetchTopContributors()
+    }
+  }, [user])
 
   const filteredPosts = forumPosts.filter(post => {
-    const matchesCategory = selectedCategory === "all" || post.category === selectedCategory
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesCategory && matchesSearch
+    return matchesSearch
   })
 
-  const handleLikePost = (postId: number) => {
-    if (likedPosts.includes(postId)) {
-      setLikedPosts(likedPosts.filter(id => id !== postId))
-    } else {
-      setLikedPosts([...likedPosts, postId])
+  // Function to fetch full post details with comments
+  const handlePostClick = async (postId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}`, {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const fullPost = await response.json()
+        setSelectedPost(fullPost)
+      } else {
+        console.error('Failed to fetch post details')
+      }
+    } catch (error) {
+      console.error('Error fetching post details:', error)
+    }
+  }
+
+  const handleLikePost = async (postId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}/like`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        // Update the post in the state with new like count
+        setForumPosts(posts => posts.map(post => 
+          post.id === postId 
+            ? { ...post, likes: data.likes }
+            : post
+        ))
+        
+        // Update liked posts for UI feedback
+        if (likedPosts.includes(postId as any)) {
+          setLikedPosts(likedPosts.filter(id => id !== postId as any))
+        } else {
+          setLikedPosts([...likedPosts, postId as any])
+        }
+      }
+    } catch (error) {
+      console.error('Error liking post:', error)
     }
   }
 
@@ -444,6 +466,17 @@ export default function Forum() {
     )
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading forum...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -487,7 +520,7 @@ export default function Forum() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-600">Total Topics</p>
-                    <p className="text-xl font-bold text-blue-600">156</p>
+                    <p className="text-xl font-bold text-blue-600">{forumStats.total_topics}</p>
                   </div>
                   <div className="p-2 bg-blue-600 rounded-lg">
                     <MessageSquare className="h-6 w-6 text-white" />
@@ -496,7 +529,7 @@ export default function Forum() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-600">Active Members</p>
-                    <p className="text-xl font-bold text-slate-600">89</p>
+                    <p className="text-xl font-bold text-slate-600">{forumStats.active_members}</p>
                   </div>
                   <div className="p-2 bg-slate-600 rounded-lg">
                     <Users className="h-6 w-6 text-white" />
@@ -505,7 +538,7 @@ export default function Forum() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-600">Helpful Answers</p>
-                    <p className="text-xl font-bold text-blue-500">234</p>
+                    <p className="text-xl font-bold text-blue-500">{forumStats.helpful_answers}</p>
                   </div>
                   <div className="p-2 bg-blue-500 rounded-lg">
                     <CheckCircle className="h-6 w-6 text-white" />
@@ -518,26 +551,33 @@ export default function Forum() {
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <h3 className="font-bold text-slate-900 text-lg mb-4">Top Contributors</h3>
               <div className="space-y-4">
-                {[
-                  { name: "Mohammed Al-Shahri", points: 1250, avatar: "M" },
-                  { name: "Sarah Ahmed", points: 980, avatar: "S" },
-                  { name: "Fatima Al-Otaibi", points: 876, avatar: "F" }
-                ].map((contributor, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-white">{contributor.avatar}</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{contributor.name}</p>
-                        <p className="text-xs text-slate-500">{contributor.points} points</p>
-                      </div>
-                    </div>
-                    <div className="px-3 py-1 bg-slate-600 text-white text-sm font-bold rounded-lg">
-                      #{i + 1}
-                    </div>
+                {loadingContributors ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-slate-500">Loading contributors...</p>
                   </div>
-                ))}
+                ) : topContributors.length > 0 ? (
+                  topContributors.map((contributor, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-bold text-white">{contributor.avatar}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{contributor.name}</p>
+                          <p className="text-xs text-slate-500">{contributor.points} points</p>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-slate-600 text-white text-sm font-bold rounded-lg">
+                        #{contributor.rank}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-500">No contributors yet</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -566,7 +606,13 @@ export default function Forum() {
 
             {/* Forum Posts */}
             <div className="space-y-4">
-              {filteredPosts.map((post) => (
+              {loadingPosts ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-slate-600">Loading posts...</p>
+                </div>
+              ) : filteredPosts.length > 0 ? (
+                filteredPosts.map((post) => (
                 <div key={post.id} className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
                     <div className="space-y-4">
                       {/* Post Header */}
@@ -592,7 +638,7 @@ export default function Forum() {
                           </div>
                           <h3 
                             className="text-lg font-semibold text-slate-900 hover:text-blue-600 cursor-pointer"
-                            onClick={() => setSelectedPost(post)}
+                            onClick={() => handlePostClick(post.id)}
                           >
                             {post.title}
                           </h3>
@@ -647,7 +693,14 @@ export default function Forum() {
                       </div>
                     </div>
                   </div>
-              ))}
+              ))
+              ) : (
+                <div className="text-center py-12">
+                  <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-600 text-lg font-medium mb-2">No posts found</p>
+                  <p className="text-slate-500">Try selecting a different category or start a new discussion!</p>
+                </div>
+              )}
             </div>
 
             {/* Load More */}

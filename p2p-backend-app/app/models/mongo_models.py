@@ -66,6 +66,83 @@ class ForumReply(Document):
             [("created_at", pymongo.ASCENDING)]
         ]
 
+# User Activity and Stats Models
+class UserActivity(Document):
+    """Track user activities for dashboard feed and stats"""
+    user_id: str
+    activity_type: str  # "question", "answer", "usecase", "bookmark", "like", "comment"
+    target_id: str  # ID of the target (post, reply, usecase)
+    target_title: Optional[str] = None  # Title for display
+    target_category: Optional[str] = None  # Category for display
+    description: Optional[str] = None  # Activity description
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "user_activities"
+        indexes = [
+            [("user_id", pymongo.ASCENDING)],
+            [("activity_type", pymongo.ASCENDING)],
+            [("created_at", pymongo.DESCENDING)]
+        ]
+
+class UserStats(Document):
+    """Aggregate user statistics for dashboard"""
+    user_id: Indexed(str, unique=True)
+    questions_asked: int = 0
+    answers_given: int = 0
+    best_answers: int = 0
+    use_cases_submitted: int = 0
+    bookmarks_saved: int = 0
+    total_upvotes_received: int = 0
+    reputation_score: int = 0
+    activity_level: float = 0.0  # 0-100 percentage
+    connections_count: int = 0
+    draft_posts: int = 0
+    last_calculated: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "user_stats"
+        indexes = [
+            [("user_id", pymongo.ASCENDING)],
+            [("reputation_score", pymongo.DESCENDING)]
+        ]
+
+class UserBookmark(Document):
+    """Track user bookmarks/saved items"""
+    user_id: str
+    target_type: str  # "forum_post", "forum_reply", "use_case"
+    target_id: str
+    target_title: str
+    target_category: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "user_bookmarks"
+        indexes = [
+            [("user_id", pymongo.ASCENDING)],
+            [("target_type", pymongo.ASCENDING)],
+            [("created_at", pymongo.DESCENDING)]
+        ]
+
+class DraftPost(Document):
+    """Store user draft posts/content"""
+    user_id: str
+    title: str
+    content: str
+    post_type: str  # "forum_post", "use_case"
+    category: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "draft_posts"
+        indexes = [
+            [("user_id", pymongo.ASCENDING)],
+            [("post_type", pymongo.ASCENDING)],
+            [("updated_at", pymongo.DESCENDING)]
+        ]
+
 class UseCase(Document):
     # Basic Information (Required - from JSON)
     submitted_by: str

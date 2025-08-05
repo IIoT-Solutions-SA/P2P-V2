@@ -18,12 +18,13 @@ from app.core.exceptions import (
 )
 from app.db.session import init_db, close_db, check_postgres_health, check_mongodb_health
 from app.schemas.health import HealthCheckResponse
-import logging
+from app.core.logging import setup_logging, get_logger
+from app.middleware.logging import LoggingMiddleware, UserContextMiddleware
 from datetime import datetime
 
-# Configure logging
-logging.basicConfig(level=settings.LOG_LEVEL)
-logger = logging.getLogger(__name__)
+# Configure structured logging
+setup_logging()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -54,6 +55,10 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan,
 )
+
+# Add logging middleware (should be first to catch all requests)
+app.add_middleware(LoggingMiddleware, service_name=settings.PROJECT_NAME)
+app.add_middleware(UserContextMiddleware)
 
 # Add server error middleware
 app.add_middleware(ServerErrorMiddleware, handler=general_exception_handler)

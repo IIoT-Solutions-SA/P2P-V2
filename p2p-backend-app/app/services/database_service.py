@@ -101,14 +101,16 @@ class ForumService:
         post_id: str,
         author_id: str,
         content: str,
-        is_best_answer: bool = False
+        parent_reply_id: str = None,  # <-- Add this parameter
+        is_best_answer: bool = False    # <-- Add this parameter
     ) -> ForumReply:
-        """Create a new forum reply"""
+        """Create a new forum reply."""
         reply = ForumReply(
             post_id=post_id,
             author_id=author_id,
             content=content,
-            is_best_answer=is_best_answer
+            parent_reply_id=parent_reply_id, # <-- Pass it to the model
+            is_best_answer=is_best_answer      # <-- Pass it to the model
         )
         await reply.create()
         return reply

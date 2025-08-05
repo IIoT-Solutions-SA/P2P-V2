@@ -89,49 +89,30 @@ async def get_forum_posts(
         raise HTTPException(status_code=500, detail="Failed to get forum posts")
 
 @router.get("/categories")
-async def get_forum_categories():
-    """Get forum categories with real post counts"""
+async def get_forum_categories(session: SessionContainer = Depends(verify_session())):
+    """Get forum categories with real post counts (efficiently)"""
     try:
-        # Get all posts to calculate category counts
-        all_posts = await ForumPost.find_all().to_list()
-        
-        # Count posts by category
-        category_counts = {}
-        for post in all_posts:
-            category = post.category
-            category_counts[category] = category_counts.get(category, 0) + 1
-        
-        # Build categories response
-        categories = [
-            {
-                "id": "all",
-                "name": "All Topics", 
-                "count": len(all_posts),
-                "color": "bg-gray-100"
-            }
+        # UPDATED: Use MongoDB aggregation for much better performance
+        pipeline = [
+            {"$group": {"_id": "$category", "count": {"$sum": 1}}},
+            {"$sort": {"_id": 1}}
         ]
+        category_cursor = ForumPost.aggregate(pipeline)
+        categories_from_db = await category_cursor.to_list()
         
-        # Add specific categories
-        category_configs = {
-            "Automation": {"color": "bg-blue-100"},
-            "Quality Management": {"color": "bg-green-100"},
-            "Maintenance": {"color": "bg-yellow-100"},
-            "Artificial Intelligence": {"color": "bg-purple-100"},
-            "Internet of Things": {"color": "bg-orange-100"}
-        }
+        total_posts = await ForumPost.find_all().count()
+
+        # Format for frontend
+        formatted_categories = [{"id": "all", "name": "All Topics", "count": total_posts}]
+        for cat in categories_from_db:
+            if cat["_id"]: # Ensure category is not null
+                formatted_categories.append({
+                    "id": cat["_id"].lower().replace(" ", "-"),
+                    "name": cat["_id"],
+                    "count": cat["count"]
+                })
         
-        for category_name, config in category_configs.items():
-            count = category_counts.get(category_name, 0)
-            categories.append({
-                "id": category_name.lower().replace(" ", "_"),
-                "name": category_name,
-                "count": count,
-                "color": config["color"]
-            })
-        
-        return {
-            "categories": categories
-        }
+        return {"categories": formatted_categories}
         
     except Exception as e:
         logger.error(f"Error getting forum categories: {e}")

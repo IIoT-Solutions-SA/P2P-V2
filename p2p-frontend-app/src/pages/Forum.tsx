@@ -22,7 +22,8 @@ import {
   Heart,
   Share2,
   Bookmark,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -41,6 +42,7 @@ interface Comment {
   timeAgo: string
   likes: number
   isVerified: boolean
+  parent_reply_id?: number; // Optional field for nested replies
   replies?: Comment[]
 }
 
@@ -62,11 +64,9 @@ interface ForumPost {
   comments?: Comment[]
 }
 
-// Hardcoded forum posts removed - now using real API data
-
 export default function Forum() {
   const { user } = useAuth()
-  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [selectedCategoryId, setSelectedCategoryId] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null)
   const [newComment, setNewComment] = useState("")
@@ -91,35 +91,60 @@ export default function Forum() {
   }>>([])
   const [loadingContributors, setLoadingContributors] = useState(true)
 
-  // Fetch categories on component mount
+  // Fetch initial data (categories, stats, contributors)
   useEffect(() => {
-    const fetchCategories = async () => {
+    if (!user) return;
+
+    const fetchInitialData = async () => {
+      setLoading(true);
       try {
-        const response = await fetch('http://localhost:8000/api/v1/forum/categories', {
-          credentials: 'include'
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setCategories(data.categories || [])
+        const [catRes, statsRes, contribRes] = await Promise.all([
+          fetch('http://localhost:8000/api/v1/forum/categories', { credentials: 'include' }),
+          fetch('http://localhost:8000/api/v1/forum/stats', { credentials: 'include' }),
+          fetch('http://localhost:8000/api/v1/forum/contributors?limit=3', { credentials: 'include' })
+        ]);
+
+        if (catRes.ok) {
+            const data = await catRes.json();
+            setCategories(data.categories || []);
         }
+        if (statsRes.ok) setForumStats(await statsRes.json());
+        if (contribRes.ok) {
+            const data = await contribRes.json();
+            setTopContributors(data.contributors || []);
+        }
+
       } catch (error) {
-        console.error('Error fetching categories:', error)
-        // Fallback to empty array
-        setCategories([])
+        console.error('Error fetching initial forum data:', error)
+      } finally {
+        setLoading(false);
+        setLoadingContributors(false);
       }
     }
     
-    if (user) {
-      fetchCategories()
-    }
+    fetchInitialData();
   }, [user])
 
   // Fetch posts when category changes
   useEffect(() => {
+    if (!user || categories.length === 0) return;
+
     const fetchPosts = async () => {
+      setLoadingPosts(true)
       try {
-        setLoadingPosts(true)
-        const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${selectedCategory}&limit=20`, {
+        // FIX: If the ID is 'all', send 'all'. Otherwise, find the name.
+        const categoryQueryParam = selectedCategoryId === 'all' 
+          ? 'all' 
+          : categories.find(c => c.id === selectedCategoryId)?.name;
+
+        // Ensure we don't send an undefined parameter if a category is somehow not found
+        if (!categoryQueryParam) {
+            console.error("Could not find category name for ID:", selectedCategoryId);
+            setLoadingPosts(false);
+            return;
+        }
+        
+        const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, {
           credentials: 'include'
         })
         if (response.ok) {
@@ -131,85 +156,56 @@ export default function Forum() {
         setForumPosts([])
       } finally {
         setLoadingPosts(false)
-        setLoading(false)
       }
     }
     
-    if (user) {
-      fetchPosts()
-    }
-  }, [user, selectedCategory])
-
-  // Fetch forum stats
-  useEffect(() => {
-    const fetchForumStats = async () => {
-      try {
-        const response = await fetch('http://localhost:8000/api/v1/forum/stats', {
-          credentials: 'include'
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setForumStats(data)
-        }
-      } catch (error) {
-        console.error('Error fetching forum stats:', error)
-      }
-    }
-    
-    if (user) {
-      fetchForumStats()
-    }
-  }, [user])
-
-  // Fetch top contributors
-  useEffect(() => {
-    const fetchTopContributors = async () => {
-      try {
-        setLoadingContributors(true)
-        const response = await fetch('http://localhost:8000/api/v1/forum/contributors?limit=3', {
-          credentials: 'include'
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setTopContributors(data.contributors || [])
-        }
-      } catch (error) {
-        console.error('Error fetching top contributors:', error)
-        setTopContributors([])
-      } finally {
-        setLoadingContributors(false)
-      }
-    }
-    
-    if (user) {
-      fetchTopContributors()
-    }
-  }, [user])
+    fetchPosts()
+  }, [user, selectedCategoryId, categories])
 
   const filteredPosts = forumPosts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesSearch
   })
 
   // Function to fetch full post details with comments
-  const handlePostClick = async (postId: string) => {
+  const handlePostClick = async (postId: number) => {
     try {
       const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}`, {
         credentials: 'include'
-      })
+      });
+
       if (response.ok) {
-        const fullPost = await response.json()
-        setSelectedPost(fullPost)
+        const fullPost = await response.json();
+
+        if (fullPost.comments && Array.isArray(fullPost.comments)) {
+          const commentsById = new Map<number, Comment>();
+          const topLevelComments: Comment[] = [];
+
+          fullPost.comments.forEach((comment: any) => {
+            commentsById.set(comment.id, { ...comment, replies: [] });
+          });
+
+          fullPost.comments.forEach((comment: any) => {
+            if (comment.parent_reply_id && commentsById.has(comment.parent_reply_id)) {
+              commentsById.get(comment.parent_reply_id)!.replies!.push(commentsById.get(comment.id)!);
+            } else {
+              topLevelComments.push(commentsById.get(comment.id)!);
+            }
+          });
+          
+          fullPost.comments = topLevelComments;
+        }
+        setSelectedPost(fullPost);
       } else {
-        console.error('Failed to fetch post details')
+        console.error('Failed to fetch post details');
       }
     } catch (error) {
-      console.error('Error fetching post details:', error)
+      console.error('Error fetching post details:', error);
     }
-  }
+  };
 
-  const handleLikePost = async (postId: string) => {
+  const handleLikePost = async (postId: number) => {
     try {
       const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}/like`, {
         method: 'POST',
@@ -218,18 +214,16 @@ export default function Forum() {
       
       if (response.ok) {
         const data = await response.json()
-        // Update the post in the state with new like count
         setForumPosts(posts => posts.map(post => 
           post.id === postId 
             ? { ...post, likes: data.likes }
             : post
         ))
         
-        // Update liked posts for UI feedback
-        if (likedPosts.includes(postId as any)) {
-          setLikedPosts(likedPosts.filter(id => id !== postId as any))
+        if (likedPosts.includes(postId)) {
+          setLikedPosts(likedPosts.filter(id => id !== postId))
         } else {
-          setLikedPosts([...likedPosts, postId as any])
+          setLikedPosts([...likedPosts, postId])
         }
       }
     } catch (error) {
@@ -247,7 +241,6 @@ export default function Forum() {
 
   const handlePostComment = () => {
     if (newComment.trim()) {
-      // In a real app, this would submit to backend
       console.log('Posting comment:', newComment)
       setNewComment('')
     }
@@ -257,7 +250,6 @@ export default function Forum() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
-          {/* Back Button */}
           <Button 
             variant="ghost" 
             className="mb-6"
@@ -266,18 +258,11 @@ export default function Forum() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Forum
           </Button>
-
-          {/* Post Detail */}
           <div className="bg-white rounded-2xl p-8 border border-slate-200 mb-6">
-            {/* Post Header */}
             <div className="mb-6">
               <div className="flex items-center space-x-2 mb-4">
-                {selectedPost.isPinned && (
-                  <Pin className="h-4 w-4 text-blue-600" />
-                )}
-                {selectedPost.hasBestAnswer && (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                )}
+                {selectedPost.isPinned && <Pin className="h-4 w-4 text-blue-600" />}
+                {selectedPost.hasBestAnswer && <CheckCircle className="h-4 w-4 text-green-600" />}
                 <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                   selectedPost.category === "Automation" ? "bg-blue-100 text-blue-700" :
                   selectedPost.category === "Maintenance" ? "bg-yellow-100 text-yellow-700" :
@@ -290,8 +275,6 @@ export default function Forum() {
                 </span>
               </div>
               <h1 className="text-2xl font-bold text-slate-900 mb-4">{selectedPost.title}</h1>
-              
-              {/* Author Info */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
@@ -302,9 +285,7 @@ export default function Forum() {
                   <div>
                     <div className="flex items-center space-x-1">
                       <span className="font-semibold text-slate-900">{selectedPost.author}</span>
-                      {selectedPost.isVerified && (
-                        <CheckCircle className="h-4 w-4 text-blue-600" />
-                      )}
+                      {selectedPost.isVerified && <CheckCircle className="h-4 w-4 text-blue-600" />}
                     </div>
                     <span className="text-sm text-slate-500">{selectedPost.authorTitle}</span>
                   </div>
@@ -312,34 +293,19 @@ export default function Forum() {
                 <span className="text-sm text-slate-500">{selectedPost.timeAgo}</span>
               </div>
             </div>
-
-            {/* Post Content */}
             <div className="prose prose-slate max-w-none mb-6">
               <div className="whitespace-pre-line text-slate-700">
                 {selectedPost.content || selectedPost.excerpt}
               </div>
             </div>
-
-            {/* Post Actions */}
             <div className="flex items-center justify-between pt-6 border-t border-slate-200">
               <div className="flex items-center space-x-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleLikePost(selectedPost.id)}
-                  className={likedPosts.includes(selectedPost.id) ? "text-blue-600" : ""}
-                >
+                <Button variant="ghost" size="sm" onClick={() => handleLikePost(selectedPost.id)} className={likedPosts.includes(selectedPost.id) ? "text-blue-600" : ""}>
                   <ThumbsUp className={`h-4 w-4 mr-2 ${likedPosts.includes(selectedPost.id) ? "fill-current" : ""}`} />
                   {selectedPost.likes + (likedPosts.includes(selectedPost.id) ? 1 : 0)}
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Bookmark className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
+                <Button variant="ghost" size="sm"><Share2 className="h-4 w-4 mr-2" />Share</Button>
+                <Button variant="ghost" size="sm"><Bookmark className="h-4 w-4 mr-2" />Save</Button>
               </div>
               <div className="flex items-center space-x-4 text-sm text-slate-500">
                 <span>{selectedPost.views} views</span>
@@ -347,58 +313,35 @@ export default function Forum() {
               </div>
             </div>
           </div>
-
-          {/* Comments Section */}
           <div className="bg-white rounded-2xl p-8 border border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">
-              Comments ({selectedPost.comments?.length || selectedPost.replies})
-            </h2>
-
-            {/* Add Comment */}
+            <h2 className="text-xl font-bold text-slate-900 mb-6">Comments ({selectedPost.comments?.length || selectedPost.replies})</h2>
             <div className="mb-8">
               <div className="flex space-x-3">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-white">
-                    {user?.firstName?.charAt(0) || 'U'}
-                  </span>
+                  <span className="text-sm font-bold text-white">{user?.firstName?.charAt(0) || 'U'}</span>
                 </div>
                 <div className="flex-1">
-                  <Textarea
-                    placeholder="Add your comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="min-h-[100px] mb-3"
-                  />
-                  <Button 
-                    onClick={handlePostComment}
-                    disabled={!newComment.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
+                  <Textarea placeholder="Add your comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className="min-h-[100px] mb-3" />
+                  <Button onClick={handlePostComment} disabled={!newComment.trim()} className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Send className="h-4 w-4 mr-2" />
                     Post Comment
                   </Button>
                 </div>
               </div>
             </div>
-
-            {/* Comments List */}
             <div className="space-y-6">
               {selectedPost.comments?.map((comment) => (
                 <div key={comment.id} className="border-b border-slate-200 pb-6 last:border-0">
                   <div className="flex space-x-3">
                     <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-white">
-                        {comment.author.charAt(0)}
-                      </span>
+                      <span className="text-sm font-bold text-white">{comment.author.charAt(0)}</span>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <div className="flex items-center space-x-1">
                             <span className="font-semibold text-slate-900">{comment.author}</span>
-                            {comment.isVerified && (
-                              <CheckCircle className="h-4 w-4 text-blue-600" />
-                            )}
+                            {comment.isVerified && <CheckCircle className="h-4 w-4 text-blue-600" />}
                           </div>
                           <span className="text-sm text-slate-500">{comment.authorTitle}</span>
                         </div>
@@ -406,47 +349,29 @@ export default function Forum() {
                       </div>
                       <p className="text-slate-700 mb-3">{comment.content}</p>
                       <div className="flex items-center space-x-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleLikeComment(comment.id)}
-                          className={`text-sm ${likedComments.includes(comment.id) ? "text-blue-600" : ""}`}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleLikeComment(comment.id)} className={`text-sm ${likedComments.includes(comment.id) ? "text-blue-600" : ""}`}>
                           <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(comment.id) ? "fill-current" : ""}`} />
                           {comment.likes + (likedComments.includes(comment.id) ? 1 : 0)}
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-sm">
-                          Reply
-                        </Button>
+                        <Button variant="ghost" size="sm" className="text-sm">Reply</Button>
                       </div>
-
-                      {/* Nested Replies */}
                       {comment.replies && comment.replies.length > 0 && (
                         <div className="mt-4 ml-8 space-y-4">
                           {comment.replies.map((reply) => (
                             <div key={reply.id} className="flex space-x-3">
                               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-bold text-white">
-                                  {reply.author.charAt(0)}
-                                </span>
+                                <span className="text-xs font-bold text-white">{reply.author.charAt(0)}</span>
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center space-x-1">
                                     <span className="font-semibold text-sm text-slate-900">{reply.author}</span>
-                                    {reply.isVerified && (
-                                      <CheckCircle className="h-3 w-3 text-blue-600" />
-                                    )}
+                                    {reply.isVerified && <CheckCircle className="h-3 w-3 text-blue-600" />}
                                   </div>
                                   <span className="text-xs text-slate-500">{reply.timeAgo}</span>
                                 </div>
                                 <p className="text-sm text-slate-700 mb-2">{reply.content}</p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleLikeComment(reply.id)}
-                                  className={`text-xs ${likedComments.includes(reply.id) ? "text-blue-600" : ""}`}
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => handleLikeComment(reply.id)} className={`text-xs ${likedComments.includes(reply.id) ? "text-blue-600" : ""}`}>
                                   <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(reply.id) ? "fill-current" : ""}`} />
                                   {reply.likes + (likedComments.includes(reply.id) ? 1 : 0)}
                                 </Button>
@@ -469,31 +394,26 @@ export default function Forum() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading forum...</p>
-        </div>
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Categories */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <h3 className="font-bold text-slate-900 text-lg mb-4">Categories</h3>
               <div className="space-y-2">
                 {categories.map((category) => (
                   <button
                     key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full p-3 rounded-lg transition-colors ${
-                      selectedCategory === category.id
+                    onClick={() => setSelectedCategoryId(category.id)}
+                    className={`w-full p-3 rounded-lg transition-colors text-left ${
+                      selectedCategoryId === category.id
                         ? "bg-blue-600 text-white"
                         : "hover:bg-slate-50 text-slate-700"
                     }`}
@@ -501,7 +421,7 @@ export default function Forum() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{category.name}</span>
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        selectedCategory === category.id 
+                        selectedCategoryId === category.id 
                           ? "bg-white/20 text-white" 
                           : "bg-slate-600 text-white"
                       }`}>
@@ -552,13 +472,10 @@ export default function Forum() {
               <h3 className="font-bold text-slate-900 text-lg mb-4">Top Contributors</h3>
               <div className="space-y-4">
                 {loadingContributors ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-sm text-slate-500">Loading contributors...</p>
-                  </div>
+                  <div className="text-center py-4"><Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" /></div>
                 ) : topContributors.length > 0 ? (
-                  topContributors.map((contributor, i) => (
-                    <div key={i} className="flex items-center justify-between">
+                  topContributors.map((contributor) => (
+                    <div key={contributor.rank} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                           <span className="text-sm font-bold text-white">{contributor.avatar}</span>
@@ -574,9 +491,7 @@ export default function Forum() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-slate-500">No contributors yet</p>
-                  </div>
+                  <p className="text-sm text-slate-500 text-center py-4">No contributors yet</p>
                 )}
               </div>
             </div>
@@ -584,7 +499,6 @@ export default function Forum() {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Search and Filters */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <div className="flex items-center space-x-4">
                 <div className="flex-1 relative">
@@ -604,34 +518,19 @@ export default function Forum() {
               </div>
             </div>
 
-            {/* Forum Posts */}
             <div className="space-y-4">
               {loadingPosts ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-slate-600">Loading posts...</p>
-                </div>
+                <div className="text-center py-8 bg-white rounded-2xl border"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" /></div>
               ) : filteredPosts.length > 0 ? (
                 filteredPosts.map((post) => (
-                <div key={post.id} className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
+                  <div key={post.id} className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
                     <div className="space-y-4">
-                      {/* Post Header */}
                       <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center space-x-2">
-                            {post.isPinned && (
-                              <Pin className="h-4 w-4 text-blue-600" />
-                            )}
-                            {post.hasBestAnswer && (
-                              <CheckCircle className="h-4 w-4 text-blue-600" />
-                            )}
-                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                              post.category === "Automation" ? "bg-blue-600 text-white" :
-                              post.category === "Maintenance" ? "bg-slate-600 text-white" :
-                              post.category === "Quality Management" ? "bg-blue-500 text-white" :
-                              post.category === "Artificial Intelligence" ? "bg-slate-700 text-white" :
-                              "bg-slate-500 text-white"
-                            }`}>
+                            {post.isPinned && <Pin className="h-4 w-4 text-blue-600" />}
+                            {post.hasBestAnswer && <CheckCircle className="h-4 w-4 text-blue-600" />}
+                            <span className="text-xs px-3 py-1 rounded-full font-medium bg-blue-600 text-white">
                               <Tag className="h-3 w-3 mr-1 inline" />
                               {post.category}
                             </span>
@@ -645,42 +544,27 @@ export default function Forum() {
                           <p className="text-sm text-slate-600">{post.excerpt}</p>
                         </div>
                       </div>
-
-                      {/* Post Footer */}
                       <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                         <div className="flex items-center space-x-6">
-                          <div className="flex items-center space-x-1 text-sm text-slate-500">
-                            <MessageSquare className="h-4 w-4" />
-                            <span>{post.replies}</span>
-                          </div>
-                          <div className="flex items-center space-x-1 text-sm text-slate-500">
-                            <Eye className="h-4 w-4" />
-                            <span>{post.views}</span>
-                          </div>
+                          <div className="flex items-center space-x-1 text-sm text-slate-500"><MessageSquare className="h-4 w-4" /><span>{post.replies}</span></div>
+                          <div className="flex items-center space-x-1 text-sm text-slate-500"><Eye className="h-4 w-4" /><span>{post.views}</span></div>
                           <button 
-                            onClick={() => handleLikePost(post.id)}
-                            className={`flex items-center space-x-1 text-sm transition-colors ${
-                              likedPosts.includes(post.id) ? "text-blue-600" : "text-slate-500 hover:text-blue-600"
-                            }`}
+                            onClick={(e) => { e.stopPropagation(); handleLikePost(post.id); }}
+                            className={`flex items-center space-x-1 text-sm transition-colors ${likedPosts.includes(post.id) ? "text-blue-600" : "text-slate-500 hover:text-blue-600"}`}
                           >
                             <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(post.id) ? "fill-current" : ""}`} />
                             <span>{post.likes + (likedPosts.includes(post.id) ? 1 : 0)}</span>
                           </button>
                         </div>
-                        
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                              <span className="text-xs font-bold text-white">
-                                {post.author.charAt(0)}
-                              </span>
+                              <span className="text-xs font-bold text-white">{post.author.charAt(0)}</span>
                             </div>
                             <div>
                               <div className="flex items-center space-x-1">
                                 <span className="text-sm font-semibold text-slate-900">{post.author}</span>
-                                {post.isVerified && (
-                                  <CheckCircle className="h-3 w-3 text-blue-600" />
-                                )}
+                                {post.isVerified && <CheckCircle className="h-3 w-3 text-blue-600" />}
                               </div>
                               <span className="text-xs text-slate-500">{post.authorTitle}</span>
                             </div>
@@ -693,17 +577,15 @@ export default function Forum() {
                       </div>
                     </div>
                   </div>
-              ))
+                ))
               ) : (
-                <div className="text-center py-12">
+                <div className="text-center py-12 bg-white rounded-2xl border">
                   <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                   <p className="text-slate-600 text-lg font-medium mb-2">No posts found</p>
                   <p className="text-slate-500">Try selecting a different category or start a new discussion!</p>
                 </div>
               )}
             </div>
-
-            {/* Load More */}
             <div className="text-center">
               <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
                 Load More

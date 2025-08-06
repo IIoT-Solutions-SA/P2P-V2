@@ -431,6 +431,81 @@ async def update_user_by_admin(
         raise HTTPException(status_code=500, detail="Failed to update user")
 
 
+@users_router.delete(
+    "/{user_id}",
+    response_model=dict,
+    summary="Delete user (admin only)",
+    description="Soft delete a user account (admin only)"
+)
+async def delete_user_by_admin(
+    user_id: uuid.UUID,
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Soft delete a user account (admin only).
+    
+    Admins can soft delete users in their organization.
+    Users cannot be permanently deleted for audit purposes.
+    Soft deleted users:
+    - Cannot log in
+    - Do not appear in normal user lists
+    - Retain all historical data
+    """
+    try:
+        # Get the target user
+        target_user = await user.get(db, id=user_id)
+        
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if user is already deleted
+        if target_user.is_deleted:
+            raise HTTPException(status_code=400, detail="User is already deleted")
+        
+        # Verify admin can only manage users in their organization
+        if target_user.organization_id != current_user.organization_id:
+            logger.warning(
+                f"Admin {current_user.id} attempted to delete user {user_id} "
+                f"from different organization"
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Cannot delete users from other organizations"
+            )
+        
+        # Prevent admin from deleting themselves
+        if user_id == current_user.id:
+            logger.warning(f"Admin {current_user.id} attempted to delete themselves")
+            raise HTTPException(status_code=400, detail="Cannot delete your own account")
+        
+        # Soft delete the user
+        from datetime import datetime
+        from app.models.enums import UserStatus
+        deleted_user = await user.update(
+            db,
+            db_obj=target_user,
+            obj_in={
+                "is_deleted": True,
+                "deleted_at": datetime.utcnow(),
+                "status": UserStatus.INACTIVE  # Also set status to inactive
+            }
+        )
+        
+        logger.info(f"Admin {current_user.id} soft deleted user {user_id}")
+        
+        return {
+            "message": "User deleted successfully",
+            "user_id": str(user_id),
+            "deleted_at": deleted_user.deleted_at.isoformat() if deleted_user.deleted_at else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete user")
+
+
 @users_router.get(
     "/organization",
     response_model=UserListResponse,

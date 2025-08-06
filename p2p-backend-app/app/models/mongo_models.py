@@ -149,6 +149,7 @@ class UseCase(Document):
     bookmarks: List[str] = Field(default_factory=list)
     published: bool = False
     featured: bool = False
+    title_slug: Optional[str] = Field(default=None, index=True)
     
     # Detailed Information
     subtitle: Optional[str] = None

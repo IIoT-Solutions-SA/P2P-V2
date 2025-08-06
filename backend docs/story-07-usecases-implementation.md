@@ -1,8 +1,8 @@
-# Story 07: Use Cases Page Dynamic Data Implementation
+# Story 07: Use Cases Page Dynamic Data & Routing Implementation
 
 ## Overview
 
-This story details the complete overhaul of the **Use Cases page**, transitioning it from a static proof-of-concept into a fully **dynamic, interactive, and database-driven feature**. All hardcoded data, including the list of use cases, categories, platform statistics, and top contributors, has been replaced with live data fetched from a series of new, robust API endpoints.
+This story details the complete overhaul of the **Use Cases page**, transitioning it from a static proof-of-concept into a fully **dynamic, interactive, and database-driven feature with proper URL-based routing**. All hardcoded data has been replaced with live data fetched from robust API endpoints, and navigation between the list and detail views is now handled by dedicated routes.
 
 **Implementation Status:** ✅ **COMPLETED**
 _All acceptance criteria have been successfully implemented, tested, and debugged._
@@ -12,15 +12,21 @@ _All acceptance criteria have been successfully implemented, tested, and debugge
 ## Acceptance Criteria
 
 -   **✅ Use Cases Dynamic Data**
-    -   [x] Replace hardcoded use case array with real data from `use-cases.json` and the database.
-    -   [x] Replace hardcoded categories with dynamically generated categories based on real use case data, including accurate counts.
-    -   [x] Replace hardcoded "Platform Stats" with real-time calculations from the database.
-    -   [x] Replace hardcoded "Top Contributors" with a dynamic list based on the number of submitted use cases.
+    -   [x] Replace hardcoded use case array with real data from the database.
+    -   [x] Replace hardcoded categories with dynamically generated categories, including accurate counts.
+    -   [x] Replace hardcoded "Platform Stats" and "Top Contributors" with real-time calculations.
     -   [x] Implement category filtering that correctly queries and displays relevant use cases.
     -   [x] Implement sorting functionality (e.g., by "Most Viewed," "Most Liked").
-    -   [x] Ensure all use cases display correct company names and industry data, not placeholder or incorrect user data.
-    -   [x] Add loading states for all asynchronous data fetching to improve user experience.
+    -   [x] Ensure all use cases display correct company names and industry data.
+    -   [x] Add loading states for all asynchronous data fetching.
     -   [x] Handle empty states gracefully when no use cases match a filter.
+-   **✅ Use Case Detail View & Routing**
+    -   [x] Implement URL-based routing using `react-router-dom` for the use case detail page.
+    -   [x] Create a unique, URL-friendly "slug" for each use case title (e.g., `ai-quality-inspection-system`).
+    -   [x] Create a new API endpoint to fetch a single use case by its slug.
+    -   [x] Ensure clicking a use case card navigates to its unique URL (e.g., `/usecases/ai-quality-inspection-system`).
+    -   [x] The detail page must fetch its own data based on the slug in the URL.
+    -   [x] The API should be smart: if a basic use case is requested but has a detailed version, the API should return the detailed version.
 
 ---
 
@@ -30,126 +36,104 @@ _All acceptance criteria have been successfully implemented, tested, and debugge
 
 **Use Cases Endpoints (`/api/v1/use-cases/`)**
 
--   **`GET /`**: The main endpoint to fetch a list of use cases. It now supports query parameters for `category`, `search`, and `sort_by` to enable full filtering and sorting functionality.
--   **`GET /categories`**: Returns a list of all available use case categories, dynamically generated from the database with an accurate count of posts in each.
--   **`GET /stats`**: Returns key platform statistics, including total use cases, the number of unique contributing companies, and a count of featured success stories.
--   **`GET /contributors`**: Returns a ranked list of the top contributing companies based on the number of use cases they have submitted.
+-   **`GET /`**: Fetches a list of use cases with support for `category`, `search`, and `sort_by` parameters.
+-   **`GET /categories`**: Returns a list of all use case categories with accurate post counts.
+-   **`GET /stats`**: Returns key platform statistics (total cases, unique companies, etc.).
+-   **`GET /contributors`**: Returns a ranked list of top contributing companies.
+-   **`GET /by-slug/{slug}`**: **(NEW)** Fetches a single use case by its URL-friendly slug. This endpoint intelligently returns the detailed version of a use case if one is linked.
 
 ### Database Seeding Enhancements
 
-The entire seeding process was modularized and made more robust to handle the complexity of the new dynamic features.
+The entire seeding process was modularized and made more robust.
 
-**User Seeding (`scripts/seed_db_users.py`)**
--   A dedicated script was created to handle user creation exclusively.
--   It now seeds users with a diverse set of `company` and `industry_sector` data that directly corresponds to the companies listed in `use-cases.json`, ensuring data integrity.
-
-**Use Case Seeding (`scripts/seed_usecases.py`)**
--   This script now focuses solely on use cases, assuming users already exist.
--   It wipes all previous use cases to ensure a clean slate on every run.
--   It reads the `use-cases.json` file and creates 15 basic use cases, intelligently assigning a submitter by matching the `factoryName` to a user's company.
--   Crucially, it now populates each use case with randomized, realistic engagement data (views, likes, bookmarks) to make sorting features meaningful from the start.
--   It creates the 2 detailed enterprise use cases and correctly links them to their basic versions.
+-   **User Seeding (`scripts/seed_db_users.py`)**: A dedicated script now seeds users with diverse `company` and `industry_sector` data that corresponds to the use cases.
+-   **Use Case Seeding (`scripts/seed_usecases.py`)**:
+    -   Wipes all previous use cases to ensure a clean slate.
+    -   Creates 15 basic use cases from `use-cases.json`.
+    -   **Generates and saves a unique `title_slug` for every use case.**
+    -   Populates each use case with randomized, realistic engagement data (views, likes, bookmarks).
+    -   **Creates 2 fully detailed enterprise use cases with rich content, including executive summaries, business challenges, and ROI analysis.**
+    -   Correctly links the basic and detailed use cases together in the database.
 
 ---
 
 ## Frontend Transformations
 
+### Routing (`src/App.tsx`)
+
+-   The application routing was updated to include a new dynamic route for the use case detail page:
+    ```typescript
+    <Route path="/usecases" element={<UseCases />} />
+    <Route path="/usecases/:slug" element={<UseCaseDetail />} />
+    ```
+
 ### Use Cases Page (`src/pages/UseCases.tsx`)
 
-**Before (Hardcoded):**
-```typescript
-// Static fake data
-const categories = [ { id: "all", name: "All Use Cases", count: 15 } ]
-const useCases = [
-  { id: 1, title: "AI Quality Inspection", company: "Fake Company" /* ... */ }
-]
-```
+-   The component now uses the `useNavigate` hook from `react-router-dom`.
+-   Clicking on a use case card now navigates to the detail page using its unique slug:
+    ```typescript
+    onClick={() => navigate(`/usecases/${useCase.title_slug}`)}
+    ```
 
-**After (Dynamic):**
-```typescript
-// Real API calls with states for filtering and sorting
-const [categories, setCategories] = useState<Category[]>([]);
-const [useCases, setUseCases] = useState<UseCase[]>([]);
-const [selectedCategory, setSelectedCategory] = useState("all");
-const [sortBy, setSortBy] = useState("newest");
-const [loading, setLoading] = useState(true);
+### Use Case Detail Page (`src/pages/UseCaseDetail.tsx`)
 
-useEffect(() => {
-  // Fetches categories, stats, and contributors
-  fetchInitialData();
-}, [user]);
-
-useEffect(() => {
-  // Fetches use cases whenever a filter or sort option changes
-  fetchUseCases();
-}, [user, selectedCategory, sortBy]);
-```
+-   This is a **new, standalone page component**.
+-   It uses the `useParams` hook to get the `slug` from the URL.
+-   It fetches its own data from the new `/api/v1/use-cases/by-slug/{slug}` endpoint.
+-   Includes a "Back to Use Cases" button that uses `useNavigate` to return to the list view.
 
 ---
 
 ## Critical Bug Fixes
 
--   **✅ Data Integrity and Display**
-    -   **Issue:** The page was displaying the submitter's name as the "Company" and the category as the "Industry".
-    -   **Solution:** The backend API (`usecases.py`) was corrected to map the correct database fields (`factory_name`, `industry_sector`) to the JSON response. The seeder was also updated to provide diverse industry data.
-
--   **✅ Seeder Script Failures**
-    -   **Issue:** The seeder script was prone to `UnboundLocalError` if `use-cases.json` was not found and `ValidationError` due to missing required fields (`solution_description`, `location`).
-    -   **Solution:** The script was refactored to initialize all variables at the top level. The data mapping logic was corrected to ensure all required fields defined in the Pydantic model are always included when creating a new `UseCase` document.
-
--   **✅ API Query Logic**
-    -   **Issue:** The API was using an inefficient method to look up user data, making a separate database call for each use case. It also had a syntax error (`'ExpressionField' object is not callable`).
-    -   **Solution:** The user lookup logic was optimized to fetch all required users in a single, efficient database query. The query syntax was corrected to use Beanie's `In` operator, resolving the runtime error.
+-   **✅ Data Integrity and Display**: Fixed an issue where the submitter's name was incorrectly displayed as the "Company". The API and seeders now provide correct data.
+-   **✅ Seeder Script Failures**: Resolved multiple `UnboundLocalError` and `ValidationError` issues by restructuring the seeder and ensuring all required model fields are populated.
+-   **✅ API Query Logic**: Optimized the main `/use-cases` endpoint to use a single query for user data instead of N+1 queries, significantly improving performance.
+-   **✅ Unclickable Use Case Cards**: Fixed a bug where the `title_slug` was not being included in the API response for the use case list, making the cards unclickable. The slug is now correctly included.
 
 ---
 
 ## Performance Optimizations
 
-### Efficient Database Queries
-
--   The `/categories`, `/stats`, and `/contributors` endpoints were rewritten to use **MongoDB's powerful aggregation pipeline**, which is significantly faster than fetching all documents and processing them in Python.
--   The main `/use-cases` endpoint now fetches all necessary user data in **one query** instead of N+1 queries.
-
-### Frontend Loading States
-
--   The UI now displays a main loading spinner on initial page load.
--   A separate, smaller loading spinner is shown over the use case list when filters or sorting options are changed, providing a smooth user experience.
--   Empty states with user-friendly messages are displayed when no use cases match the selected criteria.
+-   **Efficient Database Queries**: All statistical endpoints (`/categories`, `/stats`, `/contributors`) use MongoDB's aggregation pipeline for high performance.
+-   **Optimized User Lookups**: The main list endpoint now fetches all necessary user data in a single efficient query.
+-   **On-Demand Loading**: The detail page only fetches its data when it is navigated to, reducing the initial load of the main list page.
 
 ---
 
 ## Data Flow Architecture
 
 > **Use Cases Page Data Flow**
-> 
-> `Page Load` → `Fetch Categories, Stats, Contributors` → `Fetch Initial Posts (sorted by newest)`
-> 
-> `User Clicks Filter` → `Refetch Posts with Category` → `Display Filtered Results`
-> 
-> `User Clicks Sort` → `Refetch Posts with Sort Param` → `Display Sorted Results`
+>
+> `Page Load (/usecases)` → `Fetch List Data (Categories, Stats, Posts)`
+>
+> `User Clicks Card` → `navigate('/usecases/some-slug')`
+>
+> `Detail Page Load` → `useParams() gets slug` → `Fetch Full Data via /by-slug/{slug}` → `Display Details`
+>
+> `User Clicks Back` → `navigate('/usecases')` → `Display List View`
 
 ---
 
 ## Testing Results
 
--   ✅ Category sidebar now displays correct categories with accurate post counts.
--   ✅ Filtering by any category correctly queries the API and displays only the relevant use cases.
--   ✅ The "All Use Cases" button correctly resets the filter and shows all posts.
--   ✅ Sorting by "Newest," "Most Viewed," and "Most Liked" works as expected.
--   ✅ All use cases display the correct Company Name, Industry, and Timeframe.
--   ✅ Loading spinners appear correctly during all data-fetching operations.
--   ✅ The "No use cases found" message appears when a filter results in an empty set.
+-   ✅ Category sidebar displays correct categories with accurate counts.
+-   ✅ Filtering and sorting on the main list page works as expected.
+-   ✅ **Clicking a use case card successfully navigates to a unique URL (e.g., `/usecases/ai-quality-inspection-system`).**
+-   ✅ **The detail page correctly fetches and displays the full, rich data for the selected use case.**
+-   ✅ The "Back to Use Cases" button on the detail page correctly navigates back to the list view.
+-   ✅ All loading and error states are handled correctly on both pages.
 
 ---
 
 ## Conclusion
 
-The Use Cases page is now a **fully featured, dynamic, and performant** part of the application. It successfully retrieves and displays all data from the backend, provides a robust filtering and sorting experience, and handles loading and empty states gracefully. The underlying data is now seeded correctly, ensuring a rich and realistic user experience from the first load.
+The Use Cases feature is now a **fully architected, multi-page experience** using industry-standard routing. The separation of concerns between the list and detail pages makes the code cleaner, more maintainable, and provides a better user experience with unique, shareable URLs for each use case.
 
 ### Key Achievements
 
--   **100% Dynamic Data:** All static arrays and objects have been eliminated.
--   **Full Interactivity:** Category filtering and engagement-based sorting are fully functional.
--   **Data Integrity:** The frontend now accurately reflects the structured data from the database.
--   **Robust Seeding:** The modularized seeding scripts ensure consistent and correct data population.
--   **Critical Bugs Resolved:** All identified backend and data mapping issues have been fixed.
+-   **100% Dynamic Data**: All static content has been eliminated.
+-   **Full Interactivity**: Filtering, sorting, and navigation are fully functional.
+-   **Proper Routing**: Implemented a robust, scalable routing solution with `react-router-dom`.
+-   **Data Integrity**: The frontend accurately reflects the detailed, structured data from the database.
+-   **Critical Bugs Resolved**: All identified backend, seeder, and frontend logic issues have been fixed.

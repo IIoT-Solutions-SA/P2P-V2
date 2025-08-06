@@ -37,17 +37,19 @@ function App() {
                   <Forum />
                 </ProtectedRoute>
               } />
-              <Route path="/usecases" element={
-                <ProtectedRoute>
-                  <UseCases />
-                </ProtectedRoute>
-              } />
               <Route path="/submit" element={
                 <ProtectedRoute>
                   <SubmitUseCase />
                 </ProtectedRoute>
               } />
-              <Route path="/usecase-detail" element={
+              {/* UPDATED ROUTES FOR USE CASES */}
+              <Route path="/usecases" element={
+                <ProtectedRoute>
+                  <UseCases />
+                </ProtectedRoute>
+              } />
+              {/* This new route handles the detailed view with a slug */}
+              <Route path="/usecases/:slug" element={
                 <ProtectedRoute>
                   <UseCaseDetail />
                 </ProtectedRoute>

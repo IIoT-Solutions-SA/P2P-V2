@@ -10,12 +10,13 @@ from app.models.mongo_models import UseCase, User as MongoUser
 from typing import List, Optional
 import logging
 from bson import ObjectId
-from beanie.operators import In
 from beanie.odm.enums import SortDirection
+from beanie.operators import In
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# This is the main endpoint for listing use cases
 @router.get("/")
 async def get_use_cases(
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -24,32 +25,18 @@ async def get_use_cases(
     sort_by: str = Query("newest", description="Sort by: newest, most_viewed, most_liked"),
     session: SessionContainer = Depends(verify_session())
 ):
-    """Get use cases with optional category and search filters"""
     try:
         query = {"published": True, "is_detailed_version": {"$ne": True}}
         if category and category != "all":
-            category_map = {
-                "automation": "Factory Automation", "quality": "Quality Control",
-                "maintenance": "Predictive Maintenance", "efficiency": "Process Optimization",
-                "innovation": "Innovation & R&D", "sustainability": "Sustainability",
-            }
+            category_map = { "automation": "Factory Automation", "quality": "Quality Control", "maintenance": "Predictive Maintenance", "efficiency": "Process Optimization", "innovation": "Innovation & R&D", "sustainability": "Sustainability" }
             if category in category_map: query["category"] = category_map[category]
         
         if search:
-            query["$or"] = [
-                {"title": {"$regex": search, "$options": "i"}},
-                {"factory_name": {"$regex": search, "$options": "i"}},
-                {"problem_statement": {"$regex": search, "$options": "i"}},
-            ]
-        # NEW: Map sort options to database fields
-        sort_map = {
-            "newest": ("created_at", SortDirection.DESCENDING),
-            "most_viewed": ("view_count", SortDirection.DESCENDING),
-            "most_liked": ("like_count", SortDirection.DESCENDING)
-        }
-        sort_field, sort_direction = sort_map.get(sort_by, ("created_at", SortDirection.DESCENDING))
+            query["$or"] = [ {"title": {"$regex": search, "$options": "i"}}, {"factory_name": {"$regex": search, "$options": "i"}} ]
+        
+        sort_map = { "newest": ("_id", SortDirection.DESCENDING), "most_viewed": ("view_count", SortDirection.DESCENDING), "most_liked": ("like_count", SortDirection.DESCENDING) }
+        sort_field, sort_direction = sort_map.get(sort_by, ("_id", SortDirection.DESCENDING))
 
-        # UPDATED: Apply the sort to the database query
         use_cases = await UseCase.find(query).sort((sort_field, sort_direction)).limit(limit).to_list()
         
         user_ids = {ObjectId(case.submitted_by) for case in use_cases if case.submitted_by}
@@ -58,22 +45,15 @@ async def get_use_cases(
             users_list = await MongoUser.find(In(MongoUser.id, list(user_ids))).to_list()
             user_map = {str(user.id): user for user in users_list}
 
-        use_cases_data = []
+        response_data = []
         for case in use_cases:
             submitter = user_map.get(case.submitted_by)
-            
-            publisher_name = getattr(submitter, 'name', "Anonymous")
-            publisher_title = getattr(submitter, 'title', "Contributor")
-            industry_name = getattr(submitter, 'industry_sector', "Manufacturing")
-            
-            # This is the smarter fallback logic for the company name
-            company_name = getattr(case, 'factory_name', None) or getattr(submitter, 'company', "Unknown Company")
-
-            use_cases_data.append({
+            response_data.append({
                 "id": str(case.id),
                 "title": case.title,
-                "company": company_name,
-                "industry": industry_name,
+                "title_slug": case.title_slug, # The missing field
+                "company": getattr(case, 'factory_name', "Unknown"),
+                "industry": getattr(submitter, 'industry_sector', "Manufacturing") if submitter else "Manufacturing",
                 "category": getattr(case, 'category', "General"),
                 "description": getattr(case, 'problem_statement', ""),
                 "results": getattr(case, 'impact_metrics', {}),
@@ -84,21 +64,38 @@ async def get_use_cases(
                 "verified": getattr(case, 'status', "") == "verified",
                 "featured": getattr(case, 'featured', False),
                 "tags": getattr(case, 'industry_tags', []),
-                "publishedBy": publisher_name,
-                "publisherTitle": publisher_title,
+                "publishedBy": getattr(submitter, 'name', "Anonymous") if submitter else "Anonymous",
+                "publisherTitle": getattr(submitter, 'title', "Contributor") if submitter else "Contributor",
                 "publishedDate": "2 weeks ago"
             })
-            
-        return use_cases_data
+        return response_data
 
     except Exception as e:
         logger.error(f"Error getting use cases: {e}")
         raise HTTPException(status_code=500, detail="Failed to get use cases")
 
-# ... (rest of the file is unchanged, the logic there is OK)
+@router.get("/by-slug/{slug}")
+async def get_use_case_by_slug(
+    slug: str,
+    session: SessionContainer = Depends(verify_session())
+):
+    try:
+        use_case = await UseCase.find_one(UseCase.title_slug == slug)
+        if not use_case:
+            raise HTTPException(status_code=404, detail="Use case not found")
+        if use_case.has_detailed_view and use_case.detailed_version_id:
+            detailed_use_case = await UseCase.get(use_case.detailed_version_id)
+            if detailed_use_case:
+                return detailed_use_case
+            logger.warning(f"Detailed use case ID {use_case.detailed_version_id} not found for basic case {use_case.id}")
+        return use_case
+    except Exception as e:
+        logger.error(f"Error getting use case by slug '{slug}': {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve use case")
+
+
 @router.get("/categories")
 async def get_use_case_categories(session: SessionContainer = Depends(verify_session())):
-    """Get use case categories with real post counts"""
     try:
         pipeline = [
             {"$match": {"published": True, "is_detailed_version": {"$ne": True}}},
@@ -108,7 +105,7 @@ async def get_use_case_categories(session: SessionContainer = Depends(verify_ses
         category_counts_cursor = UseCase.aggregate(pipeline)
         category_counts_list = await category_counts_cursor.to_list(length=100)
         
-        category_counts = {item['_id']: item['count'] for item in category_counts_list}
+        category_counts = {item['_id']: item['count'] for item in category_counts_list if item['_id']}
         total_cases = await UseCase.find({"published": True, "is_detailed_version": {"$ne": True}}).count()
 
         category_definitions = [
@@ -123,11 +120,12 @@ async def get_use_case_categories(session: SessionContainer = Depends(verify_ses
         categories_response = [{"id": "all", "name": "All Use Cases", "count": total_cases}]
         for cat_def in category_definitions:
             count = category_counts.get(cat_def["name"], 0)
-            categories_response.append({
-                "id": cat_def["id"],
-                "name": cat_def["name"],
-                "count": count
-            })
+            if count > 0:
+                categories_response.append({
+                    "id": cat_def["id"],
+                    "name": cat_def["name"],
+                    "count": count
+                })
 
         return categories_response
     except Exception as e:
@@ -136,10 +134,8 @@ async def get_use_case_categories(session: SessionContainer = Depends(verify_ses
 
 @router.get("/stats")
 async def get_use_case_stats(session: SessionContainer = Depends(verify_session())):
-    """Get real use case statistics"""
     try:
         total_use_cases = await UseCase.find({"published": True, "is_detailed_version": {"$ne": True}}).count()
-        
         pipeline = [
             {"$match": {"published": True, "factory_name": {"$ne": None}}},
             {"$group": {"_id": "$factory_name"}},
@@ -148,7 +144,6 @@ async def get_use_case_stats(session: SessionContainer = Depends(verify_session(
         companies_cursor = UseCase.aggregate(pipeline)
         companies_result = await companies_cursor.to_list(length=1)
         contributing_companies = companies_result[0]['unique_companies'] if companies_result else 0
-        
         success_stories = await UseCase.find({"published": True, "featured": True}).count()
         
         return {
@@ -161,8 +156,10 @@ async def get_use_case_stats(session: SessionContainer = Depends(verify_session(
         raise HTTPException(status_code=500, detail="Failed to get use case stats")
 
 @router.get("/contributors")
-async def get_top_contributors(limit: int = Query(3, description="Number of top contributors to return"), session: SessionContainer = Depends(verify_session())):
-    """Get top contributing companies"""
+async def get_top_contributors(
+    limit: int = Query(3, description="Number of top contributors to return"),
+    session: SessionContainer = Depends(verify_session())
+):
     try:
         pipeline = [
             {"$match": {"published": True, "factory_name": {"$ne": None}}},

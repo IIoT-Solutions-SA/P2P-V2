@@ -49,14 +49,14 @@ export default function Login() {
     },
     {
       name: 'Sara Hassan (Member)',
-      email: 'sara.hassan@advanced-electronics.com',
-      company: 'Advanced Electronics Co.',
+      email: 'sara.hassan@gulf-plastics.com',
+      company: 'Gulf Plastics Industries',
       role: 'Team Member'
     },
     {
       name: 'Mohammed Rashid (Admin)',
-      email: 'mohammed.rashid@gulf-plastics.com',
-      company: 'Gulf Plastics Industries',
+      email: 'mohammed.rashid@saudi-steel.com',
+      company: 'Saudi Steel Industries',
       role: 'Organization Admin'
     }
   ]

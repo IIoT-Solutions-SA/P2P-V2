@@ -3,7 +3,7 @@
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase

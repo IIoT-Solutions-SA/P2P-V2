@@ -97,6 +97,47 @@ class UserProfile(User):
     total_use_cases: int = 0
 
 
+class UserListItem(BaseModel):
+    """Schema for user in list responses."""
+    id: UUID
+    email: EmailStr
+    first_name: str
+    last_name: str
+    profile_picture_url: Optional[str] = None
+    job_title: Optional[str] = None
+    department: Optional[str] = None
+    role: UserRole
+    status: UserStatus
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    @property
+    def full_name(self) -> str:
+        """Get the user's full name."""
+        return f"{self.first_name} {self.last_name}".strip()
+
+
+class UserListResponse(BaseModel):
+    """Schema for paginated user list response."""
+    users: list[UserListItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class UserSearchFilters(BaseModel):
+    """Schema for user search filters."""
+    query: Optional[str] = Field(None, description="Search term for name or email")
+    role: Optional[UserRole] = Field(None, description="Filter by user role")
+    status: Optional[UserStatus] = Field(None, description="Filter by user status")
+    department: Optional[str] = Field(None, description="Filter by department")
+
+
 # Avoid circular imports
 from app.schemas.organization import OrganizationBrief
 UserProfile.model_rebuild()

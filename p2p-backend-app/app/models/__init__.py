@@ -19,7 +19,7 @@ from app.models.enums import (
 )
 from app.models.organization import Organization
 from app.models.user import User
-from app.models.file import FileMetadata
+from app.models.file_new import FileMetadataNew as FileMetadata
 from app.models.invitation import UserInvitation
 
 __all__ = [

@@ -303,6 +303,139 @@ async def remove_profile_picture(
 
 
 @users_router.get(
+    "/organization",
+    response_model=UserListResponse,
+    summary="List organization users",
+    description="List all users in the current organization with search and filtering (admin only)"
+)
+async def list_organization_users(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search users by name or email"),
+    role: Optional[str] = Query(None, description="Filter by user role (admin, member)"),
+    status: Optional[str] = Query(None, description="Filter by user status (active, inactive, pending)"),
+    department: Optional[str] = Query(None, description="Filter by department"),
+    current_user: User = Depends(get_mock_admin_user),  # Admin only
+    db: AsyncSession = Depends(get_db)
+) -> UserListResponse:
+    """List all users in the current organization with pagination and filtering.
+    
+    Only organization administrators can access this endpoint.
+    
+    **Query Parameters:**
+    - **page**: Page number (starts from 1)
+    - **page_size**: Number of users per page (1-100)
+    - **search**: Search term to find users by name or email
+    - **role**: Filter by user role (admin, member)
+    - **status**: Filter by status (active, inactive, pending)
+    - **department**: Filter by department name
+    
+    **Response includes:**
+    - List of users with essential information
+    - Pagination metadata (total, pages, etc.)
+    - Search and filter results
+    
+    **Use cases:**
+    - User management dashboard
+    - Team directory
+    - User search and discovery
+    - Role and access management
+    """
+    try:
+        skip = (page - 1) * page_size
+        
+        # Convert string enums to proper enum types
+        role_filter = None
+        status_filter = None
+        
+        if role:
+            from app.models.enums import UserRole
+            try:
+                role_filter = UserRole(role.upper())
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
+        
+        if status:
+            from app.models.enums import UserStatus
+            try:
+                status_filter = UserStatus(status.upper())
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+        
+        # Get users with filtering
+        if search:
+            # Use search method for text-based search
+            users = await user.search(
+                db,
+                query=search,
+                organization_id=current_user.organization_id,
+                skip=skip,
+                limit=page_size
+            )
+            # For search, we need to count separately
+            # This is a simplified approach - in production, you'd want a more efficient count
+            all_search_users = await user.search(
+                db,
+                query=search,
+                organization_id=current_user.organization_id,
+                skip=0,
+                limit=1000  # Reasonable upper limit
+            )
+            total = len(all_search_users)
+        else:
+            # Use organization-based filtering
+            users = await user.get_by_organization(
+                db,
+                organization_id=current_user.organization_id,
+                skip=skip,
+                limit=page_size,
+                role=role_filter,
+                status=status_filter
+            )
+            
+            # Get total count for pagination
+            total = await user.count_by_organization(
+                db, organization_id=current_user.organization_id
+            )
+        
+        # Filter by department if specified (post-query filtering for simplicity)
+        if department and users:
+            users = [u for u in users if u.department and department.lower() in u.department.lower()]
+            if search:
+                # Recalculate total for department filtering on search results
+                total = len([u for u in all_search_users if u.department and department.lower() in u.department.lower()])
+        
+        # Convert to response format
+        user_items = [UserListItem.model_validate(user_obj) for user_obj in users]
+        
+        # Calculate pagination metadata
+        total_pages = (total + page_size - 1) // page_size
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        logger.info(
+            f"Admin {current_user.id} listed {len(user_items)} users from organization "
+            f"{current_user.organization_id} (page {page}, total {total})"
+        )
+        
+        return UserListResponse(
+            users=user_items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            has_next=has_next,
+            has_previous=has_previous
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing organization users: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to list organization users")
+
+
+@users_router.get(
     "/{user_id}",
     response_model=UserWithOrganization,
     summary="Get user by ID",
@@ -506,134 +639,3 @@ async def delete_user_by_admin(
         raise HTTPException(status_code=500, detail="Failed to delete user")
 
 
-@users_router.get(
-    "/organization",
-    response_model=UserListResponse,
-    summary="List organization users",
-    description="List all users in the current organization with search and filtering (admin only)"
-)
-async def list_organization_users(
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search users by name or email"),
-    role: Optional[str] = Query(None, description="Filter by user role (admin, member)"),
-    status: Optional[str] = Query(None, description="Filter by user status (active, inactive, pending)"),
-    department: Optional[str] = Query(None, description="Filter by department"),
-    current_user: User = Depends(get_mock_admin_user),  # Admin only
-    db: AsyncSession = Depends(get_db)
-) -> UserListResponse:
-    """List all users in the current organization with pagination and filtering.
-    
-    Only organization administrators can access this endpoint.
-    
-    **Query Parameters:**
-    - **page**: Page number (starts from 1)
-    - **page_size**: Number of users per page (1-100)
-    - **search**: Search term to find users by name or email
-    - **role**: Filter by user role (admin, member)
-    - **status**: Filter by status (active, inactive, pending)
-    - **department**: Filter by department name
-    
-    **Response includes:**
-    - List of users with essential information
-    - Pagination metadata (total, pages, etc.)
-    - Search and filter results
-    
-    **Use cases:**
-    - User management dashboard
-    - Team directory
-    - User search and discovery
-    - Role and access management
-    """
-    try:
-        skip = (page - 1) * page_size
-        
-        # Convert string enums to proper enum types
-        role_filter = None
-        status_filter = None
-        
-        if role:
-            from app.models.enums import UserRole
-            try:
-                role_filter = UserRole(role.upper())
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
-        
-        if status:
-            from app.models.enums import UserStatus
-            try:
-                status_filter = UserStatus(status.upper())
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
-        
-        # Get users with filtering
-        if search:
-            # Use search method for text-based search
-            users = await user.search(
-                db,
-                query=search,
-                organization_id=current_user.organization_id,
-                skip=skip,
-                limit=page_size
-            )
-            # For search, we need to count separately
-            # This is a simplified approach - in production, you'd want a more efficient count
-            all_search_users = await user.search(
-                db,
-                query=search,
-                organization_id=current_user.organization_id,
-                skip=0,
-                limit=1000  # Reasonable upper limit
-            )
-            total = len(all_search_users)
-        else:
-            # Use organization-based filtering
-            users = await user.get_by_organization(
-                db,
-                organization_id=current_user.organization_id,
-                skip=skip,
-                limit=page_size,
-                role=role_filter,
-                status=status_filter
-            )
-            
-            # Get total count for pagination
-            total = await user.count_by_organization(
-                db, organization_id=current_user.organization_id
-            )
-        
-        # Filter by department if specified (post-query filtering for simplicity)
-        if department and users:
-            users = [u for u in users if u.department and department.lower() in u.department.lower()]
-            if search:
-                # Recalculate total for department filtering on search results
-                total = len([u for u in all_search_users if u.department and department.lower() in u.department.lower()])
-        
-        # Convert to response format
-        user_items = [UserListItem.model_validate(user_obj) for user_obj in users]
-        
-        # Calculate pagination metadata
-        total_pages = (total + page_size - 1) // page_size
-        has_next = page < total_pages
-        has_previous = page > 1
-        
-        logger.info(
-            f"Admin {current_user.id} listed {len(user_items)} users from organization "
-            f"{current_user.organization_id} (page {page}, total {total})"
-        )
-        
-        return UserListResponse(
-            users=user_items,
-            total=total,
-            page=page,
-            page_size=page_size,
-            total_pages=total_pages,
-            has_next=has_next,
-            has_previous=has_previous
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error listing organization users: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to list organization users")

@@ -16,7 +16,7 @@ class FileMetadata(BaseModel, table=True):
     This model stores information about all files uploaded to the system,
     including their storage location, user ownership, and metadata.
     """
-    __tablename__ = "file_metadata"
+    __tablename__ = "file_metadata_new"
     
     # File identification
     file_id: str = Field(

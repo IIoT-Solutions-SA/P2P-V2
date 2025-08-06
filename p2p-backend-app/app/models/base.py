@@ -13,31 +13,28 @@ class BaseModel(SQLModel):
     
     id: uuid_lib.UUID = Field(
         default_factory=uuid_lib.uuid4,
-        sa_column=Column(
-            UUID(as_uuid=True),
-            primary_key=True,
-            default=uuid_lib.uuid4,
-            nullable=False,
-        ),
+        primary_key=True,
+        sa_column_kwargs={
+            "default": uuid_lib.uuid4,
+            "nullable": False,
+        },
     )
     
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(
-            DateTime(timezone=True),
-            server_default=func.now(),
-            nullable=False,
-        ),
+        sa_column_kwargs={
+            "server_default": func.now(),
+            "nullable": False,
+        },
     )
     
     updated_at: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(
-            DateTime(timezone=True),
-            server_default=func.now(),
-            onupdate=func.now(),
-            nullable=False,
-        ),
+        sa_column_kwargs={
+            "server_default": func.now(),
+            "onupdate": func.now(),
+            "nullable": False,
+        },
     )
     
     class Config:

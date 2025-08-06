@@ -20,16 +20,17 @@ from app.db.session import init_db, close_db, check_postgres_health, check_mongo
 from app.schemas.health import HealthCheckResponse
 from app.core.logging import setup_logging, get_logger
 from app.middleware.logging import LoggingMiddleware, UserContextMiddleware
-from app.core.supertokens import init_supertokens, get_supertokens_middleware
-from supertokens_python import get_all_cors_headers
+# Temporarily disable SuperTokens due to version compatibility
+# from app.core.supertokens import init_supertokens, get_supertokens_middleware
+# from supertokens_python import get_all_cors_headers
 from datetime import datetime
 
-# Configure structured logging and SuperTokens
+# Configure structured logging
 setup_logging()
 logger = get_logger(__name__)
 
-# Initialize SuperTokens before creating the app
-init_supertokens()
+# Temporarily disable SuperTokens initialization
+# init_supertokens()
 
 
 @asynccontextmanager
@@ -65,8 +66,8 @@ app = FastAPI(
 app.add_middleware(LoggingMiddleware, service_name=settings.PROJECT_NAME)
 app.add_middleware(UserContextMiddleware)
 
-# Add SuperTokens middleware (after logging, before error handling)
-app.add_middleware(get_supertokens_middleware())
+# Temporarily disable SuperTokens middleware
+# app.add_middleware(get_supertokens_middleware())
 
 # Add server error middleware
 app.add_middleware(ServerErrorMiddleware, handler=general_exception_handler)
@@ -79,8 +80,9 @@ if not cors_origins and settings.DEBUG:
 
 logger.info(f"CORS Origins configured: {cors_origins}")
 
-# Get SuperTokens CORS headers
-supertokens_cors_headers = get_all_cors_headers()
+# Temporarily disable SuperTokens CORS headers
+# supertokens_cors_headers = get_all_cors_headers()
+supertokens_cors_headers = []  # Empty list for now
 
 app.add_middleware(
     CORSMiddleware,

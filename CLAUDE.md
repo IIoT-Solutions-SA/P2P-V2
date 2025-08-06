@@ -275,6 +275,36 @@ When completing tasks, Claude MUST update the following documents:
 - Async Guide: `/docs/aadil_docs/async-implementation-guide.md`
 - Testing Plan: `/docs/aadil_docs/comprehensive-testing-plan.md`
 
+## Task Tracking Requirements
+
+### Subtask Documentation Rule
+When working on any main task (e.g., P2.AUTH.02), Claude MUST:
+
+1. **Break down main tasks into subtasks**: Every main task should be decomposed into specific, actionable subtasks
+2. **Track all subtasks in TodoWrite tool**: Use the TodoWrite tool to track each subtask as it's completed
+3. **Document all subtasks in implementation-progress.md**: Under each main task, list ALL completed subtasks with checkmarks and dates
+4. **Update progress files**: Always update both implementation-progress.md and development-log.md with comprehensive subtask details
+
+### Required Format in implementation-progress.md:
+```markdown
+- [x] P2.AUTH.02 - Login Endpoint ✅ 2025-08-05
+  - [x] Research SuperTokens signin API and session handling ✅ 2025-08-05
+  - [x] Implement login API override with user/org data retrieval ✅ 2025-08-05
+  - [x] Add session enhancement with organization context ✅ 2025-08-05
+  - [x] Test login flow and session validation ✅ 2025-08-05
+  - [x] Create session info endpoint for testing ✅ 2025-08-05
+  - [x] Run security scanning on signin implementation ✅ 2025-08-05
+```
+
+### Why This Matters:
+- Provides complete visibility into implementation approach
+- Shows thorough testing and validation
+- Demonstrates security considerations
+- Helps with future maintenance and debugging
+- Creates detailed audit trail of work completed
+
+**This rule applies to ALL future tasks - no exceptions.**
+
 ## Developer-Specific Context
 
 For developer-specific guidelines and personal notes, reference:

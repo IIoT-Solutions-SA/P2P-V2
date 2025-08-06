@@ -88,6 +88,7 @@ services:
       - ./:/app
       - /app/__pycache__
       - /app/.pytest_cache
+      - file_storage:/app/storage
     ports:
       - "8000:8000"
       - "5678:5678"  # For debugging
@@ -117,6 +118,8 @@ volumes:
   mongo_data:
     driver: local
   redis_data:
+    driver: local
+  file_storage:
     driver: local
 
 networks:

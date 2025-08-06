@@ -18,6 +18,7 @@ from app.models.enums import (
 )
 from app.models.organization import Organization
 from app.models.user import User
+from app.models.file import FileMetadata
 
 __all__ = [
     # Base models
@@ -28,6 +29,7 @@ __all__ = [
     # Domain models
     "Organization",
     "User",
+    "FileMetadata",
     # Enums
     "ForumCategory",
     "IndustryType",

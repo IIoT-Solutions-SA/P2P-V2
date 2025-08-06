@@ -14,7 +14,8 @@ from app.models.organization import Organization
 from app.schemas.organization import (
     Organization as OrganizationResponse,
     OrganizationUpdate,
-    OrganizationBrief
+    OrganizationBrief,
+    OrganizationStats
 )
 from app.crud.organization import organization as organization_crud
 from app.services.file_storage import file_storage_service
@@ -261,3 +262,182 @@ async def get_organization_public(
     except Exception as e:
         logger.error(f"Error retrieving organization {org_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve organization")
+
+
+@organizations_router.get(
+    "/stats",
+    response_model=OrganizationStats,
+    summary="Get organization statistics",
+    description="Get comprehensive statistics for the current organization (admin only)"
+)
+async def get_organization_statistics(
+    current_user: User = Depends(get_mock_admin_user),  # Admin only
+    db: AsyncSession = Depends(get_db)
+) -> OrganizationStats:
+    """Get comprehensive organization statistics.
+    
+    Only organization administrators can access this endpoint.
+    
+    Returns detailed statistics including:
+    - User counts by status and role
+    - Activity metrics (forums, use cases, messages)
+    - Storage usage and limits
+    - Subscription information
+    
+    This data is useful for:
+    - Admin dashboards
+    - Usage monitoring
+    - Capacity planning
+    - Billing and subscription management
+    """
+    try:
+        from datetime import datetime
+        from sqlalchemy import func, and_
+        from app.models.enums import UserStatus, UserRole
+        from app.models.file_metadata import FileMetadata
+        
+        org_id = current_user.organization_id
+        
+        # Get organization for subscription details
+        organization = await organization_crud.get(db, id=org_id)
+        if not organization:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        # === USER STATISTICS ===
+        
+        # Total users count
+        total_users_result = await db.execute(
+            select(func.count(User.id))
+            .where(and_(User.organization_id == org_id, User.is_deleted == False))
+        )
+        total_users = total_users_result.scalar() or 0
+        
+        # Active users count
+        active_users_result = await db.execute(
+            select(func.count(User.id))
+            .where(and_(
+                User.organization_id == org_id,
+                User.is_deleted == False,
+                User.status == UserStatus.ACTIVE
+            ))
+        )
+        active_users = active_users_result.scalar() or 0
+        
+        # Admin users count
+        admin_users_result = await db.execute(
+            select(func.count(User.id))
+            .where(and_(
+                User.organization_id == org_id,
+                User.is_deleted == False,
+                User.role == UserRole.ADMIN
+            ))
+        )
+        admin_users = admin_users_result.scalar() or 0
+        
+        # Member users count
+        member_users_result = await db.execute(
+            select(func.count(User.id))
+            .where(and_(
+                User.organization_id == org_id,
+                User.is_deleted == False,
+                User.role == UserRole.MEMBER
+            ))
+        )
+        member_users = member_users_result.scalar() or 0
+        
+        # Pending users count
+        pending_users_result = await db.execute(
+            select(func.count(User.id))
+            .where(and_(
+                User.organization_id == org_id,
+                User.is_deleted == False,
+                User.status == UserStatus.PENDING
+            ))
+        )
+        pending_users = pending_users_result.scalar() or 0
+        
+        # Inactive users count
+        inactive_users_result = await db.execute(
+            select(func.count(User.id))
+            .where(and_(
+                User.organization_id == org_id,
+                User.is_deleted == False,
+                User.status == UserStatus.INACTIVE
+            ))
+        )
+        inactive_users = inactive_users_result.scalar() or 0
+        
+        # === STORAGE STATISTICS ===
+        
+        # Total files and storage usage
+        storage_result = await db.execute(
+            select(
+                func.count(FileMetadata.id),
+                func.coalesce(func.sum(FileMetadata.size_bytes), 0)
+            )
+            .where(and_(
+                FileMetadata.organization_id == org_id,
+                FileMetadata.is_deleted == False
+            ))
+        )
+        storage_data = storage_result.first()
+        total_files = storage_data[0] or 0
+        storage_used_bytes = storage_data[1] or 0
+        
+        # Convert storage to different units
+        storage_used_mb = storage_used_bytes / (1024 * 1024) if storage_used_bytes > 0 else 0.0
+        storage_used_gb = storage_used_mb / 1024 if storage_used_mb > 0 else 0.0
+        storage_limit_gb = organization.max_storage_gb
+        storage_percentage_used = (storage_used_gb / storage_limit_gb * 100) if storage_limit_gb > 0 else 0.0
+        
+        # === ACTIVITY STATISTICS (Placeholder values for now) ===
+        # These will be implemented when forum and use case models are available
+        forum_topics = 0
+        forum_posts = 0
+        use_cases_submitted = 0
+        use_cases_published = 0
+        messages_sent = 0
+        
+        # Create statistics response
+        stats = OrganizationStats(
+            # User Statistics
+            total_users=total_users,
+            active_users=active_users,
+            admin_users=admin_users,
+            member_users=member_users,
+            pending_users=pending_users,
+            inactive_users=inactive_users,
+            
+            # Activity Statistics (placeholders)
+            forum_topics=forum_topics,
+            forum_posts=forum_posts,
+            use_cases_submitted=use_cases_submitted,
+            use_cases_published=use_cases_published,
+            messages_sent=messages_sent,
+            
+            # Storage Statistics
+            total_files=total_files,
+            storage_used_bytes=storage_used_bytes,
+            storage_used_mb=round(storage_used_mb, 2),
+            storage_used_gb=round(storage_used_gb, 2),
+            storage_limit_gb=storage_limit_gb,
+            storage_percentage_used=round(storage_percentage_used, 1),
+            
+            # Subscription Information
+            subscription_tier=organization.subscription_tier,
+            max_users=organization.max_users,
+            max_use_cases=organization.max_use_cases,
+            trial_ends_at=organization.trial_ends_at,
+            
+            # Timestamps
+            calculated_at=datetime.utcnow()
+        )
+        
+        logger.info(f"Organization statistics calculated for {org_id} by admin {current_user.id}")
+        return stats
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error calculating organization statistics: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to calculate organization statistics")

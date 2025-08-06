@@ -108,6 +108,43 @@ class OrganizationBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class OrganizationStats(BaseModel):
+    """Organization statistics response."""
+    # User Statistics
+    total_users: int = 0
+    active_users: int = 0
+    admin_users: int = 0
+    member_users: int = 0
+    pending_users: int = 0
+    inactive_users: int = 0
+    
+    # Activity Statistics  
+    forum_topics: int = 0
+    forum_posts: int = 0
+    use_cases_submitted: int = 0
+    use_cases_published: int = 0
+    messages_sent: int = 0
+    
+    # Storage Statistics
+    total_files: int = 0
+    storage_used_bytes: int = 0
+    storage_used_mb: float = 0.0
+    storage_used_gb: float = 0.0
+    storage_limit_gb: int = 0
+    storage_percentage_used: float = 0.0
+    
+    # Subscription Information
+    subscription_tier: str = "free"
+    max_users: int = 0
+    max_use_cases: int = 0
+    trial_ends_at: Optional[datetime] = None
+    
+    # Timestamps
+    calculated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 class OrganizationWithStats(Organization):
     """Organization with usage statistics."""
     user_count: int = 0

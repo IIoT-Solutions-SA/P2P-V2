@@ -925,30 +925,268 @@ This document provides a detailed task breakdown for each phase of the P2P Sandb
 
 ---
 
+## Frontend-Backend Integration Phases
+
+## Phase 3.5: User Management Integration (Week 2.5)
+
+### P3.5.FIX.01 - Backend Startup Issues 🔴
+**Effort**: 2 points
+**Dependencies**: Phase 3 Complete
+**Deliverables**:
+- [x] Fix FileMetadata model column ID conflict
+- [x] Ensure all Phase 3 APIs start properly
+- [x] Verify database connections and migrations
+- [x] Test all user management endpoints
+**Acceptance Criteria**:
+- Backend starts without errors
+- All Phase 3 endpoints return 200 OK
+- Database queries execute successfully
+
+### P3.5.AUTH.01 - Real Authentication Integration 🔴
+**Effort**: 4 points
+**Dependencies**: P3.5.FIX.01
+**Deliverables**:
+- [ ] Replace mock AuthContext with real SuperTokens integration
+- [ ] Connect frontend signup flow to backend APIs
+- [ ] Implement real login/logout with session management
+- [ ] Add token refresh and session validation
+- [ ] Handle authentication errors and redirects
+**Acceptance Criteria**:
+- Users can signup with real organization creation
+- Login creates valid sessions
+- Protected routes work with real authentication
+- Session persistence works across browser refresh
+
+### P3.5.USER.01 - User Profile Integration 🔴
+**Effort**: 3 points
+**Dependencies**: P3.5.AUTH.01
+**Deliverables**:
+- [ ] Connect user profile viewing to GET /users/me
+- [ ] Connect profile editing to PATCH /users/me  
+- [ ] Connect profile picture upload to real file service
+- [ ] Replace all mock user data with API calls
+- [ ] Handle profile update errors and validation
+**Acceptance Criteria**:
+- Profile displays real user data
+- Profile updates save to backend
+- Profile pictures upload and display correctly
+- Validation errors show properly
+
+### P3.5.ORG.01 - Organization Management Integration 🟡
+**Effort**: 3 points  
+**Dependencies**: P3.5.USER.01
+**Deliverables**:
+- [ ] Connect organization viewing to GET /organizations/me
+- [ ] Connect organization editing to PATCH /organizations/me
+- [ ] Connect logo upload/removal functionality
+- [ ] Connect public organization viewing
+- [ ] Handle organization permission errors
+**Acceptance Criteria**:
+- Organization details display correctly
+- Admins can edit organization information
+- Logo upload/removal works properly
+- Public organization info accessible
+
+### P3.5.ADMIN.01 - Admin Features Integration 🟡
+**Effort**: 4 points
+**Dependencies**: P3.5.ORG.01
+**Deliverables**:
+- [ ] Connect user list to GET /users/organization
+- [ ] Connect user invitations to invitation APIs
+- [ ] Connect user management (edit, delete, role changes)
+- [ ] Connect organization statistics to GET /organizations/stats
+- [ ] Implement admin dashboard with real data
+**Acceptance Criteria**:
+- Admin can view organization user list
+- User invitations work end-to-end
+- User management features functional
+- Statistics display real data
+
+### P3.5.TEST.01 - End-to-End User Journey Testing 🟡
+**Effort**: 2 points
+**Dependencies**: P3.5.ADMIN.01
+**Deliverables**:
+- [ ] Test complete signup → profile → organization journey
+- [ ] Test admin workflows (invite → manage → statistics)
+- [ ] Validate error handling and edge cases
+- [ ] Document integration issues and UX improvements
+- [ ] Performance testing of integrated features
+**Acceptance Criteria**:
+- All user journeys work without errors
+- Error messages are clear and helpful
+- Performance is acceptable (<2s page loads)
+- No console errors or warnings
+
+---
+
+## Phase 4.5: Forum Integration (Week 5.5)
+
+### P4.5.FORUM.01 - Forum Component Integration 🔴
+**Effort**: 4 points
+**Dependencies**: Phase 4 Complete, P3.5.TEST.01
+**Deliverables**:
+- [ ] Connect forum topic listing to GET /forums/topics
+- [ ] Connect topic creation to POST /forums/topics
+- [ ] Connect post creation to POST /forums/topics/{id}/posts
+- [ ] Connect reply system to backend APIs
+- [ ] Replace all mock forum data
+**Acceptance Criteria**:
+- Forum topics load from backend
+- Users can create topics and posts
+- Reply system works properly
+- All forum data persists correctly
+
+### P4.5.WS.01 - WebSocket Integration 🔴
+**Effort**: 3 points
+**Dependencies**: P4.5.FORUM.01
+**Deliverables**:
+- [ ] Implement WebSocket connection management
+- [ ] Connect real-time post updates
+- [ ] Add typing indicators
+- [ ] Connect user presence system
+- [ ] Handle connection errors and reconnection
+**Acceptance Criteria**:
+- Real-time updates work across users
+- WebSocket connections stable
+- Typing indicators functional
+- Graceful error handling
+
+### P4.5.TEST.01 - Forum Workflow Testing 🟡
+**Effort**: 2 points
+**Dependencies**: P4.5.WS.01
+**Deliverables**:
+- [ ] Test complete forum user journeys
+- [ ] Validate real-time functionality
+- [ ] Test forum search and filtering
+- [ ] Document forum UX improvements
+**Acceptance Criteria**:
+- Forum workflows work smoothly
+- Real-time features responsive
+- Search returns relevant results
+
+---
+
+## Phase 5.5: Use Cases Integration (Week 7.5)
+
+### P5.5.UC.01 - Use Case Form Integration 🔴
+**Effort**: 3 points
+**Dependencies**: Phase 5 Complete
+**Deliverables**:
+- [ ] Connect use case submission forms to POST /use-cases
+- [ ] Connect use case browsing to GET /use-cases
+- [ ] Connect use case details to GET /use-cases/{id}
+- [ ] Implement draft saving functionality
+- [ ] Connect use case management features
+**Acceptance Criteria**:
+- Use case submission works end-to-end
+- Drafts save and load properly
+- Use case browsing functional
+
+### P5.5.MEDIA.01 - Media Upload Integration 🟡
+**Effort**: 3 points
+**Dependencies**: P5.5.UC.01
+**Deliverables**:
+- [ ] Connect media upload to POST /use-cases/{id}/media
+- [ ] Implement image optimization workflows
+- [ ] Connect thumbnail generation
+- [ ] Add media management features
+**Acceptance Criteria**:
+- Media uploads work reliably
+- Images display with thumbnails
+- File management intuitive
+
+### P5.5.TEST.01 - Use Case Workflow Testing 🟡
+**Effort**: 2 points
+**Dependencies**: P5.5.MEDIA.01
+**Deliverables**:
+- [ ] Test complete use case submission workflows
+- [ ] Test use case search and filtering
+- [ ] Test export functionality
+- [ ] Document use case UX improvements
+**Acceptance Criteria**:
+- Use case workflows smooth and intuitive
+- Search finds relevant content
+- Export features work properly
+
+---
+
+## Phase 6.5: Dashboard Integration (Week 9.5)
+
+### P6.5.MSG.01 - Messaging Integration 🔴
+**Effort**: 3 points
+**Dependencies**: Phase 6 Complete
+**Deliverables**:
+- [ ] Connect messaging to POST /messages
+- [ ] Connect conversation listing to GET /messages
+- [ ] Implement real-time message updates
+- [ ] Connect message notifications
+**Acceptance Criteria**:
+- Private messaging works reliably
+- Real-time updates functional
+- Notifications trigger properly
+
+### P6.5.DASH.01 - Dashboard Integration 🔴
+**Effort**: 3 points
+**Dependencies**: P6.5.MSG.01
+**Deliverables**:
+- [ ] Connect dashboard statistics to GET /dashboard/stats
+- [ ] Connect activity feed to GET /dashboard/activity
+- [ ] Connect trending content to GET /dashboard/trending
+- [ ] Implement dashboard caching and performance optimization
+**Acceptance Criteria**:
+- Dashboard loads quickly (<1s)
+- Statistics display accurately
+- Activity feed updates properly
+
+### P6.5.TEST.01 - Final Integration Testing 🟡
+**Effort**: 3 points
+**Dependencies**: P6.5.DASH.01
+**Deliverables**:
+- [ ] Test complete platform workflows
+- [ ] Performance testing of full integration
+- [ ] Security testing of integrated features
+- [ ] Final UX polish and optimization
+- [ ] Integration documentation and handover
+**Acceptance Criteria**:
+- All features work together seamlessly
+- Performance meets requirements
+- Security validation complete
+- Documentation comprehensive
+
+---
+
 ## Task Summary by Priority
 
 ### Critical Tasks (🔴) - Must Complete
-Total: 35 tasks
+Total: 47 tasks (35 backend + 12 integration)
 - Phase 0: 3 tasks
 - Phase 0.5: 4 tasks
 - Phase 1: 8 tasks
 - Phase 2: 5 tasks
 - Phase 3: 1 task
+- **Phase 3.5: 3 tasks**
 - Phase 4: 5 tasks
+- **Phase 4.5: 2 tasks**
 - Phase 5: 3 tasks
+- **Phase 5.5: 1 task**
 - Phase 6: 3 tasks
+- **Phase 6.5: 2 tasks**
 - Phase 7: 3 tasks
 
 ### High Priority (🟡) - Should Complete
-Total: 23 tasks
+Total: 32 tasks (23 backend + 9 integration)
 - Phase 0: 1 task
 - Phase 0.5: 2 tasks
 - Phase 1: 2 tasks
 - Phase 2: 3 tasks
 - Phase 3: 4 tasks
+- **Phase 3.5: 3 tasks**
 - Phase 4: 2 tasks
+- **Phase 4.5: 1 task**
 - Phase 5: 4 tasks
+- **Phase 5.5: 2 tasks**
 - Phase 6: 2 tasks
+- **Phase 6.5: 1 task**
 - Phase 7: 3 tasks
 
 ### Normal Priority (🟢) - Nice to Have
@@ -961,32 +1199,56 @@ Total: 8 tasks
 
 ---
 
-## Estimated Timeline
+## Estimated Timeline (Updated with Integration Phases)
 
-### Week 1
-- Phase 0: Container Foundation (2 days)
-- Phase 0.5: Frontend Integration (2 days)
-- Phase 1: Backend Foundation (Start)
+### Week 1 ✅ COMPLETE
+- Phase 0: Container Foundation (2 days) ✅
+- Phase 0.5: Frontend Integration Setup (2 days) ✅
+- Phase 1: Backend Foundation (Start) ✅
 
-### Week 2
-- Phase 1: Backend Foundation (Complete)
-- Phase 2: Authentication System
+### Week 2 ✅ COMPLETE
+- Phase 1: Backend Foundation (Complete) ✅
+- Phase 2: Authentication System ✅
 
-### Week 3
-- Phase 3: User Management
-- Phase 4: Forum System (Start)
+### Week 2.5 🔄 CURRENT PHASE
+- **Phase 3.5: User Management Integration** (3-4 days)
+- Fix backend startup issues
+- Replace mock auth with real SuperTokens
+- Connect all user management features
 
-### Week 4
-- Phase 4: Forum System (Complete)
-- Phase 5: Use Cases Module
+### Week 3 ✅ COMPLETE
+- Phase 3: User Management ✅
 
-### Week 5
-- Phase 6: Messaging & Dashboard
+### Week 4-5
+- Phase 4: Forum System Backend (2 weeks)
+
+### Week 5.5
+- **Phase 4.5: Forum Integration** (3-4 days)
+- Connect forum components to real APIs
+- Implement WebSocket integration
+
+### Week 6-7
+- Phase 5: Use Cases Module Backend (2 weeks)
+
+### Week 7.5
+- **Phase 5.5: Use Cases Integration** (3-4 days)
+- Connect use case submission and browsing
+- Media upload integration
+
+### Week 8-9
+- Phase 6: Messaging & Dashboard Backend (2 weeks)
 - Performance optimization
 
-### Week 6
+### Week 9.5
+- **Phase 6.5: Dashboard Integration** (3-4 days)
+- Connect messaging and dashboard features
+- Final integration testing
+
+### Week 10-11
 - Phase 7: Testing & Deployment
 - Production readiness
+
+**Total Estimated Timeline: 11 weeks (8 weeks backend + 3 weeks integration)**
 
 ---
 

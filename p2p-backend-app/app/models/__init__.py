@@ -9,6 +9,7 @@ from app.models.base import (
 from app.models.enums import (
     ForumCategory,
     IndustryType,
+    InvitationStatus,
     MessageStatus,
     NotificationType,
     OrganizationStatus,
@@ -19,6 +20,7 @@ from app.models.enums import (
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.file import FileMetadata
+from app.models.invitation import UserInvitation
 
 __all__ = [
     # Base models
@@ -30,9 +32,11 @@ __all__ = [
     "Organization",
     "User",
     "FileMetadata",
+    "UserInvitation",
     # Enums
     "ForumCategory",
     "IndustryType",
+    "InvitationStatus",
     "MessageStatus",
     "NotificationType",
     "OrganizationStatus",

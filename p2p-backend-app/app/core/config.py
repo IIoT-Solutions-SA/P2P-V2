@@ -84,6 +84,18 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     
+    # Email Settings
+    SMTP_SERVER: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_USE_TLS: bool = True
+    FROM_EMAIL: str = "noreply@p2psandbox.com"
+    FROM_NAME: str = "P2P Sandbox"
+    
+    # Frontend URL (for email links)
+    FRONTEND_URL: str = "http://localhost:5173"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

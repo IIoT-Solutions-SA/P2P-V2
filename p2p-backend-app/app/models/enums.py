@@ -17,6 +17,14 @@ class UserStatus(str, Enum):
     SUSPENDED = "suspended"
 
 
+class InvitationStatus(str, Enum):
+    """Status of user invitations."""
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
 class OrganizationStatus(str, Enum):
     """Organization account status."""
     ACTIVE = "active"

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Zap, Home, MessageSquare, BookOpen, BarChart3, Bell, Plus, LogOut, User } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
-export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management' | 'login' | 'signup'
+export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management' | 'profile' | 'login' | 'signup'
 
 interface NavigationProps {
   currentPage: Page
@@ -91,8 +91,9 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
             ) : (
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => onPageChange('dashboard')}
+                  onClick={() => onPageChange('profile')}
                   className="flex items-center space-x-3 hover:opacity-80 cursor-pointer"
+                  title="View Profile"
                 >
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-sm font-bold text-white">

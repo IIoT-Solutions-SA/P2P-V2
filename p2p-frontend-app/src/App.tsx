@@ -6,6 +6,7 @@ import UseCases from './pages/UseCases'
 import SubmitUseCase from './pages/SubmitUseCase'
 import UseCaseDetail from './pages/UseCaseDetail'
 import UserManagement from './pages/UserManagement'
+import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Navigation, { MobileNavigation, type Page } from './components/Navigation'
@@ -64,6 +65,12 @@ function App() {
         return (
           <ProtectedRoute>
             <UserManagement onPageChange={handlePageChange} />
+          </ProtectedRoute>
+        )
+      case 'profile':
+        return (
+          <ProtectedRoute>
+            <Profile onPageChange={handlePageChange} />
           </ProtectedRoute>
         )
       case 'login':

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -26,9 +26,7 @@ import {
   Home
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-// Temporary mock data for testing - will be replaced with real API calls in P3.5.USER.01
-const mockUsers: any[] = []
-const mockOrganizations: any[] = []
+import { api } from '@/services/api'
 import type { InviteUserData, PendingInvitation } from '@/types/auth'
 import { type Page } from '@/components/Navigation'
 
@@ -36,11 +34,27 @@ interface UserManagementProps {
   onPageChange?: (page: Page) => void
 }
 
+interface UserData {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  role: 'admin' | 'member'
+  status: string
+  createdAt: string
+  department?: string
+  jobTitle?: string
+}
+
 export default function UserManagement({ onPageChange }: UserManagementProps) {
   const { user, organization } = useAuth()
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'member'>('all')
+  const [users, setUsers] = useState<UserData[]>([])
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
   const [inviteData, setInviteData] = useState<InviteUserData>({
     email: '',
@@ -49,8 +63,54 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
     role: 'member'
   })
 
-  // Mock pending invitations
-  const [pendingInvitations] = useState<PendingInvitation[]>([
+  // Fetch users and invitations on mount
+  useEffect(() => {
+    fetchOrganizationData()
+  }, [])
+
+  const fetchOrganizationData = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      // Fetch organization users
+      const usersResponse = await api.get('/api/v1/users/organization')
+      if (usersResponse.data.users) {
+        const formattedUsers = usersResponse.data.users.map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          firstName: u.first_name || u.firstName,
+          lastName: u.last_name || u.lastName,
+          role: u.role,
+          status: u.status || 'active',
+          createdAt: u.created_at || u.createdAt,
+          department: u.department,
+          jobTitle: u.job_title || u.jobTitle
+        }))
+        setUsers(formattedUsers)
+      }
+      
+      // Fetch pending invitations
+      const invitationsResponse = await api.get('/api/v1/invitations')
+      if (invitationsResponse.data.invitations) {
+        setPendingInvitations(invitationsResponse.data.invitations.map((inv: any) => ({
+          id: inv.id,
+          email: inv.email,
+          firstName: inv.first_name || inv.firstName || '',
+          lastName: inv.last_name || inv.lastName || '',
+          role: inv.role,
+          organizationId: inv.organization_id,
+          invitedBy: inv.invited_by,
+          status: inv.status,
+          expiresAt: new Date(inv.expires_at),
+          createdAt: new Date(inv.created_at)
+        })))
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch organization data:', err)
+      setError('Failed to load users and invitations')
+      // Use temporary mock data as fallback
+      setPendingInvitations([
     {
       id: 'inv-1',
       email: 'omar.salem@advanced-electronics.com',
@@ -76,10 +136,13 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
     }
   ])
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-  // Filter users for current organization
-  const organizationUsers = mockUsers.filter(u => u.organizationId === organization?.id)
-  const filteredUsers = organizationUsers.filter(u => {
+  // Filter users
+  const filteredUsers = users.filter(u => {
     const matchesSearch = `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === 'all' || u.role === roleFilter
     return matchesSearch && matchesRole
@@ -87,17 +150,44 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock invitation logic
-    console.log('Inviting user:', inviteData)
     
-    // Reset form
-    setInviteData({
-      email: '',
-      firstName: '',
-      lastName: '',
-      role: 'member'
-    })
-    setShowInviteForm(false)
+    try {
+      // Send invitation via API
+      const response = await api.post('/api/v1/invitations/send', {
+        email: inviteData.email,
+        first_name: inviteData.firstName,
+        last_name: inviteData.lastName,
+        role: inviteData.role
+      })
+      
+      if (response.data.invitation) {
+        // Add to pending invitations list
+        setPendingInvitations(prev => [...prev, {
+          id: response.data.invitation.id,
+          email: response.data.invitation.email,
+          firstName: response.data.invitation.first_name || '',
+          lastName: response.data.invitation.last_name || '',
+          role: response.data.invitation.role,
+          organizationId: response.data.invitation.organization_id,
+          invitedBy: user?.id || '',
+          status: 'pending',
+          expiresAt: new Date(response.data.invitation.expires_at),
+          createdAt: new Date(response.data.invitation.created_at)
+        }])
+      }
+      
+      // Reset form
+      setInviteData({
+        email: '',
+        firstName: '',
+        lastName: '',
+        role: 'member'
+      })
+      setShowInviteForm(false)
+    } catch (err: any) {
+      console.error('Failed to send invitation:', err)
+      setError(err.response?.data?.detail || 'Failed to send invitation')
+    }
   }
 
   // Only allow admins to access this page

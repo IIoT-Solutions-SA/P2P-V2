@@ -244,7 +244,10 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
                     <span className="font-medium">Verified</span>
                   </div>
                 </div>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => onPageChange?.('profile')}
+                >
                   Edit Profile
                 </Button>
               </div>

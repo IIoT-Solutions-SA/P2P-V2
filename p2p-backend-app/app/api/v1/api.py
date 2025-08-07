@@ -11,6 +11,7 @@ from app.api.v1.forum import forum_router
 from app.api.v1.use_cases import router as use_cases_router
 from app.api.v1.messaging import messaging_router
 from app.api.v1.files import router as files_router
+from app.api.v1.media import router as media_router
 from app.api.v1.invitations import router as invitations_router
 # from app.api.v1.test_auth import router as test_auth_router
 # from app.api.v1.test_rbac import router as test_rbac_router
@@ -29,6 +30,7 @@ api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
 api_router.include_router(users_router, prefix="/users", tags=["users"])
 api_router.include_router(organizations_router, prefix="/organizations", tags=["organizations"])
 api_router.include_router(files_router, prefix="/files", tags=["files"])
+api_router.include_router(media_router, prefix="/media", tags=["media"])
 api_router.include_router(invitations_router, prefix="/invitations", tags=["invitations"])
 api_router.include_router(forum_router, prefix="/forum", tags=["forum"])
 api_router.include_router(use_cases_router, prefix="/use-cases", tags=["use-cases"])

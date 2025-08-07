@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 import logging
 
 from app.core.config import settings
+from app.db.mongodb import MongoDB
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,12 @@ async def init_db():
         await mongo_client.admin.command('ping')
         mongodb = mongo_client[settings.MONGODB_DB_NAME]
         logger.info("MongoDB connection established successfully")
+        
+        # Initialize MongoDB indexes using our MongoDB class
+        MongoDB.client = mongo_client
+        MongoDB.database = mongodb
+        await MongoDB.create_indexes()
+        logger.info("MongoDB indexes created successfully")
         
         # Test PostgreSQL connection
         async with engine.begin() as conn:

@@ -409,41 +409,6 @@ class ForumService:
             message=f"Topic {'liked' if liked else 'unliked'} successfully"
         )
     
-    @staticmethod
-    async def toggle_post_like(
-        db: AsyncSession,
-        post_id: UUID,
-        user_id: UUID,
-        organization_id: UUID
-    ) -> ForumLikeResponse:
-        """Toggle like on a forum post."""
-        
-        # Verify post exists
-        post = await forum_post.get(db, post_id)
-        if not post or post.organization_id != organization_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Post not found"
-            )
-        
-        liked, like_count = await forum_like.toggle_post_like(
-            db, post_id, user_id, organization_id
-        )
-        
-        log_business_event("forum_post_like_toggle", {
-            "post_id": str(post_id),
-            "user_id": str(user_id),
-            "liked": liked,
-            "new_count": like_count
-        })
-        
-        return ForumLikeResponse(
-            success=True,
-            liked=liked,
-            likes_count=like_count,
-            message=f"Post {'liked' if liked else 'unliked'} successfully"
-        )
-    
     # Post Management
     
     @staticmethod
@@ -535,40 +500,6 @@ class ForumService:
         return post_responses
     
     @staticmethod
-    async def _build_nested_replies(replies: List) -> List[ForumPostResponse]:
-        """Recursively build nested reply structure."""
-        reply_responses = []
-        
-        for reply in replies:
-            # Skip deleted replies
-            if reply.is_deleted:
-                continue
-                
-            reply_response = ForumPostResponse.model_validate(reply)
-            
-            # Add author information
-            if reply.author:
-                reply_response.author = ForumTopicAuthor(
-                    id=reply.author.id,
-                    first_name=reply.author.first_name,
-                    last_name=reply.author.last_name,
-                    email=reply.author.email,
-                    job_title=reply.author.job_title,
-                    is_verified=reply.author.email_verified
-                )
-            
-            # Process nested replies (replies to replies)
-            if reply.replies:
-                reply_response.replies = await ForumService._build_nested_replies(reply.replies)
-            
-            reply_responses.append(reply_response)
-        
-        # Sort replies by creation date (oldest first)
-        reply_responses.sort(key=lambda x: x.created_at)
-        
-        return reply_responses
-    
-    @staticmethod
     async def get_post_replies(
         db: AsyncSession,
         post_id: UUID,
@@ -635,6 +566,40 @@ class ForumService:
                 reply_response.replies = await ForumService._build_nested_replies(reply.replies)
             
             reply_responses.append(reply_response)
+        
+        return reply_responses
+    
+    @staticmethod
+    async def _build_nested_replies(replies: List) -> List[ForumPostResponse]:
+        """Recursively build nested reply structure."""
+        reply_responses = []
+        
+        for reply in replies:
+            # Skip deleted replies
+            if reply.is_deleted:
+                continue
+                
+            reply_response = ForumPostResponse.model_validate(reply)
+            
+            # Add author information
+            if reply.author:
+                reply_response.author = ForumTopicAuthor(
+                    id=reply.author.id,
+                    first_name=reply.author.first_name,
+                    last_name=reply.author.last_name,
+                    email=reply.author.email,
+                    job_title=reply.author.job_title,
+                    is_verified=reply.author.email_verified
+                )
+            
+            # Process nested replies (replies to replies)
+            if reply.replies:
+                reply_response.replies = await ForumService._build_nested_replies(reply.replies)
+            
+            reply_responses.append(reply_response)
+        
+        # Sort replies by creation date (oldest first)
+        reply_responses.sort(key=lambda x: x.created_at)
         
         return reply_responses
     
@@ -707,29 +672,6 @@ class ForumService:
             )
         
         return post_response
-    
-    @staticmethod
-    async def get_forum_stats(
-        db: AsyncSession,
-        organization_id: UUID
-    ) -> ForumStatsResponse:
-        """Get forum statistics for an organization."""
-        
-        log_database_operation("forum_stats", "get", {
-            "organization_id": str(organization_id)
-        })
-        
-        # These would be real database queries in production
-        # For now, return placeholder data that matches the frontend expectations
-        categories = await forum_category.get_active_categories(db)
-        
-        return ForumStatsResponse(
-            total_topics=156,  # Would be calculated from database
-            total_posts=423,   # Would be calculated from database
-            active_members=89, # Would be calculated from database
-            helpful_answers=234, # Would be calculated from database
-            categories=[ForumCategoryResponse.model_validate(cat) for cat in categories]
-        )
     
     @staticmethod
     async def update_post(
@@ -836,6 +778,41 @@ class ForumService:
         })
     
     @staticmethod
+    async def toggle_post_like(
+        db: AsyncSession,
+        post_id: UUID,
+        user_id: UUID,
+        organization_id: UUID
+    ) -> ForumLikeResponse:
+        """Toggle like on a forum post."""
+        
+        # Verify post exists
+        post = await forum_post.get(db, post_id)
+        if not post or post.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+        
+        liked, like_count = await forum_like.toggle_post_like(
+            db, post_id, user_id, organization_id
+        )
+        
+        log_business_event("forum_post_like_toggle", {
+            "post_id": str(post_id),
+            "user_id": str(user_id),
+            "liked": liked,
+            "new_count": like_count
+        })
+        
+        return ForumLikeResponse(
+            success=True,
+            liked=liked,
+            likes_count=like_count,
+            message=f"Post {'liked' if liked else 'unliked'} successfully"
+        )
+    
+    @staticmethod
     async def mark_best_answer(
         db: AsyncSession,
         post_id: UUID,
@@ -912,3 +889,87 @@ class ForumService:
             )
         
         return post_response
+    
+    @staticmethod
+    async def unmark_best_answer(
+        db: AsyncSession,
+        post_id: UUID,
+        user_id: UUID,
+        organization_id: UUID,
+        is_admin: bool = False
+    ):
+        """Remove best answer designation from a post."""
+        
+        # Get post
+        post = await forum_post.get(db, post_id)
+        if not post or post.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+        
+        # Get topic
+        topic = await forum_topic.get(db, post.topic_id)
+        if not topic:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Topic not found"
+            )
+        
+        # Check permissions (topic author or admin)
+        if topic.author_id != user_id and not is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only unmark best answers for your own topics"
+            )
+        
+        # Check if this post is actually the best answer
+        if not post.is_best_answer or topic.best_answer_post_id != post_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This post is not marked as the best answer"
+            )
+        
+        log_business_event("forum_best_answer_unmark", {
+            "post_id": str(post_id),
+            "topic_id": str(topic.id),
+            "unmarker_id": str(user_id),
+            "is_admin": is_admin
+        })
+        
+        # Remove best answer designation from post
+        await forum_post.update(db, db_obj=post, obj_in={"is_best_answer": False})
+        
+        # Clear best answer reference from topic
+        await forum_topic.update(db, db_obj=topic, obj_in={
+            "best_answer_post_id": None,
+            "has_best_answer": False
+        })
+        
+        log_database_operation("forum_posts", "unmark_best_answer", {
+            "id": str(post_id),
+            "topic_id": str(topic.id)
+        })
+    
+    @staticmethod
+    async def get_forum_stats(
+        db: AsyncSession,
+        organization_id: UUID
+    ) -> ForumStatsResponse:
+        """Get forum statistics for an organization."""
+        
+        log_database_operation("forum_stats", "get", {
+            "organization_id": str(organization_id)
+        })
+        
+        # These would be real database queries in production
+        # For now, return placeholder data that matches the frontend expectations
+        categories = await forum_category.get_active_categories(db)
+        
+        return ForumStatsResponse(
+            total_topics=156,  # Would be calculated from database
+            total_posts=423,   # Would be calculated from database
+            active_members=89, # Would be calculated from database
+            helpful_answers=234, # Would be calculated from database
+            categories=[ForumCategoryResponse.model_validate(cat) for cat in categories]
+        )

@@ -233,6 +233,33 @@ async def mark_as_best_answer(
     )
 
 
+@router.delete("/{post_id}/best-answer", status_code=status.HTTP_204_NO_CONTENT)
+async def unmark_as_best_answer(
+    post_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Remove best answer designation from a post.
+    
+    **Permissions:**
+    - Topic author can unmark best answers
+    - Admins can unmark any best answer
+    
+    **Note:** This will clear the best answer status from both the post and topic.
+    """
+    # Ensure user has access to their organization's forum
+    await require_organization_access(db, current_user, current_user.organization_id)
+    
+    await ForumService.unmark_best_answer(
+        db,
+        post_id=post_id,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id,
+        is_admin=current_user.is_admin
+    )
+
+
 @router.get("/{post_id}/replies", response_model=List[ForumPostResponse])
 async def get_post_replies(
     post_id: UUID,

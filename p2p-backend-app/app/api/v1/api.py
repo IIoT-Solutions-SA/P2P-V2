@@ -8,7 +8,7 @@ from app.api.v1.auth import auth_router
 from app.api.v1.users import users_router
 from app.api.v1.organizations import organizations_router
 from app.api.v1.forum import forum_router
-from app.api.v1.use_cases import use_cases_router
+from app.api.v1.use_cases import router as use_cases_router
 from app.api.v1.messaging import messaging_router
 from app.api.v1.files import router as files_router
 from app.api.v1.invitations import router as invitations_router

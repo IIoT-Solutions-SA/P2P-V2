@@ -335,3 +335,90 @@ def require_ownership_or_admin(resource_user_id: str):
         return user_data
     
     return ownership_checker
+
+
+async def require_organization_access(
+    db: AsyncSession,
+    user: User,
+    organization_id: str
+) -> bool:
+    """
+    Validate that a user has access to a specific organization.
+    
+    This function ensures that:
+    1. The user belongs to the requested organization
+    2. The user's account is active
+    3. The organization exists and is active
+    
+    Args:
+        db: Database session
+        user: Current user object
+        organization_id: Organization ID to validate access for
+        
+    Returns:
+        True if access is granted
+        
+    Raises:
+        HTTPException: If access is denied or validation fails
+    """
+    try:
+        from uuid import UUID
+        from sqlalchemy import select
+        from app.models.organization import Organization
+        
+        # Convert organization_id to UUID if it's a string
+        if isinstance(organization_id, str):
+            try:
+                org_uuid = UUID(organization_id)
+            except ValueError:
+                logger.warning(f"RBAC: Invalid organization ID format: {organization_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid organization ID format"
+                )
+        else:
+            org_uuid = organization_id
+        
+        # Check if user belongs to the organization
+        if user.organization_id != org_uuid:
+            logger.warning(
+                f"RBAC: User {user.email} attempted to access org {organization_id} "
+                f"but belongs to org {user.organization_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You don't have access to this organization"
+            )
+        
+        # Verify the organization exists and is active
+        org_result = await db.execute(
+            select(Organization).where(Organization.id == org_uuid)
+        )
+        organization = org_result.scalar_one_or_none()
+        
+        if not organization:
+            logger.warning(f"RBAC: Organization not found: {organization_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization not found"
+            )
+        
+        if not organization.is_active:
+            logger.warning(f"RBAC: User {user.email} attempted to access inactive org {organization_id}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Organization is inactive"
+            )
+        
+        logger.debug(f"RBAC: User {user.email} granted organization access: {organization_id}")
+        return True
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"RBAC: Error validating organization access: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to validate organization access"
+        )

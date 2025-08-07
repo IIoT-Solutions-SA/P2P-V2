@@ -16,6 +16,21 @@ from app.schemas.organization import (
     OrganizationBrief,
     OrganizationWithStats,
 )
+from app.schemas.forum import (
+    ForumCategoryResponse,
+    ForumCategoryCreate,
+    ForumCategoryUpdate,
+    ForumTopicResponse,
+    ForumTopicCreate,
+    ForumTopicUpdate,
+    ForumTopicListResponse,
+    ForumTopicSearchQuery,
+    ForumPostResponse,
+    ForumPostCreate,
+    ForumPostUpdate,
+    ForumStatsResponse,
+    ForumLikeResponse,
+)
 
 __all__ = [
     # User schemas
@@ -32,4 +47,18 @@ __all__ = [
     "OrganizationUpdateAdmin",
     "OrganizationBrief",
     "OrganizationWithStats",
+    # Forum schemas
+    "ForumCategoryResponse",
+    "ForumCategoryCreate", 
+    "ForumCategoryUpdate",
+    "ForumTopicResponse",
+    "ForumTopicCreate",
+    "ForumTopicUpdate",
+    "ForumTopicListResponse",
+    "ForumTopicSearchQuery",
+    "ForumPostResponse",
+    "ForumPostCreate",
+    "ForumPostUpdate",
+    "ForumStatsResponse",
+    "ForumLikeResponse",
 ]

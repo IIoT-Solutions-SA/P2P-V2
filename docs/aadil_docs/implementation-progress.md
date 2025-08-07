@@ -344,19 +344,35 @@
 - [ ] P4.5.FORUM.01 - Forum Component Integration (4 points)
 - [ ] P4.5.TEST.01 - Forum Workflow Testing (2 points)
 
-### Phase 5: Use Cases Module (0% Complete - 0/8 tasks)
-- [ ] P5.MODEL.01 - Use Case Models
-- [ ] P5.UC.01 - Use Case Submission
-- [ ] P5.UC.02 - Media Upload System
-- [ ] P5.UC.03 - Use Case Browsing
-- [ ] P5.UC.04 - Use Case Details
-- [ ] P5.UC.05 - Use Case Management
-- [ ] P5.LOC.01 - Location Services
-- [ ] P5.EXPORT.01 - Export Functionality
+### Phase 5: Use Cases Module (0% Complete - 0/9 tasks)
+- [ ] P5.MODEL.01 - Use Case MongoDB Models (3 points)
+- [ ] P5.UC.01 - Use Case Submission Endpoint (4 points)
+- [ ] P5.UC.02 - Media Upload System with Local Storage (4 points)
+- [ ] P5.UC.03 - Use Case Browsing (3 points)
+- [ ] P5.UC.04 - Use Case Details (2 points)
+- [ ] P5.UC.05 - Use Case Management (3 points)
+- [ ] P5.UC.06 - Use Case Search (3 points)
+- [ ] P5.LOC.01 - Location Services (2 points)
+- [ ] P5.EXPORT.01 - Export Functionality (2 points)
 
 ### Phase 5.5: Use Cases Integration (0% Complete - 0/3 tasks)
 - [ ] P5.5.UC.01 - Use Case Form Integration (3 points)
 - [ ] P5.5.MEDIA.01 - Media Upload Integration (3 points)
+- [ ] P5.5.TEST.01 - Use Case Workflow Testing (2 points)
+
+### Phase 6: Messaging & Dashboard (0% Complete - 0/8 tasks)
+- [ ] P6.MSG.01 - Message Data Model (2 points)
+- [ ] P6.MSG.02 - Private Messaging API (4 points)
+- [ ] P6.MSG.03 - Message Notifications (3 points)
+- [ ] P6.DASH.01 - Dashboard Statistics API (4 points)
+- [ ] P6.DASH.02 - Activity Feed (3 points)
+- [ ] P6.DASH.03 - Trending Content (2 points)
+- [ ] P6.PERF.01 - Performance Optimization (4 points)
+- [ ] P6.TASK.01 - Background Tasks (3 points)
+
+### Phase 6.5: Dashboard Integration (0% Complete - 0/2 tasks)
+- [ ] P6.5.DASH.01 - Dashboard Component Integration (3 points)
+- [ ] P6.5.TEST.01 - Dashboard Workflow Testing (2 points)
 - [ ] P5.5.TEST.01 - Use Case Workflow Testing (2 points)
 
 ### Phase 6: Messaging & Dashboard (0% Complete - 0/8 tasks)

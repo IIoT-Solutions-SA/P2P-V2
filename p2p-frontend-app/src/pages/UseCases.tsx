@@ -26,6 +26,7 @@ interface UseCase {
   id: string;
   title: string;
   title_slug: string; // This field is required
+  company_slug: string;
   company: string;
   industry: string;
   category: string;
@@ -186,7 +187,7 @@ export default function UseCases() {
             <div className="space-y-6">
               {loading && <div className="text-center p-10"><Loader2 className="h-8 w-8 mx-auto animate-spin text-blue-600" /></div>}
               {!loading && useCases.map((useCase) => (
-                <div key={useCase.id} className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 overflow-hidden cursor-pointer" onClick={() => useCase.title_slug && navigate(`/usecases/${useCase.title_slug}`)}>
+                <div key={useCase.id} className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 overflow-hidden cursor-pointer" onClick={() => navigate(`/usecases/${useCase.company_slug}/${useCase.title_slug}`)}>
                     <div className="p-6">
                         <div className="flex items-start justify-between">
                             <div className="flex-1 space-y-3">

@@ -150,6 +150,7 @@ class UseCase(Document):
     published: bool = False
     featured: bool = False
     title_slug: Optional[str] = Field(default=None, index=True)
+    company_slug: Optional[str] = Field(default=None, index=True)
     
     # Detailed Information
     subtitle: Optional[str] = None

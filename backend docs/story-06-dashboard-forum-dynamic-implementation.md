@@ -281,3 +281,304 @@ The Dashboard and Forum pages have been completely transformed from static, hard
 - **Bug Fixes**: 8 critical ObjectId/String issues resolved
 
 The application now provides a genuine, database-driven user experience worthy of production deployment.
+
+---
+
+## Complete Project Directory Structure
+
+```
+P2P-V2/
+├── .gitignore
+├── Chat.md
+├── frontend-spec.md
+├── logo.png
+├── backend docs/
+│   ├── story-03-backend-api-setup-implementation.md
+│   ├── story-04-database-configuration-implementation.md
+│   ├── story-05-authentication-integration-implementation.md
+│   ├── story-06-dashboard-forum-dynamic-implementation.md
+│   └── story-07-usecases-implementation.md
+├── docs/
+│   ├── architecture.md
+│   ├── prd.md
+│   ├── architecture/
+│   │   ├── 1-system-overview.md
+│   │   ├── 2-tech-stack.md
+│   │   ├── 3-system-components-services.md
+│   │   ├── 4-core-data-models.md
+│   │   ├── 5-deployment-architecture.md
+│   │   └── index.md
+│   ├── epics/
+│   │   ├── epic-01-project-foundation.md
+│   │   ├── epic-02-core-mvp-features.md
+│   │   └── epic-03-use-case-knowledge-management.md
+│   ├── prd/
+│   │   ├── goals-and-success-metrics.md
+│   │   ├── index.md
+│   │   ├── key-features-functionality.md
+│   │   ├── product-overview.md
+│   │   ├── roadmap-development-phases.md
+│   │   ├── target-users-personas.md
+│   │   └── user-journey-scenarios.md
+│   └── stories/
+│       ├── epic-01/
+│       │   ├── story-01-repository-initialization.md
+│       │   ├── story-02-frontend-setup.md
+│       │   ├── story-03-backend-api-setup.md
+│       │   ├── story-04-database-configuration.md
+│       │   ├── story-05-authentication-integration.md
+│       │   ├── story-06-docker-containerization.md
+│       │   └── story-07-cicd-pipeline.md
+│       ├── epic-02/
+│       │   ├── story-01-user-profile-management.md
+│       │   ├── story-02-topic-based-forum-system.md
+│       │   ├── story-03-forum-post-creation-management.md
+│       │   ├── story-04-forum-replies-interactions.md
+│       │   ├── story-05-best-answer-system.md
+│       │   ├── story-06-user-verification-system.md
+│       │   └── story-07-search-discovery-features.md
+│       └── epic-03/
+│           ├── story-01-use-case-submission-tool.md
+│           ├── story-02-document-media-sharing-system.md
+│           ├── story-03-private-peer-messaging.md
+│           ├── story-04-activity-dashboard.md
+│           └── story-05-use-case-library-search-filters.md
+├── p2p-backend-app/
+│   ├── .env
+│   ├── alembic.ini
+│   ├── requirements.txt
+│   ├── use-cases.json
+│   ├── alembic/
+│   │   ├── env.py
+│   │   ├── script.py.mako
+│   │   └── versions/
+│   │       ├── .gitkeep
+│   │       ├── 5154fc59743b_initial_migration_create_users_user_.py
+│   │       └── 8f5515e822b8_add_supertokens_id_field_to_users_table.py
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   └── v1/
+│   │   │       ├── __init__.py
+│   │   │       ├── api.py
+│   │   │       └── endpoints/
+│   │   │           ├── __init__.py
+│   │   │           ├── auth.py
+│   │   │           ├── dashboard.py
+│   │   │           ├── forum.py
+│   │   │           ├── health.py
+│   │   │           ├── supertokens_auth.py
+│   │   │           └── usecases.py
+│   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   ├── config.py
+│   │   │   ├── database.py
+│   │   │   ├── logging.py
+│   │   │   └── supertokens.py
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── mongo_models.py
+│   │   │   └── pg_models.py
+│   │   ├── schemas/
+│   │   │   ├── __init__.py
+│   │   │   └── common.py
+│   │   └── services/
+│   │       ├── __init__.py
+│   │       ├── database_service.py
+│   │       └── user_activity_service.py
+│   ├── logs/
+│   └── scripts/
+│       ├── __init__.py
+│       ├── init_db.py
+│       ├── seed_db_users.py
+│       ├── seed_forums.py
+│       ├── seed_usecases.py
+│       └── seed_user_activities.py
+└── p2p-frontend-app/
+    ├── README.md
+    ├── components.json
+    ├── eslint.config.js
+    ├── index.html
+    ├── package-lock.json
+    ├── package.json
+    ├── tsconfig.app.json
+    ├── tsconfig.json
+    ├── tsconfig.node.json
+    ├── vite.config.ts
+    ├── public/
+    │   ├── Video_Redo_Realistic_Technology.mp4
+    │   ├── logo.png
+    │   └── vite.svg
+    └── src/
+        ├── App.css
+        ├── App.tsx
+        ├── index.css
+        ├── main.tsx
+        ├── vite-env.d.ts
+        ├── assets/
+        │   └── react.svg
+        ├── components/
+        │   ├── ImageUpload.tsx
+        │   ├── InteractiveMap.tsx
+        │   ├── LocationPicker.tsx
+        │   ├── Navigation.tsx
+        │   ├── ProtectedRoute.tsx
+        │   ├── SaudiRiyal.tsx
+        │   ├── SaudiRiyalTest.tsx
+        │   ├── UseCasePopup.tsx
+        │   ├── Auth/
+        │   └── ui/
+        │       ├── button.tsx
+        │       ├── card.tsx
+        │       ├── form.tsx
+        │       ├── input.tsx
+        │       ├── label.tsx
+        │       ├── navigation-menu.tsx
+        │       ├── select.tsx
+        │       └── textarea.tsx
+        ├── config/
+        │   └── supertokens.ts
+        ├── contexts/
+        │   └── AuthContext.tsx
+        ├── data/
+        │   └── use-cases.json
+        ├── lib/
+        │   └── utils.ts
+        ├── pages/
+        │   ├── Dashboard.tsx
+        │   ├── Forum.tsx
+        │   ├── LandingPage.tsx
+        │   ├── Login.tsx
+        │   ├── Signup.tsx
+        │   ├── SubmitUseCase.tsx
+        │   ├── UseCaseDetail.tsx
+        │   ├── UseCases.tsx
+        │   └── UserManagement.tsx
+        └── types/
+            └── auth.ts
+```
+
+```
+p2p-backend-app/
+├── .env
+├── alembic.ini
+├── requirements.txt
+├── use-cases.json
+├── alembic/
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+│       ├── .gitkeep
+│       ├── 5154fc59743b_initial_migration_create_users_user_.py
+│       └── 8f5515e822b8_add_supertokens_id_field_to_users_table.py
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   └── v1/
+│   │       ├── __init__.py
+│   │       ├── api.py
+│   │       └── endpoints/
+│   │           ├── __init__.py
+│   │           ├── auth.py
+│   │           ├── dashboard.py
+│   │           ├── forum.py
+│   │           ├── health.py
+│   │           ├── supertokens_auth.py
+│   │           └── usecases.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── logging.py
+│   │   └── supertokens.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── mongo_models.py
+│   │   └── pg_models.py
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   └── common.py
+│   └── services/
+│       ├── __init__.py
+│       ├── database_service.py
+│       └── user_activity_service.py
+├── logs/
+└── scripts/
+    ├── __init__.py
+    ├── init_db.py
+    ├── seed_db_users.py
+    ├── seed_forums.py
+    ├── seed_usecases.py
+    └── seed_user_activities.py
+```
+
+### Frontend Directory Structure (`p2p-frontend-app`)
+
+```
+p2p-frontend-app/
+├── README.md
+├── components.json
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+├── vite.config.ts
+├── public/
+│   ├── Video_Redo_Realistic_Technology.mp4
+│   ├── logo.png
+│   └── vite.svg
+└── src/
+    ├── App.css
+    ├── App.tsx
+    ├── index.css
+    ├── main.tsx
+    ├── vite-env.d.ts
+    ├── assets/
+    │   └── react.svg
+    ├── components/
+    │   ├── ImageUpload.tsx
+    │   ├── InteractiveMap.tsx
+    │   ├── LocationPicker.tsx
+    │   ├── Navigation.tsx
+    │   ├── ProtectedRoute.tsx
+    │   ├── SaudiRiyal.tsx
+    │   ├── SaudiRiyalTest.tsx
+    │   ├── UseCasePopup.tsx
+    │   ├── Auth/
+    │   └── ui/
+    │       ├── button.tsx
+    │       ├── card.tsx
+    │       ├── form.tsx
+    │       ├── input.tsx
+    │       ├── label.tsx
+    │       ├── navigation-menu.tsx
+    │       ├── select.tsx
+    │       └── textarea.tsx
+    ├── config/
+    │   └── supertokens.ts
+    ├── contexts/
+    │   └── AuthContext.tsx
+    ├── data/
+    │   └── use-cases.json
+    ├── lib/
+    │   └── utils.ts
+    ├── pages/
+    │   ├── Dashboard.tsx
+    │   ├── Forum.tsx
+    │   ├── LandingPage.tsx
+    │   ├── Login.tsx
+    │   ├── Signup.tsx
+    │   ├── SubmitUseCase.tsx
+    │   ├── UseCaseDetail.tsx
+    │   ├── UseCases.tsx
+    │   └── UserManagement.tsx
+    └── types/
+        └── auth.ts
+```

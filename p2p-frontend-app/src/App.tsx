@@ -49,7 +49,7 @@ function App() {
                 </ProtectedRoute>
               } />
               {/* This new route handles the detailed view with a slug */}
-              <Route path="/usecases/:slug" element={
+              <Route path="/usecases/:company_slug/:title_slug" element={
                 <ProtectedRoute>
                   <UseCaseDetail />
                 </ProtectedRoute>

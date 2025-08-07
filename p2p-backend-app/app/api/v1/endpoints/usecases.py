@@ -52,6 +52,7 @@ async def get_use_cases(
                 "id": str(case.id),
                 "title": case.title,
                 "title_slug": case.title_slug, # The missing field
+                "company_slug": case.company_slug,
                 "company": getattr(case, 'factory_name', "Unknown"),
                 "industry": getattr(submitter, 'industry_sector', "Manufacturing") if submitter else "Manufacturing",
                 "category": getattr(case, 'category', "General"),
@@ -74,13 +75,17 @@ async def get_use_cases(
         logger.error(f"Error getting use cases: {e}")
         raise HTTPException(status_code=500, detail="Failed to get use cases")
 
-@router.get("/by-slug/{slug}")
+@router.get("/{company_slug}/{title_slug}")
 async def get_use_case_by_slug(
-    slug: str,
+    company_slug: str,
+    title_slug: str,
     session: SessionContainer = Depends(verify_session())
 ):
     try:
-        use_case = await UseCase.find_one(UseCase.title_slug == slug)
+        use_case = await UseCase.find_one(
+            UseCase.company_slug == company_slug, 
+            UseCase.title_slug == title_slug
+        )
         if not use_case:
             raise HTTPException(status_code=404, detail="Use case not found")
         if use_case.has_detailed_view and use_case.detailed_version_id:

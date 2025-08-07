@@ -420,6 +420,63 @@ class CRUDForumPost(CRUDBase[ForumPost, ForumPostCreate, ForumPostUpdate]):
             await db.commit()
         
         return True
+    
+    async def search_posts(
+        self,
+        db: AsyncSession,
+        *,
+        search_term: str,
+        organization_id: UUID,
+        category_id: Optional[UUID] = None,
+        author_id: Optional[UUID] = None,
+        skip: int = 0,
+        limit: int = 50
+    ) -> tuple[List[ForumPost], int]:
+        """Search posts across the forum with filters."""
+        
+        # Base query with relations
+        query = (
+            select(self.model)
+            .options(
+                selectinload(self.model.author),
+                selectinload(self.model.topic)
+            )
+            .where(
+                and_(
+                    self.model.organization_id == organization_id,
+                    self.model.is_deleted == False
+                )
+            )
+        )
+        
+        # Apply search term
+        if search_term:
+            search_pattern = f"%{search_term.lower()}%"
+            query = query.where(
+                func.lower(self.model.content).contains(search_pattern)
+            )
+        
+        # Apply filters
+        if author_id:
+            query = query.where(self.model.author_id == author_id)
+        
+        # Filter by category through topic relationship
+        if category_id:
+            query = query.join(ForumTopic).where(ForumTopic.category_id == category_id)
+        
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total_count = total_result.scalar() or 0
+        
+        # Apply pagination and ordering
+        query = query.order_by(self.model.created_at.desc()).offset(skip).limit(limit)
+        
+        # Execute query
+        result = await db.execute(query)
+        posts = result.scalars().all()
+        
+        return posts, total_count
 
 
 class CRUDForumLike(CRUDBase[ForumTopicLike, None, None]):

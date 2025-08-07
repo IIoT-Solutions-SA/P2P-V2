@@ -10,7 +10,7 @@ from app.models.user import User
 from app.services.forum import ForumService
 from app.schemas.forum import ForumStatsResponse
 
-from . import categories, topics, posts
+from . import categories, topics, posts, search
 
 # Main forum router
 forum_router = APIRouter()
@@ -19,6 +19,7 @@ forum_router = APIRouter()
 forum_router.include_router(categories.router, prefix="/categories", tags=["Forum Categories"])
 forum_router.include_router(topics.router, prefix="/topics", tags=["Forum Topics"])
 forum_router.include_router(posts.router, prefix="/posts", tags=["Forum Posts"])
+forum_router.include_router(search.router, prefix="/search", tags=["Forum Search"])
 
 
 @forum_router.get("/stats", response_model=ForumStatsResponse, tags=["Forum"])

@@ -261,6 +261,51 @@ class ForumLikeResponse(BaseModel):
     message: str
 
 
+# Search Schemas
+
+class ForumSearchQuery(BaseModel):
+    """Schema for comprehensive forum search."""
+    q: str = Field(..., min_length=2, max_length=200, description="Search query")
+    search_in: Optional[str] = Field("all", pattern="^(all|topics|posts)$", description="Search scope")
+    category_id: Optional[UUID] = Field(None, description="Filter by category")
+    author_id: Optional[UUID] = Field(None, description="Filter by author")
+    date_from: Optional[datetime] = Field(None, description="Filter by date from")
+    date_to: Optional[datetime] = Field(None, description="Filter by date to")
+    sort_by: Optional[str] = Field("relevance", pattern="^(relevance|date|likes)$")
+    page: int = Field(1, ge=1, description="Page number")
+    page_size: int = Field(20, ge=1, le=100, description="Items per page")
+
+
+class ForumSearchResult(BaseModel):
+    """Schema for individual search result."""
+    id: UUID
+    type: str = Field(..., pattern="^(topic|post)$")
+    title: Optional[str] = None  # For topics
+    content: str
+    excerpt: str
+    author: ForumTopicAuthor
+    category: Optional[ForumCategoryResponse] = None
+    topic_id: Optional[UUID] = None  # For posts
+    topic_title: Optional[str] = None  # For posts
+    likes_count: int = 0
+    replies_count: int = 0
+    created_at: datetime
+    highlight: Optional[str] = None  # Highlighted search match
+
+
+class ForumSearchResponse(BaseModel):
+    """Schema for forum search response."""
+    results: List[ForumSearchResult]
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
+    search_query: str
+    search_time_ms: Optional[int] = None
+
+
 # Bulk Operations
 
 class ForumTopicBulkUpdate(BaseModel):

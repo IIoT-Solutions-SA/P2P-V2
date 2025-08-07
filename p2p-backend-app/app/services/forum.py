@@ -30,7 +30,10 @@ from app.schemas.forum import (
     ForumPostUpdate,
     ForumPostResponse,
     ForumStatsResponse,
-    ForumLikeResponse
+    ForumLikeResponse,
+    ForumSearchQuery,
+    ForumSearchResult,
+    ForumSearchResponse
 )
 
 logger = get_logger(__name__)
@@ -972,4 +975,173 @@ class ForumService:
             active_members=89, # Would be calculated from database
             helpful_answers=234, # Would be calculated from database
             categories=[ForumCategoryResponse.model_validate(cat) for cat in categories]
+        )
+    
+    @staticmethod
+    async def search_forum(
+        db: AsyncSession,
+        *,
+        search_query: ForumSearchQuery,
+        organization_id: UUID,
+        user_id: Optional[UUID] = None
+    ) -> ForumSearchResponse:
+        """Search across forum topics and posts."""
+        import time
+        start_time = time.time()
+        
+        log_business_event("forum_search", {
+            "query": search_query.q,
+            "search_in": search_query.search_in,
+            "organization_id": str(organization_id),
+            "filters": {
+                "category_id": str(search_query.category_id) if search_query.category_id else None,
+                "author_id": str(search_query.author_id) if search_query.author_id else None,
+                "date_from": search_query.date_from.isoformat() if search_query.date_from else None,
+                "date_to": search_query.date_to.isoformat() if search_query.date_to else None
+            }
+        })
+        
+        results = []
+        total_count = 0
+        skip = (search_query.page - 1) * search_query.page_size
+        
+        # Search in topics if requested
+        if search_query.search_in in ["all", "topics"]:
+            topic_search_params = ForumTopicSearchQuery(
+                search=search_query.q,
+                category_id=search_query.category_id,
+                author_id=search_query.author_id,
+                date_from=search_query.date_from,
+                date_to=search_query.date_to,
+                sort_by="newest" if search_query.sort_by == "date" else "popular",
+                page=1,
+                page_size=100  # Get more for combined results
+            )
+            
+            topics, topic_count = await forum_topic.get_multi_with_search(
+                db,
+                search_params=topic_search_params,
+                organization_id=organization_id,
+                skip=0,
+                limit=100
+            )
+            
+            # Convert topics to search results
+            for topic in topics:
+                # Create excerpt from content
+                excerpt = topic.excerpt or (topic.content[:200] + "..." if len(topic.content) > 200 else topic.content)
+                
+                # Highlight search term in excerpt
+                highlight = None
+                if search_query.q.lower() in excerpt.lower():
+                    # Simple highlighting - in production, use proper text highlighting
+                    highlight = excerpt
+                
+                result = ForumSearchResult(
+                    id=topic.id,
+                    type="topic",
+                    title=topic.title,
+                    content=topic.content,
+                    excerpt=excerpt,
+                    author=ForumTopicAuthor(
+                        id=topic.author.id if topic.author else UUID("00000000-0000-0000-0000-000000000000"),
+                        first_name=topic.author.first_name if topic.author else "Unknown",
+                        last_name=topic.author.last_name if topic.author else "User",
+                        email=topic.author.email if topic.author else "",
+                        job_title=topic.author.job_title if topic.author else None,
+                        is_verified=topic.author.email_verified if topic.author else False
+                    ),
+                    category=ForumCategoryResponse.model_validate(topic.category) if topic.category else None,
+                    likes_count=topic.likes_count,
+                    replies_count=topic.posts_count,
+                    created_at=topic.created_at,
+                    highlight=highlight
+                )
+                results.append(result)
+            
+            total_count += topic_count
+        
+        # Search in posts if requested
+        if search_query.search_in in ["all", "posts"]:
+            posts, post_count = await forum_post.search_posts(
+                db,
+                search_term=search_query.q,
+                organization_id=organization_id,
+                category_id=search_query.category_id,
+                author_id=search_query.author_id,
+                skip=0,
+                limit=100
+            )
+            
+            # Convert posts to search results
+            for post in posts:
+                # Create excerpt from content
+                excerpt = post.content[:200] + "..." if len(post.content) > 200 else post.content
+                
+                # Highlight search term
+                highlight = None
+                if search_query.q.lower() in excerpt.lower():
+                    highlight = excerpt
+                
+                result = ForumSearchResult(
+                    id=post.id,
+                    type="post",
+                    title=None,
+                    content=post.content,
+                    excerpt=excerpt,
+                    author=ForumTopicAuthor(
+                        id=post.author.id if post.author else UUID("00000000-0000-0000-0000-000000000000"),
+                        first_name=post.author.first_name if post.author else "Unknown",
+                        last_name=post.author.last_name if post.author else "User",
+                        email=post.author.email if post.author else "",
+                        job_title=post.author.job_title if post.author else None,
+                        is_verified=post.author.email_verified if post.author else False
+                    ),
+                    category=None,  # Posts don't have direct category
+                    topic_id=post.topic_id,
+                    topic_title=post.topic.title if post.topic else None,
+                    likes_count=post.likes_count,
+                    replies_count=post.replies_count,
+                    created_at=post.created_at,
+                    highlight=highlight
+                )
+                results.append(result)
+            
+            total_count += post_count
+        
+        # Sort combined results
+        if search_query.sort_by == "date":
+            results.sort(key=lambda x: x.created_at, reverse=True)
+        elif search_query.sort_by == "likes":
+            results.sort(key=lambda x: x.likes_count, reverse=True)
+        # For relevance, keep the order from database (which uses text matching)
+        
+        # Apply pagination to combined results
+        paginated_results = results[skip:skip + search_query.page_size]
+        
+        # Calculate pagination metadata
+        total_pages = (total_count + search_query.page_size - 1) // search_query.page_size
+        has_next = search_query.page < total_pages
+        has_prev = search_query.page > 1
+        
+        # Calculate search time
+        search_time_ms = int((time.time() - start_time) * 1000)
+        
+        log_database_operation("forum_search", "complete", {
+            "query": search_query.q,
+            "results_count": len(paginated_results),
+            "total_count": total_count,
+            "search_time_ms": search_time_ms
+        })
+        
+        return ForumSearchResponse(
+            results=paginated_results,
+            total_count=total_count,
+            page=search_query.page,
+            page_size=search_query.page_size,
+            total_pages=total_pages,
+            has_next=has_next,
+            has_prev=has_prev,
+            search_query=search_query.q,
+            search_time_ms=search_time_ms
         )

@@ -2,10 +2,52 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.pg_models import User as PGUser
 from app.models.mongo_models import User as MongoUser, ForumPost, UseCase, ForumReply
-from typing import Optional, List
+from typing import Optional, List, Dict
 from uuid import UUID
 
 class UserService:
+    @staticmethod
+    async def create_user_with_profile(db: AsyncSession, supertokens_id: str, email: str, profile_data: Dict) -> PGUser:
+        """
+        Creates a new user in both PostgreSQL and MongoDB after SuperTokens sign-up.
+        This is the primary function for creating a complete user record.
+        
+        Args:
+            db: The async SQLAlchemy session.
+            supertokens_id: The user ID from SuperTokens.
+            email: The user's email.
+            profile_data: A dictionary containing all profile and organization info.
+            
+        Returns:
+            The created PostgreSQL user object.
+        """
+        # --- 1. Create Core User in PostgreSQL ---
+        pg_user = PGUser(
+            supertokens_id=supertokens_id,
+            email=email,
+            name=profile_data.get("name"),
+            role=profile_data.get("role", "user")
+        )
+        db.add(pg_user)
+        await db.commit()
+        await db.refresh(pg_user)
+        
+        # --- 2. Create Extended Profile in MongoDB ---
+        mongo_user = MongoUser(
+            email=email,
+            name=profile_data.get("name"),
+            company=profile_data.get("company"),
+            industry_sector=profile_data.get("industry_sector"),
+            # The mongo_models.py file expects company_size, but your prompt mentioned it.
+            # I'll add it here assuming you will add it to the MongoUser model.
+            # company_size=profile_data.get("company_size"), 
+            location=profile_data.get("location"),
+            role=profile_data.get("role", "user")
+        )
+        await mongo_user.create()
+        
+        return pg_user
+
     @staticmethod
     async def get_user_by_email_pg(db: AsyncSession, email: str) -> Optional[PGUser]:
         """Get user by email from PostgreSQL"""
@@ -101,16 +143,16 @@ class ForumService:
         post_id: str,
         author_id: str,
         content: str,
-        parent_reply_id: str = None,  # <-- Add this parameter
-        is_best_answer: bool = False    # <-- Add this parameter
+        parent_reply_id: str = None,
+        is_best_answer: bool = False
     ) -> ForumReply:
         """Create a new forum reply."""
         reply = ForumReply(
             post_id=post_id,
             author_id=author_id,
             content=content,
-            parent_reply_id=parent_reply_id, # <-- Pass it to the model
-            is_best_answer=is_best_answer      # <-- Pass it to the model
+            parent_reply_id=parent_reply_id,
+            is_best_answer=is_best_answer
         )
         await reply.create()
         return reply
@@ -127,9 +169,7 @@ class UseCaseService:
     @staticmethod
     async def create_use_case(data: dict) -> UseCase:
         """Create a new use case from frontend JSON structure or direct data"""
-        # Check if this is frontend JSON structure (has 'factoryName' field)
         if 'factoryName' in data:
-            # Map frontend JSON structure to UseCase model
             use_case_data = {
                 "submitted_by": data.get("submitted_by", "system-seed"),
                 "title": data["title"],
@@ -143,14 +183,13 @@ class UseCaseService:
                 "industry_tags": [data.get("category", "General")],
                 "region": data.get("city", "Saudi Arabia"),
                 "location": {"lat": data["latitude"], "lng": data["longitude"]},
-                            "impact_metrics": {
-                "benefits": "; ".join(data.get("benefits", ["No benefits listed"]))
-            },
+                "impact_metrics": {
+                    "benefits": "; ".join(data.get("benefits", ["No benefits listed"]))
+                },
                 "published": True,
                 "featured": True
             }
         else:
-            # Direct UseCase model data
             use_case_data = data
             
         use_case = UseCase(**use_case_data)

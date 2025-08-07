@@ -409,6 +409,41 @@ class ForumService:
             message=f"Topic {'liked' if liked else 'unliked'} successfully"
         )
     
+    @staticmethod
+    async def toggle_post_like(
+        db: AsyncSession,
+        post_id: UUID,
+        user_id: UUID,
+        organization_id: UUID
+    ) -> ForumLikeResponse:
+        """Toggle like on a forum post."""
+        
+        # Verify post exists
+        post = await forum_post.get(db, post_id)
+        if not post or post.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+        
+        liked, like_count = await forum_like.toggle_post_like(
+            db, post_id, user_id, organization_id
+        )
+        
+        log_business_event("forum_post_like_toggle", {
+            "post_id": str(post_id),
+            "user_id": str(user_id),
+            "liked": liked,
+            "new_count": like_count
+        })
+        
+        return ForumLikeResponse(
+            success=True,
+            liked=liked,
+            likes_count=like_count,
+            message=f"Post {'liked' if liked else 'unliked'} successfully"
+        )
+    
     # Post Management
     
     @staticmethod
@@ -545,3 +580,185 @@ class ForumService:
             helpful_answers=234, # Would be calculated from database
             categories=[ForumCategoryResponse.model_validate(cat) for cat in categories]
         )
+    
+    @staticmethod
+    async def update_post(
+        db: AsyncSession,
+        post_id: UUID,
+        post_data: ForumPostUpdate,
+        user_id: UUID,
+        organization_id: UUID,
+        is_admin: bool = False
+    ) -> ForumPostResponse:
+        """Update a forum post."""
+        
+        # Get post
+        post = await forum_post.get(db, post_id)
+        if not post or post.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+        
+        # Check permissions (author or admin)
+        if post.author_id != user_id and not is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only edit your own posts"
+            )
+        
+        # Check if topic is locked (even admins can't edit posts in locked topics)
+        topic = await forum_topic.get(db, post.topic_id)
+        if topic and topic.is_locked:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot edit posts in a locked topic"
+            )
+        
+        log_business_event("forum_post_update", {
+            "post_id": str(post_id),
+            "editor_id": str(user_id),
+            "is_admin": is_admin
+        })
+        
+        # Update post
+        updated_post = await forum_post.update(db, db_obj=post, obj_in=post_data)
+        
+        # Get post with relations for response
+        post_with_author = await forum_post.get_with_replies(db, updated_post.id, organization_id)
+        
+        log_database_operation("forum_posts", "update", {
+            "id": str(post_id),
+            "content_length": len(post_data.content) if post_data.content else 0
+        })
+        
+        # Convert to response format
+        post_response = ForumPostResponse.model_validate(post_with_author)
+        
+        if post_with_author.author:
+            post_response.author = ForumTopicAuthor(
+                id=post_with_author.author.id,
+                first_name=post_with_author.author.first_name,
+                last_name=post_with_author.author.last_name,
+                email=post_with_author.author.email,
+                job_title=post_with_author.author.job_title,
+                is_verified=post_with_author.author.email_verified
+            )
+        
+        return post_response
+    
+    @staticmethod
+    async def delete_post(
+        db: AsyncSession,
+        post_id: UUID,
+        user_id: UUID,
+        organization_id: UUID,
+        is_admin: bool = False
+    ):
+        """Delete a forum post (soft delete)."""
+        
+        # Get post
+        post = await forum_post.get(db, post_id)
+        if not post or post.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+        
+        # Check permissions (author or admin)
+        if post.author_id != user_id and not is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only delete your own posts"
+            )
+        
+        log_business_event("forum_post_delete", {
+            "post_id": str(post_id),
+            "deleter_id": str(user_id),
+            "is_admin": is_admin
+        })
+        
+        # Soft delete post
+        await forum_post.remove(db, id=post_id)
+        
+        log_database_operation("forum_posts", "delete", {
+            "id": str(post_id)
+        })
+    
+    @staticmethod
+    async def mark_best_answer(
+        db: AsyncSession,
+        post_id: UUID,
+        user_id: UUID,
+        organization_id: UUID,
+        is_admin: bool = False
+    ) -> ForumPostResponse:
+        """Mark a post as the best answer for its topic."""
+        
+        # Get post
+        post = await forum_post.get(db, post_id)
+        if not post or post.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+        
+        # Get topic
+        topic = await forum_topic.get(db, post.topic_id)
+        if not topic:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Topic not found"
+            )
+        
+        # Check permissions (topic author or admin)
+        if topic.author_id != user_id and not is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only mark best answers for your own topics"
+            )
+        
+        log_business_event("forum_best_answer_mark", {
+            "post_id": str(post_id),
+            "topic_id": str(topic.id),
+            "marker_id": str(user_id),
+            "is_admin": is_admin
+        })
+        
+        # Clear any existing best answer
+        if topic.best_answer_post_id:
+            previous_best = await forum_post.get(db, topic.best_answer_post_id)
+            if previous_best:
+                await forum_post.update(db, db_obj=previous_best, obj_in={"is_best_answer": False})
+        
+        # Mark this post as best answer
+        await forum_post.update(db, db_obj=post, obj_in={"is_best_answer": True})
+        
+        # Update topic to reference this post as best answer
+        await forum_topic.update(db, db_obj=topic, obj_in={
+            "best_answer_post_id": post_id,
+            "has_best_answer": True
+        })
+        
+        # Get updated post with relations
+        post_with_author = await forum_post.get_with_replies(db, post_id, organization_id)
+        
+        log_database_operation("forum_posts", "mark_best_answer", {
+            "id": str(post_id),
+            "topic_id": str(topic.id)
+        })
+        
+        # Convert to response format
+        post_response = ForumPostResponse.model_validate(post_with_author)
+        
+        if post_with_author.author:
+            post_response.author = ForumTopicAuthor(
+                id=post_with_author.author.id,
+                first_name=post_with_author.author.first_name,
+                last_name=post_with_author.author.last_name,
+                email=post_with_author.author.email,
+                job_title=post_with_author.author.job_title,
+                is_verified=post_with_author.author.email_verified
+            )
+        
+        return post_response

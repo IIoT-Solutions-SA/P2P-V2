@@ -103,11 +103,97 @@ async def toggle_post_like(
     # Ensure user has access to their organization's forum
     await require_organization_access(db, current_user, current_user.organization_id)
     
-    # Note: This would use a similar service method for post likes
-    # For now, return a placeholder response
-    return ForumLikeResponse(
-        success=True,
-        liked=True,
-        likes_count=1,
-        message="Post like functionality will be implemented in P4.FORUM.02"
+    return await ForumService.toggle_post_like(
+        db,
+        post_id=post_id,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id
+    )
+
+
+@router.put("/{post_id}", response_model=ForumPostResponse)
+async def update_post(
+    post_id: UUID,
+    *,
+    db: AsyncSession = Depends(get_db),
+    post_data: ForumPostUpdate,
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Update a forum post.
+    
+    **Permissions:**
+    - Post author can edit their own posts
+    - Admins can edit any post
+    
+    **Updatable Fields:**
+    - `content`: Post content (markdown supported)
+    
+    **Note:** Cannot edit posts in locked topics.
+    """
+    # Ensure user has access to their organization's forum
+    await require_organization_access(db, current_user, current_user.organization_id)
+    
+    return await ForumService.update_post(
+        db,
+        post_id=post_id,
+        post_data=post_data,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id,
+        is_admin=current_user.is_admin
+    )
+
+
+@router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_post(
+    post_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Delete a forum post.
+    
+    **Permissions:**
+    - Post author can delete their own posts
+    - Admins can delete any post
+    
+    **Note:** Deleting a parent post will also delete all replies.
+    This action cannot be undone.
+    """
+    # Ensure user has access to their organization's forum
+    await require_organization_access(db, current_user, current_user.organization_id)
+    
+    await ForumService.delete_post(
+        db,
+        post_id=post_id,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id,
+        is_admin=current_user.is_admin
+    )
+
+
+@router.post("/{post_id}/best-answer", response_model=ForumPostResponse)
+async def mark_as_best_answer(
+    post_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Mark a post as the best answer for its topic.
+    
+    **Permissions:**
+    - Topic author can mark any post as best answer
+    - Admins can mark any post as best answer
+    
+    **Note:** Only one post can be marked as best answer per topic.
+    """
+    # Ensure user has access to their organization's forum
+    await require_organization_access(db, current_user, current_user.organization_id)
+    
+    return await ForumService.mark_best_answer(
+        db,
+        post_id=post_id,
+        user_id=current_user.id,
+        organization_id=current_user.organization_id,
+        is_admin=current_user.is_admin
     )

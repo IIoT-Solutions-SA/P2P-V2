@@ -6,6 +6,7 @@ import UseCases from './pages/UseCases'
 import SubmitUseCase from './pages/SubmitUseCase'
 import UseCaseDetail from './pages/UseCaseDetail'
 import UserManagement from './pages/UserManagement'
+import OrganizationSettings from './pages/OrganizationSettings'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -65,6 +66,12 @@ function App() {
         return (
           <ProtectedRoute>
             <UserManagement onPageChange={handlePageChange} />
+          </ProtectedRoute>
+        )
+      case 'organization-settings':
+        return (
+          <ProtectedRoute>
+            <OrganizationSettings onPageChange={handlePageChange} />
           </ProtectedRoute>
         )
       case 'profile':

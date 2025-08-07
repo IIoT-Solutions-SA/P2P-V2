@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Zap, Home, MessageSquare, BookOpen, BarChart3, Bell, Plus, LogOut, User } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
-export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management' | 'profile' | 'login' | 'signup'
+export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management' | 'organization-settings' | 'profile' | 'login' | 'signup'
 
 interface NavigationProps {
   currentPage: Page

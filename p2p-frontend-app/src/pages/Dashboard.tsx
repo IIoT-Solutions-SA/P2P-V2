@@ -257,6 +257,17 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
             <div>
               <h3 className="font-bold text-gray-900 mb-4">Quick Access</h3>
               <div className="space-y-3">
+                {user?.role === 'admin' && (
+                  <button 
+                    onClick={() => onPageChange?.('organization-settings')}
+                    className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-900">Organization Settings</span>
+                      <Settings className="h-4 w-4 text-blue-600" />
+                    </div>
+                  </button>
+                )}
                 {[
                   { title: "Saved Articles", count: "8", color: "blue" },
                   { title: "My Connections", count: "24", color: "slate" },

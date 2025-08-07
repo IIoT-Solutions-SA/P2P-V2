@@ -237,74 +237,152 @@ async def seed_usecases():
 },
     # --- Predictive Maintenance System (Full Details) ---
     {
-        "title": "Predictive Maintenance IoT System (Detailed View)",
-        "subtitle": "Revolutionary Equipment Monitoring Through Industrial IoT and Machine Learning",
-        "problem_statement": "Smart sensors prevent equipment failures and reduce downtime significantly.",
-        "solution_description": "Comprehensive IoT-based predictive maintenance system using vibration analysis, thermal imaging, and machine learning.",
-        "category": "Predictive Maintenance",
-        "factory_name": "Gulf Plastics Industries",
-        "implementation_time": "4 months implementation",
-        "roi_percentage": "180% ROI in first year",
-        "region": "Dammam", "location": {"lat": 26.4207, "lng": 50.0888},
-        "contact_person": "Sara Hassan", "contact_title": "Team Member",
-        "images": [
-            "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop",
-            "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop"
+    "title": "Predictive Maintenance IoT System (Detailed View)",
+    "subtitle": "Revolutionizing Equipment Monitoring Through Industrial IoT and Machine Learning",
+    "problem_statement": "An IoT-based predictive maintenance system, leveraging smart sensors and machine learning, reduced unplanned equipment downtime by 60% and cut maintenance costs by 1.8M annually at a major plastics manufacturer.",
+    "solution_description": "Implementation of a comprehensive IoT-based predictive maintenance system using vibration analysis, thermal imaging, and machine learning to forecast equipment failures.",
+    "category": "Predictive Maintenance",
+    "factory_name": "Gulf Plastics Industries",
+    "implementation_time": "4 months implementation",
+    "roi_percentage": "180% ROI in first year",
+    "region": "Dammam", "location": {"lat": 26.4207, "lng": 50.0888},
+    "contact_person": "Sara Hassan", "contact_title": "Maintenance Supervisor",
+    "images": [
+        "https://images.unsplash.com/photo-1621905252507-b25492cc2692?w=800&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1555529393-399a3f9a721d?w=800&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1616443536831-a8493b8d4b2b?w=800&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1563216397-d62137538528?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "Gulf Plastics Industries faced critical equipment reliability challenges with 35% unplanned downtime, causing 2.8M annual losses in lost production and emergency repairs. The implementation of an IoT-based predictive maintenance system over 4 months achieved a 60% reduction in downtime, a 25% increase in Overall Equipment Effectiveness (OEE), and 1.8M in annual maintenance savings, delivering a 180% ROI in the first year. This case study details the technology selection, phased implementation, challenges overcome, and future roadmap.",
+    "business_challenge": {
+        "industry_context": "The plastics manufacturing industry operates with complex, high-temperature machinery like extruders and injection molding machines, which require continuous operation. Unplanned downtime directly impacts production targets and profitability.",
+        "specific_problems": [
+            "Unplanned downtime averaging 35% due to catastrophic equipment failures (e.g., bearings, motors).",
+            "Reactive, 'run-to-failure' maintenance approach causing extended repair times and higher costs.",
+            "Lack of visibility into real-time equipment health and performance trends.",
+            "Excessive spending on emergency spare parts and overtime for maintenance crews.",
+            "Inability to accurately forecast maintenance budgets and production capacity."
         ],
-        "executive_summary": "Gulf Plastics Industries faced critical equipment reliability challenges with 35% unplanned downtime, causing 2.8M annual losses. The implementation of an IoT-based predictive maintenance system achieved a 60% reduction in downtime and a 25% increase in OEE.",
-        "business_challenge": {
-            "industry_context": "The plastics manufacturing industry operates with complex, high-temperature machinery requiring continuous operation.",
-            "specific_problems": [
-                "Unplanned downtime averaging 35% due to equipment failures",
-                "Reactive maintenance approach causing extended repair times",
-                "Lack of visibility into equipment health and performance trends"
-            ],
-            "business_impact": {
-                "financial_loss": "2.8M annually in downtime and emergency repairs",
-                "customer_impact": "15% delivery delays damaging customer relationships",
-                "operational_impact": "35% equipment availability, inconsistent production"
-            }
+        "business_impact": {
+            "financial_loss": "2.8M annually in lost production, emergency repairs, and expedited shipping of parts.",
+            "customer_impact": "15% order delivery delays, damaging long-term customer relationships and brand trust.",
+            "operational_impact": "Low equipment availability (OEE at 60%), inconsistent production schedules, and high stress on maintenance teams.",
+            "compliance_risk": "Potential safety and environmental risks from unpredicted catastrophic failures."
         },
-        "solution_details": {
-            "selection_criteria": ["Real-time anomaly detection", "Integration with CMMS", "Scalability across 200+ assets"],
-            "vendor_evaluation": {
-                "process": "3-month evaluation with on-site PoC",
-                "selected_vendor": "IoT Solutions SA",
-                "selection_reasons": ["Superior anomaly detection accuracy", "Strong local support team"]
-            },
-            "technology_components": [
-                {"component": "Sensor Network", "details": "200+ LoRaWAN vibration and temperature sensors"},
-                {"component": "Data Platform", "details": "Cloud-based IoT platform with custom machine learning models"}
+        "strategic_drivers": [
+            "Mandate to improve Overall Equipment Effectiveness (OEE) by 20%.",
+            "Need to reduce operational risk and improve workplace safety.",
+            "Strategic shift from a reactive to a proactive, data-driven operational model.",
+            "Desire to gain a competitive advantage through higher reliability and on-time delivery."
+        ]
+    },
+    "solution_details": {
+        "selection_criteria": [
+            "Real-time anomaly detection with less than 5% false positives.",
+            "Seamless integration with existing Computerized Maintenance Management System (CMMS).",
+            "Proven scalability across 200+ critical assets of varying types.",
+            "Actionable insights and clear dashboards for maintenance teams.",
+            "Demonstrable ROI within 24 months."
+        ],
+        "vendor_evaluation": {
+            "process": "3-month evaluation process including on-site Proof of Concept (PoC) on 10 critical extruders.",
+            "vendors_considered": ["PredictiveSense Corp", "IoT Solutions SA", "AssetGuard Analytics"],
+            "selected_vendor": "IoT Solutions SA",
+            "selection_reasons": [
+                "Superior anomaly detection accuracy in PoC (98.5% vs. 95% average).",
+                "Strong local support team based in the Eastern Province, ensuring quick response times.",
+                "Intuitive user interface that was highly rated by maintenance technicians during the PoC.",
+                "Flexible and transparent pricing model.",
+                "Excellent references from other heavy industrial clients in the region."
             ]
         },
-        "implementation_details": {
-            "methodology": "Phased rollout, starting with most critical machinery",
-            "total_budget": "450,000",
-            "total_duration": "16 weeks",
-            "phases": [
-                {"phase": "Phase 1: Critical Asset Monitoring", "duration": "8 weeks", "objectives": ["Install sensors on 50 critical machines", "Establish data pipeline"]},
-                {"phase": "Phase 2: Full Factory Rollout", "duration": "8 weeks", "objectives": ["Deploy sensors to all remaining assets", "Integrate with CMMS"]}
+        "technology_components": [
+            {"component": "Sensor Network", "details": "200+ LoRaWAN-enabled vibration, acoustic, and temperature sensors. Thermal imaging cameras for critical switchgear."},
+            {"component": "Data Platform", "details": "Cloud-based IoT platform (Azure IoT Hub) with custom-trained machine learning models (using Azure ML) for failure prediction."},
+            {"component": "Edge Computing", "details": "Local gateways for data aggregation, filtering, and high-frequency analysis before cloud transmission."},
+            {"component": "Integration Layer", "details": "Bi-directional API integration with the factory's SAP PM module for automated work order generation."}
+        ]
+    },
+    "implementation_details": {
+        "methodology": "Phased rollout using an Agile approach, starting with the most critical and failure-prone machinery.",
+        "project_team": {
+            "internal": [
+                {"role": "Project Sponsor", "name": "Fahad Al-Qahtani", "title": "Plant Director"},
+                {"role": "Project Lead", "name": "Sara Hassan", "title": "Maintenance Supervisor"}
+            ],
+            "vendor": [
+                {"role": "Project Manager", "name": "David Miller", "title": "Senior Project Manager"},
+                {"role": "Lead Data Scientist", "name": "Dr. Aisha Khan", "title": "IoT Analytics Specialist"}
             ]
         },
-        "challenges_and_solutions": [
-            {"challenge": "Network Connectivity", "description": "Poor cellular reception in some parts of the factory.", "solution": "Deployed a private LoRaWAN network for reliable sensor communication."},
-            {"challenge": "Alarm Fatigue", "description": "Initial models generated too many false positive alerts.", "solution": "Retrained machine learning models with more historical data to improve accuracy."}
+        "phases": [
+            {"phase": "Phase 1: Critical Asset Pilot", "duration": "8 weeks", "objectives": ["Install sensors on 50 most critical machines", "Establish data pipeline and baseline performance", "Validate ML model accuracy"], "keyActivities": ["Sensor installation", "Data pipeline configuration", "Initial model training"], "budget": "175,000"},
+            {"phase": "Phase 2: Full Factory Rollout & Integration", "duration": "8 weeks", "objectives": ["Deploy sensors to all remaining 150+ assets", "Integrate with CMMS for automated work orders", "Full user training"], "keyActivities": ["Mass sensor deployment", "CMMS API development", "User training workshops"], "budget": "275,000"}
         ],
-        "results": {
-            "quantitative_metrics": [
-                {"metric": "Downtime Reduction", "baseline": "35%", "current": "14%", "improvement": "60% reduction"},
-                {"metric": "Maintenance Savings", "baseline": "N/A", "current": "1.8M annually", "improvement": "Significant savings"}
-            ],
-            "qualitative_impacts": ["Improved production planning", "Increased equipment lifespan", "Proactive maintenance scheduling"],
-            "roi_analysis": { "total_investment": "450,000", "annual_savings": "1,800,000", "payback_period": "3 months"}
-        },
-        "lessons_learned": [
-            {"category": "Technical", "lesson": "Start with a Pilot", "description": "Testing on a small set of critical assets first is essential to validate the technology and approach."},
-            {"category": "Organizational", "lesson": "Involve Maintenance Teams Early", "description": "Maintenance technicians have invaluable knowledge and their buy-in is critical for success."}
+        "total_budget": "450,000",
+        "total_duration": "16 weeks"
+    },
+    "challenges_and_solutions": [
+        {"challenge": "Network Connectivity", "description": "Poor cellular and Wi-Fi reception in dense, metallic areas of the factory floor.", "impact": "Intermittent data loss from sensors, compromising the reliability of the system.", "solution": "Deployed a private LoRaWAN network with dedicated gateways, providing robust, low-power, long-range coverage throughout the entire facility.", "outcome": "Achieved 99.9% data transmission reliability from all sensors."},
+        {"challenge": "Alarm Fatigue", "description": "Initial ML models generated a high volume of false positive alerts, causing technicians to ignore notifications.", "impact": "Reduced trust in the system and risk of missing genuine alerts.", "solution": "Retrained machine learning models with more historical and labeled failure data. Implemented a tiered alerting system (e.g., 'Warning' vs. 'Critical').", "outcome": "Reduced false positives by 90% and increased technician confidence and response rates."},
+        {"challenge": "Lack of Historical Data", "description": "The factory had limited historical sensor data tied to specific failure modes, making initial model training difficult.", "impact": "Delayed the development of accurate predictive models.", "solution": "Ran the system in 'learning mode' for 4 weeks to collect baseline data. Supplemented with physics-based models and simulated data before fine-tuning with real-world data.", "outcome": "Developed highly accurate models within the project timeline."},
+        {"challenge": "Technician Buy-In", "description": "Experienced maintenance technicians were skeptical of the technology, viewing it as a threat or a 'black box' they couldn't trust.", "impact": "Slow adoption and resistance to data-driven work orders.", "solution": "Conducted hands-on workshops involving technicians in the sensor placement and alert validation process. Emphasized that the tool augments their skills, not replaces them.", "outcome": "Transformed technicians into system champions who provided valuable feedback for improvements."}
+    ],
+    "results": {
+        "quantitative_metrics": [
+            {"metric": "Unplanned Downtime", "baseline": "35%", "current": "14%", "improvement": "60% reduction"},
+            {"metric": "Overall Equipment Effectiveness (OEE)", "baseline": "60%", "current": "75%", "improvement": "25% increase"},
+            {"metric": "Maintenance Costs", "baseline": "2.8M losses", "current": "1.8M savings", "improvement": "Reduced reactive maintenance spend"},
+            {"metric": "Mean Time To Repair (MTTR)", "baseline": "8 hours", "current": "2 hours", "improvement": "75% reduction"}
         ],
-        "is_detailed_version": True, "published": True, "featured": True, "submitted_by": str(author2.id),
-        "view_count": random.randint(4000, 12000), "like_count": random.randint(400, 1200), "bookmark_count": random.randint(80, 400)
-    }
+        "qualitative_impacts": [
+            "Shift from a reactive 'firefighting' culture to a proactive, planned maintenance environment.",
+            "Improved production planning and forecasting accuracy.",
+            "Increased lifespan of critical equipment.",
+            "Enhanced safety by preventing catastrophic failures."
+        ],
+        "roi_analysis": { "total_investment": "450,000", "annual_savings": "1,800,000", "payback_period": "3 months", "three_year_roi": "1,100%" }
+    },
+    "technical_architecture": {
+        "system_overview": "A multi-tier IoT architecture featuring edge data pre-processing and a cloud-based analytics and machine learning platform, integrated with the on-premise CMMS.",
+        "components": [
+            {"layer": "Acquisition Layer", "components": ["LoRaWAN Vibration & Temperature Sensors", "Thermal Cameras", "Acoustic Sensors"], "specifications": "Banner Engineering sensors, FLIR thermal cameras, private LoRaWAN network."},
+            {"layer": "Processing Layer", "components": ["Edge Gateways", "Cloud IoT Platform", "ML Engine"], "specifications": "Dell Edge Gateway 3000, Azure IoT Hub, Azure Machine Learning Studio."},
+            {"layer": "Integration Layer", "components": ["CMMS Connector", "Messaging Queue"], "specifications": "Custom REST API for SAP PM, MQTT messaging protocol for data ingestion."},
+            {"layer": "Monitoring Layer", "components": ["Technician Dashboard", "Management Analytics", "Alerting System"], "specifications": "Real-time dashboards in Grafana, BI reports in Power BI, SMS/email alerts via Azure Functions."}
+        ],
+        "security_measures": ["End-to-end encryption from sensor to cloud (AES-128)", "Network isolation for the IoT gateways", "Role-based access control (RBAC) on the cloud platform."],
+        "scalability_design": ["Cloud-native serverless architecture for auto-scaling", "Containerized microservices for easy updates and deployment (Docker, Kubernetes)."]
+    },
+    "future_roadmap": [
+        {"timeline": "Q3 2024", "initiative": "Integrate Spare Parts Inventory", "description": "Automatically trigger spare part orders in SAP based on failure predictions.", "expected_benefit": "Optimize inventory levels and eliminate stock-outs for critical parts."},
+        {"timeline": "Q4 2024", "initiative": "Prescriptive Analytics", "description": "Upgrade ML models to not only predict a failure but also recommend the specific repair action needed.", "expected_benefit": "Reduce diagnostic time and improve first-time fix rate."},
+        {"timeline": "Q2 2025", "initiative": "Energy Consumption Monitoring", "description": "Add power quality sensors to correlate energy usage with equipment health.", "expected_benefit": "Reduce energy costs and identify electrical issues."},
+        {"timeline": "Q4 2025", "initiative": "Rollout to Sister Plant", "description": "Replicate the system and learnings at the Jeddah manufacturing facility.", "expected_benefit": "Standardize maintenance excellence across the enterprise."}
+    ],
+    "lessons_learned": [
+        {"category": "Technical", "lesson": "Start with a Pilot on Critical Assets", "description": "Testing on a small set of the most important and problematic assets is essential to validate the technology, demonstrate value quickly, and refine the approach before a full-scale rollout.", "recommendation": "Select 10-15 assets for the pilot that are well-understood by the team and have a clear business impact."},
+        {"category": "Organizational", "lesson": "Involve Maintenance Teams from Day One", "description": "Maintenance technicians possess invaluable tacit knowledge. Their buy-in and active participation are the most critical factors for success, as they are the ultimate end-users of the system.", "recommendation": "Form a joint project team with technicians. Involve them in sensor placement, alert configuration, and feedback sessions."},
+        {"category": "Vendor Management", "lesson": "Prioritize Local Support and UX", "description": "While many vendors claimed high accuracy, the ability to get quick, on-site support and the user-friendliness of the system for technicians proved to be the most important differentiators.", "recommendation": "Weight local support and user experience as 40% of the vendor selection score."},
+        {"category": "Integration", "lesson": "Budget for CMMS Integration Complexity", "description": "Integrating with an older, customized SAP PM system was more complex than anticipated. Standard connectors did not work out-of-the-box.", "recommendation": "Double the initial time and cost estimates for any integration with legacy enterprise systems."}
+    ],
+    "is_detailed_version": True,
+    "published": True,
+    "featured": True,
+    "submitted_by": str(author2.id),
+    "view_count": random.randint(4000, 12000),
+    "like_count": random.randint(400, 1200),
+    "bookmark_count": random.randint(80, 400),
+    "published_date": "April 22, 2024",
+    "last_updated": "April 28, 2024",
+    "read_time": "15 min read",
+    "views": random.randint(2000, 10000),
+    "downloads": random.randint(100, 1000),
+    "status": "verified",
+    "verified_by": "Industrial IoT Council",
+    "industry_tags": ["Plastics Manufacturing", "Heavy Industry", "Predictive Maintenance", "Industrial IoT"],
+    "technology_tags": ["IoT Sensors", "Machine Learning", "Azure IoT", "LoRaWAN", "CMMS Integration"]
+}
 ]
         
         # Add slugs to detailed cases before creating them

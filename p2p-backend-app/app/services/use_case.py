@@ -151,64 +151,141 @@ class UseCaseService:
         filters: UseCaseFilters,
         current_user: Optional[User] = None
     ) -> Dict[str, Any]:
-        """Browse use cases with filters."""
+        """Browse use cases with advanced filtering, sorting, and pagination."""
         try:
             crud = get_use_case_crud(db)
             
-            # Get use cases
+            # Determine user access context
+            current_user_org_id = str(current_user.organization_id) if current_user else None
+            is_guest_user = current_user is None
+            
+            # Get use cases with enhanced filtering
             use_cases, total = await crud.get_multi(
                 filters=filters,
-                organization_id=str(current_user.organization_id) if current_user and filters.visibility == UseCaseVisibility.ORGANIZATION else None
+                current_user_org_id=current_user_org_id,
+                is_guest_user=is_guest_user
             )
             
-            # Convert to brief schema
+            # Convert to brief format for list view
             data = []
             for uc in use_cases:
-                brief = UseCaseBrief(
-                    id=uc.id,
-                    title=uc.title,
-                    company=uc.company,
-                    industry=uc.industry,
-                    category=uc.category,
-                    description=uc.description[:200] + "..." if len(uc.description) > 200 else uc.description,
-                    results={
-                        "key_metric": uc.results.key_metric if uc.results else None,
-                        "roi": f"{uc.results.roi.percentage}%" if uc.results and uc.results.roi and uc.results.roi.percentage else None
-                    },
-                    thumbnail=uc.media[0].thumbnail_path if uc.media else None,
-                    tags=uc.tags,
-                    verified=uc.verification.verified,
-                    featured=uc.featured.is_featured,
-                    views=uc.metrics.views,
-                    likes=uc.metrics.likes,
-                    published_by={
-                        "name": uc.published_by.name,
-                        "title": uc.published_by.title
-                    },
-                    published_at=uc.published_at
-                )
-                data.append(brief)
+                try:
+                    # Get first thumbnail if available
+                    thumbnail = None
+                    if uc.media:
+                        first_media = uc.media[0]
+                        thumbnail = getattr(first_media, 'thumbnail_url', None) or getattr(first_media, 'url', None)
+                    
+                    # Extract key metric for results preview
+                    key_metric = None
+                    roi_percentage = None
+                    timeframe = None
+                    
+                    if uc.results:
+                        timeframe = getattr(uc.results, 'timeframe', None)
+                        
+                        if uc.results.metrics:
+                            first_metric = uc.results.metrics[0]
+                            key_metric = f"{first_metric.name}: {first_metric.value}"
+                        
+                        if uc.results.roi:
+                            roi_percentage = getattr(uc.results.roi, 'percentage', None)
+                    
+                    # Build brief use case data
+                    brief_data = {
+                        "id": uc.id,
+                        "title": uc.title,
+                        "company": uc.company,
+                        "industry": uc.industry,
+                        "category": uc.category,
+                        "description": (
+                            uc.description[:200] + "..."
+                            if len(uc.description) > 200
+                            else uc.description
+                        ),
+                        "results": {
+                            "timeframe": timeframe,
+                            "key_metric": key_metric,
+                            "roi_percentage": roi_percentage
+                        },
+                        "thumbnail": thumbnail,
+                        "tags": getattr(uc, 'tags', []),
+                        "verified": (
+                            getattr(uc.verification, 'status', None) == 'verified'
+                            if hasattr(uc, 'verification') and uc.verification
+                            else False
+                        ),
+                        "featured": (
+                            getattr(uc.featured, 'status', False)
+                            if hasattr(uc, 'featured') and uc.featured
+                            else False
+                        ),
+                        "views": (
+                            getattr(uc.metrics, 'views', 0)
+                            if hasattr(uc, 'metrics') and uc.metrics
+                            else 0
+                        ),
+                        "likes": (
+                            getattr(uc.metrics, 'likes', 0)
+                            if hasattr(uc, 'metrics') and uc.metrics
+                            else 0
+                        ),
+                        "published_by": {
+                            "name": getattr(uc.published_by, 'name', 'Unknown') if uc.published_by else 'Unknown',
+                            "title": getattr(uc.published_by, 'title', 'N/A') if uc.published_by else 'N/A'
+                        },
+                        "published_at": getattr(uc, 'published_at', None)
+                    }
+                    
+                    data.append(brief_data)
+                    
+                except Exception as e:
+                    logger.warning(f"Error processing use case {uc.id} for brief view: {e}")
+                    continue
             
-            # Build response
-            return {
+            # Calculate pagination metadata
+            total_pages = (total + filters.page_size - 1) // filters.page_size if total > 0 else 1
+            start_index = (filters.page - 1) * filters.page_size + 1 if total > 0 else 0
+            end_index = min(filters.page * filters.page_size, total)
+            
+            # Prepare filters applied summary
+            filters_applied = {}
+            for key, value in filters.model_dump().items():
+                if value is not None and key not in ["page", "page_size"]:
+                    # Handle enum values
+                    if hasattr(value, 'value'):
+                        filters_applied[key] = value.value
+                    else:
+                        filters_applied[key] = value
+            
+            # Build comprehensive response
+            response = {
                 "data": data,
                 "pagination": {
                     "page": filters.page,
                     "page_size": filters.page_size,
-                    "total_items": total,
-                    "total_pages": (total + filters.page_size - 1) // filters.page_size
+                    "total": total,
+                    "total_pages": total_pages,
+                    "has_next": filters.page < total_pages,
+                    "has_prev": filters.page > 1,
+                    "start_index": start_index,
+                    "end_index": end_index
                 },
-                "filters_applied": {
-                    k: v for k, v in filters.model_dump().items() 
-                    if v is not None and k not in ["page", "page_size"]
-                }
+                "filters_applied": filters_applied
             }
             
+            logger.info(
+                f"Browse use cases returned {len(data)} results "
+                f"(page {filters.page}/{total_pages}, total {total})"
+            )
+            
+            return response
+            
         except Exception as e:
-            logger.error(f"Error browsing use cases: {e}")
+            logger.error(f"Error browsing use cases with filters {filters.model_dump()}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to browse use cases"
+                detail=f"Failed to browse use cases: {str(e)}"
             )
     
     @staticmethod
@@ -424,6 +501,249 @@ class UseCaseService:
                 detail="Failed to toggle like"
             )
     
+    @staticmethod
+    async def get_trending_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        period: str,
+        limit: int,
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """Get trending use cases based on views, likes, and recency."""
+        try:
+            from datetime import timedelta
+            
+            # Calculate period start date
+            now = datetime.utcnow()
+            if period == "day":
+                start_date = now - timedelta(days=1)
+            elif period == "week":
+                start_date = now - timedelta(days=7)
+            else:  # month
+                start_date = now - timedelta(days=30)
+            
+            # Build query for trending calculation
+            query = {
+                "status": "published",
+                "published_at": {"$gte": start_date}
+            }
+            
+            # Apply visibility filters
+            if current_user:
+                query["$or"] = [
+                    {"visibility": "public"},
+                    {
+                        "$and": [
+                            {"visibility": "organization"},
+                            {"organization_id": str(current_user.organization_id)}
+                        ]
+                    }
+                ]
+            else:
+                query["visibility"] = "public"
+            
+            # Aggregate trending score
+            pipeline = [
+                {"$match": query},
+                {
+                    "$addFields": {
+                        "trending_score": {
+                            "$add": [
+                                {"$multiply": [{"$ifNull": ["$metrics.views", 0]}, 1]},
+                                {"$multiply": [{"$ifNull": ["$metrics.likes", 0]}, 3]},
+                                {"$multiply": [
+                                    {"$divide": [
+                                        {"$subtract": [now, "$published_at"]},
+                                        86400000  # milliseconds in a day
+                                    ]},
+                                    -0.1  # Recency boost (newer = higher score)
+                                ]}
+                            ]
+                        }
+                    }
+                },
+                {"$sort": {"trending_score": -1}},
+                {"$limit": limit},
+                {
+                    "$project": {
+                        "id": 1, "title": 1, "category": 1, "company": 1,
+                        "description": {"$substr": ["$description", 0, 100]},
+                        "metrics": 1, "published_at": 1, "trending_score": 1,
+                        "media": {"$slice": ["$media", 1]}
+                    }
+                }
+            ]
+            
+            crud = get_use_case_crud(db)
+            cursor = crud.collection.aggregate(pipeline)
+            trending = await cursor.to_list(length=limit)
+            
+            return {
+                "trending": trending,
+                "period": period
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting trending use cases: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get trending use cases"
+            )
+    
+    @staticmethod
+    async def get_search_suggestions(
+        db: AsyncIOMotorDatabase,
+        *,
+        query: str,
+        limit: int,
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """Get search suggestions based on query."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Build base filter
+            base_query = {"status": "published"}
+            
+            if current_user:
+                base_query["$or"] = [
+                    {"visibility": "public"},
+                    {
+                        "$and": [
+                            {"visibility": "organization"},
+                            {"organization_id": str(current_user.organization_id)}
+                        ]
+                    }
+                ]
+            else:
+                base_query["visibility"] = "public"
+            
+            # Aggregation for suggestions
+            pipeline = [
+                {"$match": base_query},
+                {
+                    "$project": {
+                        "suggestions": {
+                            "$concatArrays": [
+                                ["$title"],
+                                "$tags",
+                                "$technologies",
+                                ["$company"],
+                                ["$industry"]
+                            ]
+                        }
+                    }
+                },
+                {"$unwind": "$suggestions"},
+                {
+                    "$match": {
+                        "suggestions": {
+                            "$regex": query,
+                            "$options": "i"
+                        }
+                    }
+                },
+                {"$group": {"_id": "$suggestions", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}},
+                {"$limit": limit},
+                {"$project": {"suggestion": "$_id", "_id": 0}}
+            ]
+            
+            cursor = crud.collection.aggregate(pipeline)
+            suggestions = await cursor.to_list(length=limit)
+            
+            return {
+                "suggestions": [s["suggestion"] for s in suggestions],
+                "query": query
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting search suggestions: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get search suggestions"
+            )
+    
+    @staticmethod
+    async def get_category_statistics(
+        db: AsyncIOMotorDatabase,
+        *,
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """Get statistics about use case categories."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Build base query
+            base_query = {"status": "published"}
+            
+            if current_user:
+                base_query["$or"] = [
+                    {"visibility": "public"},
+                    {
+                        "$and": [
+                            {"visibility": "organization"},
+                            {"organization_id": str(current_user.organization_id)}
+                        ]
+                    }
+                ]
+            else:
+                base_query["visibility"] = "public"
+            
+            # Aggregate category statistics
+            pipeline = [
+                {"$match": base_query},
+                {
+                    "$group": {
+                        "_id": "$category",
+                        "count": {"$sum": 1},
+                        "avg_roi": {"$avg": "$results.roi.percentage"},
+                        "total_views": {"$sum": "$metrics.views"},
+                        "total_likes": {"$sum": "$metrics.likes"},
+                        "technologies": {"$push": "$technologies"},
+                        "latest_update": {"$max": "$updated_at"}
+                    }
+                },
+                {
+                    "$project": {
+                        "category": "$_id",
+                        "count": 1,
+                        "avg_roi": {"$round": ["$avg_roi", 1]},
+                        "total_views": 1,
+                        "total_likes": 1,
+                        "top_technologies": {
+                            "$slice": [
+                                {"$reduce": {
+                                    "input": "$technologies",
+                                    "initialValue": [],
+                                    "in": {"$concatArrays": ["$$value", "$$this"]}
+                                }},
+                                5
+                            ]
+                        },
+                        "latest_update": 1,
+                        "_id": 0
+                    }
+                },
+                {"$sort": {"count": -1}}
+            ]
+            
+            cursor = crud.collection.aggregate(pipeline)
+            statistics = await cursor.to_list(length=None)
+            
+            return {
+                "categories": statistics,
+                "total_categories": len(statistics),
+                "generated_at": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting category statistics: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get category statistics"
+            )
+
     @staticmethod
     async def toggle_save(
         db: AsyncIOMotorDatabase,

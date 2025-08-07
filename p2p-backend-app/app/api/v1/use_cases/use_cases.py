@@ -4,7 +4,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.rbac import get_current_user as get_current_active_user
+from app.core.rbac import get_current_user as get_current_active_user, get_current_user_optional
 from app.core.rbac import require_organization_access
 from app.db.mongodb import get_mongodb
 from app.models.user import User
@@ -89,7 +89,7 @@ async def browse_use_cases(
     order: Optional[str] = Query("desc", pattern="^(asc|desc)$", description="Sort order"),
     search: Optional[str] = Query(None, min_length=2, max_length=200, description="Search query"),
     db: AsyncIOMotorDatabase = Depends(get_mongodb),
-    current_user: Optional[User] = Depends(get_current_active_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """
     Browse published use cases with filters and pagination.
@@ -325,3 +325,130 @@ async def toggle_save(
     )
     
     return SaveResponse(**result)
+
+
+@router.get("/trending", response_model=TrendingResponse)
+async def get_trending_use_cases(
+    period: str = Query("week", regex="^(day|week|month)$", description="Trending period"),
+    limit: int = Query(10, ge=1, le=50, description="Number of trending items"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get trending use cases based on views, likes, and recency.
+    
+    **Periods:**
+    - day: Trending in the last 24 hours
+    - week: Trending in the last 7 days (default)
+    - month: Trending in the last 30 days
+    
+    **Trending Algorithm:**
+    - Combines view count, like count, and publication recency
+    - Weighted scoring system
+    - Respects visibility settings
+    """
+    result = await UseCaseService.get_trending_use_cases(
+        db,
+        period=period,
+        limit=limit,
+        current_user=current_user
+    )
+    
+    return TrendingResponse(**result)
+
+
+@router.get("/search/suggestions", response_model=SuggestionsResponse)
+async def get_search_suggestions(
+    q: str = Query(..., min_length=1, max_length=100, description="Search query for suggestions"),
+    limit: int = Query(10, ge=1, le=20, description="Number of suggestions"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get search suggestions based on query.
+    
+    **Features:**
+    - Title and tag-based suggestions
+    - Company and technology suggestions
+    - Popular search terms
+    - Real-time suggestions based on existing data
+    
+    **Use cases:**
+    - Autocomplete for search boxes
+    - Query refinement suggestions
+    - Popular search discovery
+    """
+    result = await UseCaseService.get_search_suggestions(
+        db,
+        query=q,
+        limit=limit,
+        current_user=current_user
+    )
+    
+    return SuggestionsResponse(**result)
+
+
+@router.get("/categories/stats")
+async def get_category_statistics(
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get statistics about use case categories.
+    
+    **Returns:**
+    - Count per category
+    - Average ROI per category
+    - Popular technologies per category
+    - Recent activity per category
+    
+    **Use cases:**
+    - Dashboard analytics
+    - Category selection UI
+    - Market insights
+    """
+    result = await UseCaseService.get_category_statistics(
+        db,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.get("/featured", response_model=UseCaseListResponse)
+async def get_featured_use_cases(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=50, description="Items per page"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get featured use cases with enhanced presentation.
+    
+    **Features:**
+    - Only verified and featured use cases
+    - Enhanced metadata and images
+    - Curated order based on business value
+    - Optimized for homepage and highlights
+    
+    **Presentation:**
+    - High-quality thumbnails
+    - Key performance metrics highlighted
+    - Success story format
+    """
+    filters = UseCaseFilters(
+        page=page,
+        page_size=page_size,
+        featured=True,
+        verified=True,
+        sort_by="roi",
+        order="desc"
+    )
+    
+    result = await UseCaseService.browse_use_cases(
+        db,
+        filters=filters,
+        current_user=current_user
+    )
+    
+    return UseCaseListResponse(**result)

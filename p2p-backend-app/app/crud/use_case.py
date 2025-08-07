@@ -111,63 +111,163 @@ class CRUDUseCase:
         self,
         *,
         filters: UseCaseFilters,
-        organization_id: Optional[str] = None
+        current_user_org_id: Optional[str] = None,
+        is_guest_user: bool = False
     ) -> tuple[List[UseCase], int]:
-        """Get multiple use cases with filters and pagination."""
+        """Get multiple use cases with advanced filters and pagination."""
         try:
-            # Build query
-            query = {"status": UseCaseStatus.PUBLISHED}
+            # Build base query for published use cases
+            query = {"status": UseCaseStatus.PUBLISHED.value}
             
-            if organization_id:
-                query["organization_id"] = organization_id
+            # Access control based on user authentication
+            if is_guest_user:
+                # Guest users can only see public use cases
+                query["visibility"] = UseCaseVisibility.PUBLIC.value
+            elif current_user_org_id:
+                # Authenticated users can see public + their organization's use cases
+                query["$or"] = [
+                    {"visibility": UseCaseVisibility.PUBLIC.value},
+                    {
+                        "$and": [
+                            {"visibility": UseCaseVisibility.ORGANIZATION.value},
+                            {"organization_id": current_user_org_id}
+                        ]
+                    }
+                ]
+            else:
+                # Default to public only if no org context
+                query["visibility"] = UseCaseVisibility.PUBLIC.value
             
+            # Apply category filter
             if filters.category:
-                query["category"] = filters.category
+                query["category"] = filters.category.value if hasattr(filters.category, 'value') else filters.category
             
+            # Apply industry filter (case-insensitive partial match)
             if filters.industry:
-                query["industry"] = filters.industry
+                query["industry"] = {"$regex": filters.industry, "$options": "i"}
             
+            # Apply technologies filter
             if filters.technologies:
-                query["technologies"] = {"$in": filters.technologies}
+                # Convert comma-separated string to list if needed
+                tech_list = filters.technologies
+                if isinstance(tech_list, str):
+                    tech_list = [tech.strip() for tech in tech_list.split(',') if tech.strip()]
+                
+                if tech_list:
+                    query["technologies"] = {"$in": tech_list}
             
+            # Apply verification filter
             if filters.verified is not None:
-                query["verification.verified"] = filters.verified
+                if filters.verified:
+                    query["verification.status"] = "verified"
+                else:
+                    query["$or"] = [
+                        {"verification.status": {"$ne": "verified"}},
+                        {"verification": {"$exists": False}}
+                    ]
             
+            # Apply featured filter
             if filters.featured is not None:
-                query["featured.is_featured"] = filters.featured
+                if filters.featured:
+                    query["featured.status"] = True
+                else:
+                    query["$or"] = [
+                        {"featured.status": False},
+                        {"featured": {"$exists": False}}
+                    ]
             
-            # Text search
+            # Apply full-text search across multiple fields
             if filters.search:
-                query["$text"] = {"$search": filters.search}
+                search_term = filters.search.strip()
+                search_query = {
+                    "$or": [
+                        {"title": {"$regex": search_term, "$options": "i"}},
+                        {"description": {"$regex": search_term, "$options": "i"}},
+                        {"solution": {"$regex": search_term, "$options": "i"}},
+                        {"challenge": {"$regex": search_term, "$options": "i"}},
+                        {"company": {"$regex": search_term, "$options": "i"}},
+                        {"tags": {"$regex": search_term, "$options": "i"}},
+                        {"technologies": {"$regex": search_term, "$options": "i"}},
+                        {"vendors.name": {"$regex": search_term, "$options": "i"}}
+                    ]
+                }
+                
+                # Combine search with existing query logic
+                if "$or" in query:
+                    # If we already have an $or clause, we need to restructure
+                    existing_or = query.pop("$or")
+                    query = {
+                        "$and": [
+                            query,  # Base query without $or
+                            {"$or": existing_or},  # Original $or clause
+                            search_query  # Search $or clause
+                        ]
+                    }
+                else:
+                    query.update(search_query)
             
-            # Count total
+            # Build sort criteria with multiple fallbacks
+            sort_criteria = []
+            
+            if filters.sort_by == "date":
+                sort_criteria.append(("published_at", -1 if filters.order == "desc" else 1))
+            elif filters.sort_by == "views":
+                sort_criteria.append(("metrics.views", -1 if filters.order == "desc" else 1))
+            elif filters.sort_by == "likes":
+                sort_criteria.append(("metrics.likes", -1 if filters.order == "desc" else 1))
+            elif filters.sort_by == "roi":
+                sort_criteria.append(("results.roi.percentage", -1 if filters.order == "desc" else 1))
+            else:
+                # Default sort
+                sort_criteria.append(("published_at", -1))
+            
+            # Add secondary sort by publication date for consistent ordering
+            if filters.sort_by != "date":
+                sort_criteria.append(("published_at", -1))
+            
+            # Count total matching documents
             total = await self.collection.count_documents(query)
             
-            # Build sort
-            sort_field = {
-                "date": "created_at",
-                "views": "metrics.views",
-                "likes": "metrics.likes",
-                "roi": "results.roi.percentage"
-            }.get(filters.sort_by, "created_at")
-            
-            sort_order = -1 if filters.order == "desc" else 1
-            
-            # Execute query with pagination
+            # Calculate pagination
             skip = (filters.page - 1) * filters.page_size
-            cursor = self.collection.find(query)
-            cursor = cursor.sort(sort_field, sort_order)
+            
+            # Build cursor with optimized projection for list view
+            projection = {
+                "id": 1, "title": 1, "company": 1, "industry": 1, "category": 1,
+                "description": 1, "results": 1, "tags": 1, "technologies": 1,
+                "verification": 1, "featured": 1, "metrics": 1,
+                "published_by.name": 1, "published_by.title": 1,
+                "published_at": 1, "media": {"$slice": 1}  # Only first media for thumbnail
+            }
+            
+            cursor = self.collection.find(query, projection)
+            
+            # Apply sorting
+            for field, direction in sort_criteria:
+                cursor = cursor.sort(field, direction)
+            
+            # Apply pagination
             cursor = cursor.skip(skip).limit(filters.page_size)
             
-            # Get results
+            # Execute query and convert to UseCase objects
             use_cases = []
             async for doc in cursor:
-                use_cases.append(UseCase(**doc))
+                try:
+                    use_case = UseCase(**doc)
+                    use_cases.append(use_case)
+                except Exception as e:
+                    logger.warning(f"Skipping invalid use case document {doc.get('id', 'unknown')}: {e}")
+                    continue
+            
+            logger.info(
+                f"Retrieved {len(use_cases)} use cases (page {filters.page}, "
+                f"total {total}) with filters: {filters.model_dump()}"
+            )
             
             return use_cases, total
             
         except Exception as e:
-            logger.error(f"Error getting multiple use cases: {e}")
+            logger.error(f"Error getting multiple use cases with filters {filters.model_dump()}: {e}")
             raise
     
     async def update(

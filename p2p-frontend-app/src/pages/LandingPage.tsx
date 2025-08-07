@@ -8,6 +8,7 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onNavigate }: LandingPageProps) {
+  console.log('🏠 LandingPage component rendering')
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 

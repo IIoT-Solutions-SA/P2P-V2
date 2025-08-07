@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -17,10 +18,12 @@ import {
   Activity,
   Target,
   UserCog,
-  Settings
+  Settings,
+  HardDrive,
+  AlertCircle
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-// import { ConnectionTest } from '@/components/ConnectionTest'
+import { api } from '@/services/api'
 import { type Page } from '@/components/Navigation'
 
 interface DashboardProps {
@@ -29,6 +32,31 @@ interface DashboardProps {
 
 export default function Dashboard({ onPageChange }: DashboardProps) {
   const { user, organization } = useAuth()
+  const [stats, setStats] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchOrganizationStats()
+    } else {
+      setIsLoading(false)
+    }
+  }, [user?.role])
+
+  const fetchOrganizationStats = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await api.get('/api/v1/organizations/stats')
+      setStats(response.data)
+    } catch (err: any) {
+      console.error('Failed to fetch organization stats:', err)
+      setError('Failed to load organization statistics')
+    } finally {
+      setIsLoading(false)
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -111,49 +139,102 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
 
             {/* Stats Cards */}
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Your Progress</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-blue-600 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <MessageSquare className="h-8 w-8 text-blue-200" />
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">12</div>
-                      <div className="text-blue-200 text-sm">Questions</div>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
+                {user?.role === 'admin' ? 'Organization Overview' : 'Your Progress'}
+              </h2>
+              {user?.role === 'admin' && stats ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-blue-600 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <Users className="h-8 w-8 text-blue-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{stats.user_stats?.total_users || 0}</div>
+                        <div className="text-blue-200 text-sm">Total Users</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-blue-200">
+                      {stats.user_stats?.active_users || 0} active
                     </div>
                   </div>
-                  <div className="text-sm text-blue-200">+2 this week</div>
-                </div>
-                <div className="bg-slate-600 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <Award className="h-8 w-8 text-slate-200" />
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">24</div>
-                      <div className="text-slate-200 text-sm">Answers</div>
+                  <div className="bg-slate-600 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <Award className="h-8 w-8 text-slate-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{stats.user_stats?.admin_count || 0}</div>
+                        <div className="text-slate-200 text-sm">Admins</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-200">
+                      {stats.user_stats?.member_count || 0} members
                     </div>
                   </div>
-                  <div className="text-sm text-slate-200">+5 this week</div>
-                </div>
-                <div className="bg-blue-500 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <BookmarkCheck className="h-8 w-8 text-blue-200" />
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">8</div>
-                      <div className="text-blue-200 text-sm">Saved</div>
+                  <div className="bg-amber-600 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <Bell className="h-8 w-8 text-amber-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{stats.user_stats?.pending_invitations || 0}</div>
+                        <div className="text-amber-200 text-sm">Pending</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-amber-200">Invitations</div>
+                  </div>
+                  <div className="bg-slate-700 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <HardDrive className="h-8 w-8 text-slate-300" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{stats.storage?.used_mb?.toFixed(1) || '0.0'}</div>
+                        <div className="text-slate-300 text-sm">MB Used</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-300">
+                      {stats.storage?.percentage?.toFixed(0) || 0}% of limit
                     </div>
                   </div>
-                  <div className="text-sm text-blue-200">+1 this week</div>
                 </div>
-                <div className="bg-slate-700 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <Star className="h-8 w-8 text-slate-300" />
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">156</div>
-                      <div className="text-slate-300 text-sm">Reputation</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-blue-600 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <MessageSquare className="h-8 w-8 text-blue-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-blue-200 text-sm">Questions</div>
+                      </div>
                     </div>
+                    <div className="text-sm text-blue-200">Forum coming soon</div>
                   </div>
-                  <div className="text-sm text-slate-300">+12 this week</div>
+                  <div className="bg-slate-600 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <Award className="h-8 w-8 text-slate-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-slate-200 text-sm">Answers</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-200">Forum coming soon</div>
+                  </div>
+                  <div className="bg-blue-500 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <BookmarkCheck className="h-8 w-8 text-blue-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-blue-200 text-sm">Saved</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-blue-200">Feature coming soon</div>
+                  </div>
+                  <div className="bg-slate-700 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <Star className="h-8 w-8 text-slate-300" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-slate-300 text-sm">Reputation</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-300">Coming soon</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Activity Feed */}
@@ -161,37 +242,41 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Recent Activities</h2>
-                  <p className="text-gray-600">Stay updated with community happenings</p>
+                  <p className="text-gray-600">
+                    {user?.role === 'admin' && stats 
+                      ? `${stats.activity?.recent_activities || 0} activities this week`
+                      : 'Stay updated with community happenings'}
+                  </p>
                 </div>
                 <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
                   View All
                 </Button>
               </div>
+              {/* Error State */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <span className="text-red-800">{error}</span>
+                </div>
+              )}
+
               <div className="space-y-4">
                 {[
                   {
-                    type: "question",
-                    user: "Sarah Ahmed",
-                    action: "asked a new question",
-                    content: "How can we improve production line efficiency?",
-                    time: "2 hours ago",
-                    category: "Automation"
+                    type: "user",
+                    user: "System",
+                    action: "New features coming soon",
+                    content: "Forum discussions and use case submissions will be available in the next update",
+                    time: "Just now",
+                    category: "System Update"
                   },
                   {
-                    type: "answer",
-                    user: "Mohammed Al-Shahri", 
-                    action: "answered your question",
-                    content: "About implementing quality management systems",
-                    time: "4 hours ago",
-                    category: "Quality Management"
-                  },
-                  {
-                    type: "case",
-                    user: "Fatima Al-Otaibi",
-                    action: "added a new use case",
-                    content: "AI application in predictive maintenance",
-                    time: "Yesterday",
-                    category: "Artificial Intelligence"
+                    type: "user",
+                    user: organization?.name || "Organization",
+                    action: "Welcome to the platform",
+                    content: "Start by updating your profile and inviting team members",
+                    time: "Today",
+                    category: "Getting Started"
                   }
                 ].map((activity, i) => (
                   <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
@@ -199,11 +284,13 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
                       <div className={`p-3 rounded-lg ${
                         activity.type === "question" ? "bg-blue-600" :
                         activity.type === "answer" ? "bg-slate-600" :
-                        "bg-blue-500"
+                        activity.type === "case" ? "bg-blue-500" :
+                        "bg-green-600"
                       }`}>
                         {activity.type === "question" && <MessageSquare className="h-5 w-5 text-white" />}
                         {activity.type === "answer" && <Award className="h-5 w-5 text-white" />}
                         {activity.type === "case" && <FileText className="h-5 w-5 text-white" />}
+                        {activity.type === "user" && <Users className="h-5 w-5 text-white" />}
                       </div>
                       <div className="flex-1">
                         <p className="text-slate-900 font-medium mb-1">
@@ -306,32 +393,76 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
               </div>
             </div>
 
-            {/* Activity Insights */}
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">This Month</h3>
-              <div className="bg-white rounded-xl p-6 border border-slate-200">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600">Activity Level</p>
-                      <p className="text-2xl font-bold text-blue-600">85%</p>
+            {/* Organization Insights (Admin Only) */}
+            {user?.role === 'admin' && stats && (
+              <div>
+                <h3 className="font-bold text-gray-900 mb-4">Organization Health</h3>
+                <div className="bg-white rounded-xl p-6 border border-slate-200">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-600">Storage Usage</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {stats.storage?.percentage?.toFixed(0) || 0}%
+                        </p>
+                      </div>
+                      <div className="p-2 bg-blue-600 rounded-lg">
+                        <HardDrive className="h-6 w-6 text-white" />
+                      </div>
                     </div>
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      <Activity className="h-6 w-6 text-white" />
+                    <div className="w-full bg-slate-200 rounded-full h-3">
+                      <div 
+                        className="bg-blue-600 h-3 rounded-full" 
+                        style={{ width: `${Math.min(stats.storage?.percentage || 0, 100)}%` }}
+                      ></div>
                     </div>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-3">
-                    <div className="bg-blue-600 h-3 rounded-full" style={{ width: "85%" }}></div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Target className="h-4 w-4 text-green-500" />
-                    <p className="text-xs text-slate-600">
-                      Excellent progress! You're in the top 10%
-                    </p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-600">Used</span>
+                        <span className="font-medium">{stats.storage?.used_mb?.toFixed(1) || '0.0'} MB</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-600">Limit</span>
+                        <span className="font-medium">{(stats.storage?.limit_bytes / (1024 * 1024))?.toFixed(0) || '10240'} MB</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-600">Subscription</span>
+                        <span className="font-medium capitalize">{stats.subscription?.tier || 'Free'}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Activity Insights (Non-Admin) */}
+            {user?.role !== 'admin' && (
+              <div>
+                <h3 className="font-bold text-gray-900 mb-4">Coming Soon</h3>
+                <div className="bg-white rounded-xl p-6 border border-slate-200">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-600">Activity Level</p>
+                        <p className="text-2xl font-bold text-slate-400">--</p>
+                      </div>
+                      <div className="p-2 bg-slate-400 rounded-lg">
+                        <Activity className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-3">
+                      <div className="bg-slate-400 h-3 rounded-full" style={{ width: "0%" }}></div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Target className="h-4 w-4 text-slate-400" />
+                      <p className="text-xs text-slate-600">
+                        Activity tracking will be available soon
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -19,6 +19,7 @@ interface LoginProps {
 }
 
 export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps) {
+  console.log('🔑 Login component rendering')
   const { login, isAuthenticated } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

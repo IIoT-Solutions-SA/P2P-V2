@@ -19,18 +19,21 @@ import { initSuperTokens } from './config/supertokens'
 initSuperTokens()
 
 function App() {
-  // TEMPORARY: Force login page to debug auth issues
-  const [currentPage, setCurrentPage] = useState<Page>('login')
+  // Start with landing page, let ProtectedRoute handle auth redirects
+  const [currentPage, setCurrentPage] = useState<Page>('landing')
   
   // Debug page changes
   const handlePageChange = (page: Page) => {
-    console.log('Page changing from', currentPage, 'to', page)
+    console.log('🔍 Page changing from', currentPage, 'to', page)
+    console.trace('Stack trace for page change')
     setCurrentPage(page)
   }
 
   const renderPage = () => {
+    console.log('🎯 renderPage called with currentPage:', currentPage)
     switch (currentPage) {
       case 'landing':
+        console.log('📍 Rendering LandingPage')
         return <LandingPage onNavigate={(page) => handlePageChange(page as Page)} />
       case 'dashboard':
         return (
@@ -81,6 +84,7 @@ function App() {
           </ProtectedRoute>
         )
       case 'login':
+        console.log('📍 Rendering Login page')
         return <Login 
           onLoginSuccess={() => handlePageChange('dashboard')} 
           onNavigateToSignup={() => handlePageChange('signup')} 

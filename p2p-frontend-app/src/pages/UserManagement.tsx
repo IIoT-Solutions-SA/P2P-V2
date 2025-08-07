@@ -23,7 +23,8 @@ import {
   Edit,
   Trash2,
   ArrowLeft,
-  Home
+  Home,
+  AlertCircle
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/services/api'
@@ -190,6 +191,77 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
     }
   }
 
+  const handleEditUser = async (userId: string, updates: Partial<UserData>) => {
+    try {
+      const response = await api.patch(`/api/v1/users/${userId}`, {
+        role: updates.role,
+        status: updates.status,
+        department: updates.department,
+        job_title: updates.jobTitle
+      })
+      
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, ...updates } : u
+      ))
+      
+      setError(null)
+    } catch (err: any) {
+      console.error('Failed to update user:', err)
+      setError(err.response?.data?.detail || 'Failed to update user')
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to remove this user? This action cannot be undone.')) {
+      return
+    }
+    
+    try {
+      await api.delete(`/api/v1/users/${userId}`)
+      
+      // Remove from local state
+      setUsers(prev => prev.filter(u => u.id !== userId))
+      setError(null)
+    } catch (err: any) {
+      console.error('Failed to delete user:', err)
+      setError(err.response?.data?.detail || 'Failed to delete user')
+    }
+  }
+
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'member') => {
+    try {
+      await handleEditUser(userId, { role: newRole })
+    } catch (err) {
+      console.error('Failed to change user role:', err)
+    }
+  }
+
+  const handleResendInvitation = async (invitationId: string) => {
+    try {
+      await api.post(`/api/v1/invitations/${invitationId}/resend`)
+      setError(null)
+      // Refresh invitations
+      fetchOrganizationData()
+    } catch (err: any) {
+      console.error('Failed to resend invitation:', err)
+      setError(err.response?.data?.detail || 'Failed to resend invitation')
+    }
+  }
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    try {
+      await api.delete(`/api/v1/invitations/${invitationId}`)
+      
+      // Remove from local state
+      setPendingInvitations(prev => prev.filter(inv => inv.id !== invitationId))
+      setError(null)
+    } catch (err: any) {
+      console.error('Failed to cancel invitation:', err)
+      setError(err.response?.data?.detail || 'Failed to cancel invitation')
+    }
+  }
+
   // Only allow admins to access this page
   if (user?.role !== 'admin') {
     return (
@@ -217,6 +289,14 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
           Back to Dashboard
         </Button>
         
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <span className="text-red-800">{error}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -239,7 +319,7 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-600 text-sm">Total Users</p>
-                  <p className="text-2xl font-bold text-slate-900">{organizationUsers.length}</p>
+                  <p className="text-2xl font-bold text-slate-900">{users.length}</p>
                 </div>
                 <Users className="h-8 w-8 text-blue-600" />
               </div>
@@ -258,7 +338,7 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
                 <div>
                   <p className="text-slate-600 text-sm">Admins</p>
                   <p className="text-2xl font-bold text-slate-900">
-                    {organizationUsers.filter(u => u.role === 'admin').length}
+                    {users.filter(u => u.role === 'admin').length}
                   </p>
                 </div>
                 <Shield className="h-8 w-8 text-green-600" />
@@ -389,26 +469,26 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
           </div>
 
           <div className="divide-y divide-slate-200">
-            {filteredUsers.map((user) => (
-              <div key={user.id} className="p-6 flex items-center justify-between">
+            {filteredUsers.map((orgUser) => (
+              <div key={orgUser.id} className="p-6 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-sm font-bold text-white">
-                      {user.firstName.charAt(0)}
+                      {orgUser.firstName.charAt(0)}
                     </span>
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900">
-                      {user.firstName} {user.lastName}
+                      {orgUser.firstName} {orgUser.lastName}
                     </h3>
-                    <p className="text-sm text-slate-600">{user.email}</p>
+                    <p className="text-sm text-slate-600">{orgUser.email}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'admin' 
+                        orgUser.role === 'admin' 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-blue-100 text-blue-800'
                       }`}>
-                        {user.role === 'admin' ? 'Administrator' : 'Member'}
+                        {orgUser.role === 'admin' ? 'Administrator' : 'Member'}
                       </span>
                       <CheckCircle className="h-4 w-4 text-green-600" />
                       <span className="text-xs text-slate-500">Active</span>
@@ -416,11 +496,25 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  {user.id !== organization?.adminUserId && (
-                    <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                  <Select
+                    value={orgUser.role}
+                    onValueChange={(value) => handleRoleChange(orgUser.id, value as 'admin' | 'member')}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="member">Member</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {orgUser.id !== user?.id && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteUser(orgUser.id)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
@@ -463,10 +557,19 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleResendInvitation(invitation.id)}
+                  >
                     Resend
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => handleCancelInvitation(invitation.id)}
+                  >
                     <XCircle className="h-4 w-4" />
                   </Button>
                 </div>

@@ -26,7 +26,9 @@ import {
   Home
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-import { mockUsers, mockOrganizations } from '@/contexts/AuthContext'
+// Temporary mock data for testing - will be replaced with real API calls in P3.5.USER.01
+const mockUsers: any[] = []
+const mockOrganizations: any[] = []
 import type { InviteUserData, PendingInvitation } from '@/types/auth'
 import { type Page } from '@/components/Navigation'
 

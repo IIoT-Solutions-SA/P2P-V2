@@ -60,7 +60,7 @@ services:
   # KNOWN ISSUE: Health check disabled due to missing curl/nc/wget tools in container
   # Service works correctly but health check fails - needs proper fix in future
   supertokens:
-    image: registry.supertokens.io/supertokens/supertokens-postgresql:7.0
+    image: registry.supertokens.io/supertokens/supertokens-postgresql:11.0
     container_name: p2p-supertokens
     environment:
       POSTGRESQL_CONNECTION_URI: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/supertokens"

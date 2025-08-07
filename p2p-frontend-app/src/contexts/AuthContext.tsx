@@ -1,94 +1,32 @@
 /**
- * Authentication Context
+ * Authentication Context with SuperTokens Integration
  * 
- * Current Status: Mock implementation for Phase 0.5 testing
- * TODO Phase 2: Replace with SuperTokens integration
- * 
- * SuperTokens integration will include:
- * - Session management
- * - Token refresh
- * - Secure authentication flow
- * - Organization-based signup
+ * Real authentication implementation using SuperTokens
+ * Handles session management, login/logout, and user state
  */
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import type { User, Organization, AuthState, LoginCredentials, SignupData } from '@/types/auth'
 import { api } from '@/services'
+import { 
+  signInUser, 
+  signUpUser, 
+  signOutUser, 
+  isAuthenticated, 
+  getUserId,
+  getAccessTokenPayload,
+  refreshSession
+} from '@/config/supertokens'
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
   signup: (data: SignupData) => Promise<void>
-  logout: () => void
-  updateUser: (user: User) => void
-  // Future SuperTokens methods
-  refreshSession?: () => Promise<void>
-  checkSession?: () => Promise<boolean>
+  logout: () => Promise<void>
+  updateUser: (user: User) => Promise<void>
+  refreshSession: () => Promise<boolean>
+  checkSession: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-// Mock data for demonstration
-const mockOrganizations: Organization[] = [
-  {
-    id: 'org-1',
-    name: 'Advanced Electronics Co.',
-    domain: 'advanced-electronics.com',
-    industry: 'Electronics Manufacturing',
-    size: 'medium',
-    country: 'Saudi Arabia',
-    city: 'Riyadh',
-    isActive: true,
-    createdAt: new Date('2023-01-15'),
-    adminUserId: 'user-1'
-  },
-  {
-    id: 'org-2',
-    name: 'Gulf Plastics Industries',
-    domain: 'gulf-plastics.com',
-    industry: 'Plastics Manufacturing',
-    size: 'large',
-    country: 'Saudi Arabia',
-    city: 'Dammam',
-    isActive: true,
-    createdAt: new Date('2023-03-20'),
-    adminUserId: 'user-3'
-  }
-]
-
-const mockUsers: User[] = [
-  {
-    id: 'user-1',
-    email: 'ahmed.faisal@advanced-electronics.com',
-    firstName: 'Ahmed',
-    lastName: 'Al-Faisal',
-    role: 'admin',
-    organizationId: 'org-1',
-    isActive: true,
-    lastLogin: new Date(),
-    createdAt: new Date('2023-01-15')
-  },
-  {
-    id: 'user-2',
-    email: 'sara.hassan@advanced-electronics.com',
-    firstName: 'Sara',
-    lastName: 'Hassan',
-    role: 'member',
-    organizationId: 'org-1',
-    isActive: true,
-    lastLogin: new Date('2024-01-20'),
-    createdAt: new Date('2023-02-10')
-  },
-  {
-    id: 'user-3',
-    email: 'mohammed.rashid@gulf-plastics.com',
-    firstName: 'Mohammed',
-    lastName: 'Rashid',
-    role: 'admin',
-    organizationId: 'org-2',
-    isActive: true,
-    lastLogin: new Date('2024-01-22'),
-    createdAt: new Date('2023-03-20')
-  }
-]
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
@@ -98,160 +36,340 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: true
   })
 
-  useEffect(() => {
-    // Check for stored auth state on app load
-    const checkAuthState = () => {
-      try {
-        const storedUser = localStorage.getItem('p2p_user')
-        const storedOrg = localStorage.getItem('p2p_organization')
-        
-        if (storedUser && storedOrg) {
-          const user = JSON.parse(storedUser)
-          const organization = JSON.parse(storedOrg)
-          
-          setAuthState({
-            user,
-            organization,
-            isAuthenticated: true,
-            isLoading: false
-          })
-        } else {
-          setAuthState(prev => ({ ...prev, isLoading: false }))
+  /**
+   * Fetch user profile from backend
+   */
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const response = await api.get('/api/v1/auth/me')
+      
+      // Handle the response format from our backend
+      if (response.data.status === 'OK') {
+        return {
+          user: response.data.user,
+          organization: response.data.organization
         }
-      } catch (error) {
-        console.error('Error checking auth state:', error)
-        setAuthState(prev => ({ ...prev, isLoading: false }))
+      } else {
+        throw new Error('Failed to fetch profile')
       }
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error)
+      throw error
     }
-
-    // Simulate loading delay
-    setTimeout(checkAuthState, 1000)
   }, [])
 
-  const login = async (credentials: LoginCredentials): Promise<void> => {
+  /**
+   * Initialize authentication state on mount
+   */
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        // Check if user has an active session
+        const hasSession = await isAuthenticated()
+        
+        if (hasSession) {
+          try {
+            // Try to fetch user profile to verify session is valid
+            const profileData = await fetchUserProfile()
+            setAuthState({
+              user: profileData.user,
+              organization: profileData.organization,
+              isAuthenticated: true,
+              isLoading: false
+            })
+          } catch (profileError) {
+            // If profile fetch fails, try to refresh the session
+            console.log('Profile fetch failed, attempting session refresh...')
+            const refreshed = await refreshSession()
+            
+            if (refreshed) {
+              try {
+                // Try fetching profile again after refresh
+                const profileData = await fetchUserProfile()
+                setAuthState({
+                  user: profileData.user,
+                  organization: profileData.organization,
+                  isAuthenticated: true,
+                  isLoading: false
+                })
+              } catch (secondError) {
+                // Both profile fetch and refresh failed - clear auth
+                console.log('Session refresh failed, clearing auth state')
+                setAuthState({
+                  user: null,
+                  organization: null,
+                  isAuthenticated: false,
+                  isLoading: false
+                })
+              }
+            } else {
+              // Refresh failed - clear auth
+              setAuthState({
+                user: null,
+                organization: null,
+                isAuthenticated: false,
+                isLoading: false
+              })
+            }
+          }
+        } else {
+          setAuthState({
+            user: null,
+            organization: null,
+            isAuthenticated: false,
+            isLoading: false
+          })
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error)
+        setAuthState({
+          user: null,
+          organization: null,
+          isAuthenticated: false,
+          isLoading: false
+        })
+      }
+    }
+
+    initAuth()
+  }, [fetchUserProfile])
+
+  /**
+   * Handle user login
+   */
+  const login = useCallback(async (credentials: LoginCredentials) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      setAuthState(prev => ({ ...prev, isLoading: true }))
+
+      // Sign in with SuperTokens
+      const result = await signInUser(credentials.email, credentials.password)
       
-      // Find user by email
-      const user = mockUsers.find(u => u.email === credentials.email)
-      if (!user) {
-        throw new Error('Invalid email or password')
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Login failed')
       }
 
-      // Simple password validation (in real app, this would be done on server)
-      if (credentials.password !== 'password123') {
-        throw new Error('Invalid email or password')
+      // Immediately fetch the user profile after successful login
+      try {
+        const { user, organization } = await fetchUserProfile()
+        setAuthState({
+          user,
+          organization,
+          isAuthenticated: true,
+          isLoading: false
+        })
+      } catch (profileError) {
+        // If profile fetch fails, still set authenticated but with minimal data
+        console.error('Failed to fetch profile after login:', profileError)
+        setAuthState({
+          user: {
+            id: result.user?.id || '',
+            email: credentials.email,
+            firstName: '',
+            lastName: '',
+            role: 'member',
+            isActive: true
+          },
+          organization: null,
+          isAuthenticated: true,
+          isLoading: false
+        })
       }
-
-      // Find organization
-      const organization = mockOrganizations.find(org => org.id === user.organizationId)
-      if (!organization) {
-        throw new Error('Organization not found')
-      }
-
-      // Update user's last login
-      user.lastLogin = new Date()
-
-      // Store auth state
-      localStorage.setItem('p2p_user', JSON.stringify(user))
-      localStorage.setItem('p2p_organization', JSON.stringify(organization))
-
-      setAuthState({
-        user,
-        organization,
-        isAuthenticated: true,
-        isLoading: false
-      })
     } catch (error) {
+      setAuthState(prev => ({ ...prev, isLoading: false }))
       throw error
     }
-  }
+  }, [fetchUserProfile])
 
-  const signup = async (data: SignupData): Promise<void> => {
+  /**
+   * Handle user signup
+   */
+  const signup = useCallback(async (data: SignupData) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Check if email already exists
-      const existingUser = mockUsers.find(u => u.email === data.email)
-      if (existingUser) {
-        throw new Error('Email already registered')
-      }
+      console.log('Signup started with data:', { email: data.email, hasPassword: !!data.password })
+      setAuthState(prev => ({ ...prev, isLoading: true }))
 
-      // Create new organization
-      const newOrganization: Organization = {
-        id: `org-${Date.now()}`,
-        name: data.organizationName,
-        domain: data.email.split('@')[1],
-        industry: data.industry,
-        size: data.organizationSize as any,
-        country: data.country,
-        city: data.city,
-        isActive: true,
-        createdAt: new Date(),
-        adminUserId: `user-${Date.now()}`
-      }
-
-      // Create new user
-      const newUser: User = {
-        id: newOrganization.adminUserId,
-        email: data.email,
+      // Pass all signup fields to SuperTokens
+      console.log('Calling signUpUser with all fields...')
+      const additionalFields = {
         firstName: data.firstName,
         lastName: data.lastName,
-        role: 'admin',
-        organizationId: newOrganization.id,
-        isActive: true,
-        lastLogin: new Date(),
-        createdAt: new Date()
+        organizationName: data.organizationName,
+        organizationSize: data.organizationSize,
+        industry: data.industry,
+        country: data.country,
+        city: data.city
+      }
+      const result = await signUpUser(data.email, data.password, additionalFields)
+      console.log('SignUpUser result:', result)
+      
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Signup failed')
       }
 
-      // Add to mock data
-      mockOrganizations.push(newOrganization)
-      mockUsers.push(newUser)
-
-      // Store auth state
-      localStorage.setItem('p2p_user', JSON.stringify(newUser))
-      localStorage.setItem('p2p_organization', JSON.stringify(newOrganization))
-
+      // For now, create a basic user object from signup data
+      // The profile will be fetched properly on next page load
       setAuthState({
-        user: newUser,
-        organization: newOrganization,
+        user: {
+          id: result.user?.id || '',
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          role: 'admin',
+          isActive: true
+        },
+        organization: {
+          name: data.organizationName,
+          size: data.organizationSize,
+          industry: data.industry,
+          country: data.country,
+          city: data.city
+        },
         isAuthenticated: true,
         isLoading: false
       })
+      
+      // Try to fetch full profile in background (non-blocking)
+      setTimeout(async () => {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/me`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          })
+          
+          if (response.ok) {
+            const profileData = await response.json()
+            if (profileData.status === 'OK' && profileData.user) {
+              setAuthState(prev => ({
+                ...prev,
+                user: profileData.user,
+                organization: profileData.organization
+              }))
+            }
+          }
+        } catch (error) {
+          console.log('Background profile fetch failed, using local data')
+        }
+      }, 1000)
+      
     } catch (error) {
+      console.error('Signup error:', error)
+      setAuthState(prev => ({ ...prev, isLoading: false }))
       throw error
     }
-  }
+  }, [])
 
-  const logout = () => {
-    localStorage.removeItem('p2p_user')
-    localStorage.removeItem('p2p_organization')
+  /**
+   * Handle user logout
+   */
+  const logout = useCallback(async () => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true }))
+
+      // Sign out with SuperTokens
+      await signOutUser()
+      
+      // Clear auth state
+      setAuthState({
+        user: null,
+        organization: null,
+        isAuthenticated: false,
+        isLoading: false
+      })
+
+      // Clear remember me preference
+      localStorage.removeItem('rememberMe')
+    } catch (error) {
+      console.error('Logout error:', error)
+      setAuthState(prev => ({ ...prev, isLoading: false }))
+      throw error
+    }
+  }, [])
+
+  /**
+   * Update user profile
+   */
+  const updateUser = useCallback(async (updatedUser: User) => {
+    try {
+      // Update user profile via backend API
+      const response = await api.patch<User>('/api/v1/users/me', updatedUser)
+      
+      setAuthState(prev => ({
+        ...prev,
+        user: response.data
+      }))
+    } catch (error) {
+      console.error('Failed to update user:', error)
+      throw error
+    }
+  }, [])
+
+  /**
+   * Refresh the session
+   */
+  const handleRefreshSession = useCallback(async (): Promise<boolean> => {
+    try {
+      const success = await refreshSession()
+      
+      if (success) {
+        // Re-fetch user profile after session refresh
+        const { user, organization } = await fetchUserProfile()
+        
+        setAuthState({
+          user,
+          organization,
+          isAuthenticated: true,
+          isLoading: false
+        })
+      }
+      
+      return success
+    } catch (error) {
+      console.error('Session refresh failed:', error)
+      return false
+    }
+  }, [fetchUserProfile])
+
+  /**
+   * Check if session is valid
+   */
+  const checkSession = useCallback(async (): Promise<boolean> => {
+    try {
+      return await isAuthenticated()
+    } catch (error) {
+      console.error('Session check failed:', error)
+      return false
+    }
+  }, [])
+
+  // Set up automatic session refresh every 10 minutes
+  useEffect(() => {
+    if (!authState.isAuthenticated) return
     
-    setAuthState({
-      user: null,
-      organization: null,
-      isAuthenticated: false,
-      isLoading: false
-    })
-  }
+    const interval = setInterval(async () => {
+      const success = await handleRefreshSession()
+      if (!success) {
+        console.log('Session refresh failed, logging out user')
+        await logout()
+      }
+    }, 10 * 60 * 1000) // 10 minutes
+    
+    return () => clearInterval(interval)
+  }, [authState.isAuthenticated, handleRefreshSession, logout])
 
-  const updateUser = (user: User) => {
-    localStorage.setItem('p2p_user', JSON.stringify(user))
-    setAuthState(prev => ({ ...prev, user }))
+  const value: AuthContextType = {
+    ...authState,
+    login,
+    signup,
+    logout,
+    updateUser,
+    refreshSession: handleRefreshSession,
+    checkSession,
   }
 
   return (
-    <AuthContext.Provider 
-      value={{
-        ...authState,
-        login,
-        signup,
-        logout,
-        updateUser
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
@@ -259,11 +377,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
 }
 
-// Export mock data for other components to use
-export { mockUsers, mockOrganizations }
+// Export for direct access if needed
+export { AuthContext }

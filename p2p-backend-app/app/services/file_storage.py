@@ -243,7 +243,9 @@ class FileStorageService:
     
     def _use_local_storage(self):
         """Initialize local file storage."""
-        storage_path = "/app/storage"  # Inside Docker container
+        # Use local storage directory in project root
+        import os
+        storage_path = os.path.join(os.getcwd(), "storage")
         self.storage = LocalFileStorage(storage_path)
         self.storage_type = "local"
         logger.info(f"Using local file storage at {storage_path}")

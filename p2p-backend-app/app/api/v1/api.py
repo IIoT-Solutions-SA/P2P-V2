@@ -3,8 +3,8 @@
 from datetime import datetime
 from fastapi import APIRouter
 
-# Temporarily disable auth imports due to SuperTokens version compatibility
-# from app.api.v1.auth import auth_router
+# Auth router for organization-based signup and session management
+from app.api.v1.auth import auth_router
 from app.api.v1.users import users_router
 from app.api.v1.organizations import organizations_router
 from app.api.v1.forum import forum_router
@@ -24,8 +24,8 @@ from app.schemas.health import HealthCheckResponse
 
 api_router = APIRouter()
 
-# Include all routers (temporarily disable auth routers)
-# api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
+# Include all routers
+api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
 api_router.include_router(users_router, prefix="/users", tags=["users"])
 api_router.include_router(organizations_router, prefix="/organizations", tags=["organizations"])
 api_router.include_router(files_router, prefix="/files", tags=["files"])

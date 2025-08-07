@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Optional
 from supertokens_python import init, InputAppInfo, SupertokensConfig
-from supertokens_python.recipe import emailpassword, session
+from supertokens_python.recipe import emailpassword, session, dashboard
 from supertokens_python.recipe.emailpassword.interfaces import (
     APIInterface,
     APIOptions,
@@ -11,11 +11,12 @@ from supertokens_python.recipe.emailpassword.interfaces import (
     EmailAlreadyExistsError,
     SignInPostOkResult,
     SignInOkResult,
-    SignInPostNotAllowedResponse,
     EmailExistsGetOkResult,
     GeneralErrorResponse,
 )
 from supertokens_python.recipe.session.interfaces import SessionContainer
+from supertokens_python.recipe.emailpassword.types import FormField
+from typing import List, Union
 from supertokens_python.framework.fastapi import get_middleware
 
 from app.core.config import settings
@@ -38,13 +39,11 @@ def init_supertokens() -> None:
         api_key=settings.SUPERTOKENS_API_KEY,
     )
     
-    # Build app info
+    # Build app info - let SuperTokens use default paths
     app_info = InputAppInfo(
         app_name=settings.PROJECT_NAME,
         api_domain=settings.API_DOMAIN,
         website_domain=settings.WEBSITE_DOMAIN,
-        api_base_path="/auth",
-        website_base_path="/auth",
     )
     
     # Configure recipes
@@ -55,10 +54,19 @@ def init_supertokens() -> None:
                 form_fields=[
                     emailpassword.InputFormField(id="email"),
                     emailpassword.InputFormField(id="password"),
+                    # Organization data fields
+                    emailpassword.InputFormField(id="firstName", optional=True),
+                    emailpassword.InputFormField(id="lastName", optional=True),
+                    emailpassword.InputFormField(id="organizationName", optional=True),
+                    emailpassword.InputFormField(id="organizationSize", optional=True),
+                    emailpassword.InputFormField(id="industry", optional=True),
+                    emailpassword.InputFormField(id="country", optional=True),
+                    emailpassword.InputFormField(id="city", optional=True),
                 ]
             ),
+            # Enable custom overrides for full signup flow
             override=emailpassword.InputOverrideConfig(
-                apis=lambda original_implementation: EmailPasswordAPIOverride(),
+                apis=lambda original_implementation: EmailPasswordAPIOverride(original_implementation),
             )
         ),
         # Session Recipe with custom configuration
@@ -68,6 +76,11 @@ def init_supertokens() -> None:
             session_expired_status_code=401,
             invalid_claim_status_code=403,
         ),
+        # Dashboard Recipe for monitoring and management
+        # NOTE: Dashboard disabled for now - needs proper setup
+        # dashboard.init(
+        #     api_key=getattr(settings, 'SUPERTOKENS_API_KEY', None),
+        # ),
     ]
     
     # Initialize SuperTokens
@@ -84,6 +97,10 @@ def init_supertokens() -> None:
 
 class EmailPasswordAPIOverride(APIInterface):
     """Custom API overrides for EmailPassword recipe."""
+    
+    def __init__(self, original_implementation: APIInterface):
+        super().__init__()
+        self.original_implementation = original_implementation
     
     async def email_exists_get(
         self,
@@ -104,8 +121,10 @@ class EmailPasswordAPIOverride(APIInterface):
     
     async def sign_up_post(
         self,
-        form_fields: list,
+        form_fields: List[FormField],
         tenant_id: str,
+        session: Union[SessionContainer, None],
+        should_try_linking_with_session_user: Union[bool, None],
         api_options: APIOptions,
         user_context: Dict[str, Any],
     ) -> Any:
@@ -113,7 +132,9 @@ class EmailPasswordAPIOverride(APIInterface):
         logger.info("Processing signup request with organization creation")
         
         # Parse form fields
-        field_data = auth_service.parse_signup_form_fields(form_fields)
+        field_data = {}
+        for field in form_fields:
+            field_data[field.id] = field.value
         email = field_data.get("email")
         password = field_data.get("password")
         first_name = field_data.get("firstName", "")
@@ -132,32 +153,37 @@ class EmailPasswordAPIOverride(APIInterface):
         logger.info(f"Processing signup for: {email} ({first_name} {last_name})")
         
         try:
-            # 1. Call SuperTokens default signup first
-            result = await api_options.recipe_implementation.sign_up(
-                email, password, tenant_id, user_context
+            # First, let SuperTokens create the user
+            result = await self.original_implementation.sign_up_post(
+                form_fields, tenant_id, session, should_try_linking_with_session_user, api_options, user_context
             )
             
-            # 2. If SuperTokens signup failed, return the error
-            if not isinstance(result, SignUpOkResult):
-                # Convert recipe result to API result format
-                if hasattr(result, 'user'):
-                    return SignUpPostOkResult(result.user)
-                else:
-                    return GeneralErrorResponse("Signup failed")
+            # If SuperTokens signup was successful, create our database records
+            if hasattr(result, 'user'):  # Check if it's a successful result
+                organization_name = field_data.get("organizationName", "")
+                organization_size = field_data.get("organizationSize", "small")
+                industry = field_data.get("industry", "Other")
+                country = field_data.get("country", "Saudi Arabia")
+                city = field_data.get("city", "")
+                
+                # Now we have the actual SuperTokens user ID
+                supertokens_user_id = result.user.id
+                
+                await self._create_organization_for_user(
+                    supertokens_user_id=supertokens_user_id,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    organization_name=organization_name,
+                    organization_size=organization_size,
+                    industry=industry,
+                    country=country,
+                    city=city,
+                )
+                
+                logger.info(f"Successfully created user and organization for {email}")
             
-            supertokens_user_id = result.user.user_id
-            logger.info(f"SuperTokens user created: {supertokens_user_id}")
-            
-            # 3. Create organization and user in our database
-            await self._create_organization_for_user(
-                supertokens_user_id=supertokens_user_id,
-                email=email,
-                first_name=first_name,
-                last_name=last_name
-            )
-            
-            # Return the proper API result
-            return SignUpPostOkResult(result.user)
+            return result
             
         except ValueError as e:
             logger.error(f"Validation error during signup: {e}")
@@ -168,8 +194,10 @@ class EmailPasswordAPIOverride(APIInterface):
     
     async def sign_in_post(
         self,
-        form_fields: list,
+        form_fields: List[FormField],
         tenant_id: str,
+        session: Union[SessionContainer, None],
+        should_try_linking_with_session_user: Union[bool, None],
         api_options: APIOptions,
         user_context: Dict[str, Any],
     ) -> Any:
@@ -177,7 +205,9 @@ class EmailPasswordAPIOverride(APIInterface):
         logger.info("Processing signin request with organization data")
         
         # Parse form fields
-        field_data = auth_service.parse_signup_form_fields(form_fields)
+        field_data = {}
+        for field in form_fields:
+            field_data[field.id] = field.value
         email = field_data.get("email")
         password = field_data.get("password")
         
@@ -189,28 +219,22 @@ class EmailPasswordAPIOverride(APIInterface):
         
         try:
             # 1. Call SuperTokens default signin first
-            result = await api_options.recipe_implementation.sign_in(
-                email, password, tenant_id, user_context
+            result = await self.original_implementation.sign_in_post(
+                form_fields, tenant_id, session, should_try_linking_with_session_user, api_options, user_context
             )
             
-            # 2. If SuperTokens signin failed, return the error
-            if not isinstance(result, SignInOkResult):
-                # Convert recipe result to API result format if needed
-                if hasattr(result, 'user'):
-                    return SignInPostOkResult(result.user)
-                else:
-                    return SignInPostNotAllowedResponse()
+            # 2. If signin was successful, extract user ID and enhance session
+            if hasattr(result, 'user'):
+                supertokens_user_id = result.user.id
+                logger.info(f"SuperTokens signin successful: {supertokens_user_id}")
+                
+                # 3. Enhance session with user + organization data
+                await self._enhance_session_with_user_data(
+                    supertokens_user_id=supertokens_user_id,
+                    user_context=user_context
+                )
             
-            supertokens_user_id = result.user.user_id
-            logger.info(f"SuperTokens signin successful: {supertokens_user_id}")
-            
-            # 3. Enhance session with user + organization data
-            await self._enhance_session_with_user_data(
-                supertokens_user_id=supertokens_user_id,
-                user_context=user_context
-            )
-            
-            return SignInPostOkResult(result.user)
+            return result
             
         except Exception as e:
             logger.error(f"Unexpected error during signin: {e}")
@@ -258,7 +282,12 @@ class EmailPasswordAPIOverride(APIInterface):
         supertokens_user_id: str,
         email: str, 
         first_name: str,
-        last_name: str
+        last_name: str,
+        organization_name: str = "",
+        organization_size: str = "small",
+        industry: str = "Other",
+        country: str = "Saudi Arabia",
+        city: str = ""
     ) -> None:
         """Create organization and user record for new signup."""
         logger.info(f"Creating organization for SuperTokens user: {supertokens_user_id}")
@@ -266,8 +295,15 @@ class EmailPasswordAPIOverride(APIInterface):
         try:
             # Get database session
             async for db in get_db():
-                # Generate organization name from email domain
-                organization_name = auth_service.extract_organization_name_from_email(email)
+                # Use provided organization name or generate from email domain
+                final_organization_name = organization_name or auth_service.extract_organization_name_from_email(email)
+                
+                # Map industry string to enum
+                industry_type = IndustryType.OTHER
+                try:
+                    industry_type = IndustryType(industry.lower().replace(" ", "_"))
+                except ValueError:
+                    industry_type = IndustryType.OTHER
                 
                 # Create organization and admin user
                 user, organization = await auth_service.create_organization_and_admin_user(
@@ -276,8 +312,11 @@ class EmailPasswordAPIOverride(APIInterface):
                     email=email,
                     first_name=first_name,
                     last_name=last_name,
-                    organization_name=organization_name,
-                    industry_type=IndustryType.OTHER
+                    organization_name=final_organization_name,
+                    industry_type=industry_type,
+                    organization_size=organization_size,
+                    country=country,
+                    city=city,
                 )
                 
                 logger.info(

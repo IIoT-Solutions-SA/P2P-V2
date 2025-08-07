@@ -74,14 +74,17 @@ export function ConnectionTest() {
               <div className="mt-3">
                 <span className="text-gray-600 text-sm">Health Checks:</span>
                 <div className="ml-4 mt-1 space-y-1">
-                  {Object.entries(data.checks).map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                      <span className="text-gray-500 capitalize">{key}:</span>
-                      <span className={`font-medium ${getStatusColor(value as string)}`}>
-                        {value as string}
-                      </span>
-                    </div>
-                  ))}
+                  {Object.entries(data.checks).map(([key, check]) => {
+                    const checkData = check as { status: string; [key: string]: any }
+                    return (
+                      <div key={key} className="flex justify-between text-sm">
+                        <span className="text-gray-500 capitalize">{key}:</span>
+                        <span className={`font-medium ${getStatusColor(checkData.status)}`}>
+                          {checkData.status}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>

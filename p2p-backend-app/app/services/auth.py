@@ -33,6 +33,9 @@ class AuthService:
         last_name: str,
         organization_name: str,
         industry_type: IndustryType = IndustryType.OTHER,
+        organization_size: str = "small",
+        country: str = "Saudi Arabia",
+        city: str = "",
     ) -> Tuple[User, Organization]:
         """
         Create an organization and its admin user atomically.
@@ -71,7 +74,9 @@ class AuthService:
                 max_users=10,
                 max_use_cases=50,
                 max_storage_gb=10,
-                country="SA",
+                company_size=organization_size,
+                country="SA" if country == "Saudi Arabia" else country[:2].upper(),
+                city=city,
                 # Set trial to expire in 30 days
                 trial_ends_at=datetime.utcnow() + timedelta(days=30)
             )

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Forum from './pages/Forum'
@@ -11,18 +11,29 @@ import Signup from './pages/Signup'
 import Navigation, { MobileNavigation, type Page } from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './contexts/AuthContext'
+import { initSuperTokens } from './config/supertokens'
+
+// Initialize SuperTokens on app load
+initSuperTokens()
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('landing')
+  // TEMPORARY: Force login page to debug auth issues
+  const [currentPage, setCurrentPage] = useState<Page>('login')
+  
+  // Debug page changes
+  const handlePageChange = (page: Page) => {
+    console.log('Page changing from', currentPage, 'to', page)
+    setCurrentPage(page)
+  }
 
   const renderPage = () => {
     switch (currentPage) {
       case 'landing':
-        return <LandingPage onNavigate={(page) => setCurrentPage(page as Page)} />
+        return <LandingPage onNavigate={(page) => handlePageChange(page as Page)} />
       case 'dashboard':
         return (
           <ProtectedRoute>
-            <Dashboard onPageChange={setCurrentPage} />
+            <Dashboard onPageChange={handlePageChange} />
           </ProtectedRoute>
         )
       case 'forum':
@@ -46,35 +57,38 @@ function App() {
       case 'usecase-detail':
         return (
           <ProtectedRoute>
-            <UseCaseDetail onBack={() => setCurrentPage('usecases')} />
+            <UseCaseDetail onBack={() => handlePageChange('usecases')} />
           </ProtectedRoute>
         )
       case 'user-management':
         return (
           <ProtectedRoute>
-            <UserManagement onPageChange={setCurrentPage} />
+            <UserManagement onPageChange={handlePageChange} />
           </ProtectedRoute>
         )
       case 'login':
         return <Login 
-          onLoginSuccess={() => setCurrentPage('dashboard')} 
-          onNavigateToSignup={() => setCurrentPage('signup')} 
+          onLoginSuccess={() => handlePageChange('dashboard')} 
+          onNavigateToSignup={() => handlePageChange('signup')} 
         />
       case 'signup':
-        return <Signup onSuccess={() => setCurrentPage('dashboard')} />
+        return <Signup 
+          onNavigateToLogin={() => handlePageChange('login')}
+          onSignupSuccess={() => handlePageChange('dashboard')} 
+        />
       default:
-        return <LandingPage onNavigate={(page) => setCurrentPage(page as Page)} />
+        return <LandingPage onNavigate={(page) => handlePageChange(page as Page)} />
     }
   }
 
   return (
     <AuthProvider>
       <div className="min-h-screen">
-        <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
+        <Navigation currentPage={currentPage} onPageChange={handlePageChange} />
         <main className={currentPage !== 'landing' ? 'pt-0' : ''}>
           {renderPage()}
         </main>
-        <MobileNavigation currentPage={currentPage} onPageChange={setCurrentPage} />
+        <MobileNavigation currentPage={currentPage} onPageChange={handlePageChange} />
       </div>
     </AuthProvider>
   )

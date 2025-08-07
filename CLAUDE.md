@@ -87,6 +87,14 @@ All backend code should use async/await patterns for:
 
 ## Code Writing Requirements
 
+### SuperTokens Documentation
+
+When working with SuperTokens authentication, Claude MUST:
+- **Always refer to the official documentation**: https://supertokens.com/docs
+- Check the latest SuperTokens best practices and API usage
+- Verify compatibility between Core and SDK versions
+- Use the recommended patterns for session management and auth flows
+
 ### Ref MCP Tool Usage
 
 When writing any code for this project, Claude MUST:
@@ -157,6 +165,24 @@ Key areas requiring backend integration:
 - `Dashboard.tsx`: Connect to real statistics API
 - `UseCases.tsx`: Load from backend instead of JSON file
 - `Forum.tsx`: Implement real-time updates via WebSocket
+
+## Backend Management Commands
+
+```bash
+# Quick start (recommended)
+cd p2p-backend-app
+./scripts/start-backend.sh
+
+# Quick stop  
+./scripts/stop-backend.sh
+
+# Troubleshoot issues
+./scripts/troubleshoot-backend.sh
+
+# Manual start (if needed)
+source venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 ## Testing Commands
 
@@ -269,6 +295,11 @@ When completing tasks, Claude MUST update the following documents:
 - Authentication Flow: `/docs/aadil_docs/authentication-flow-guide.md`
 - API Communication: `/docs/aadil_docs/api-communication-guide.md`
 - Development Workflow: `/docs/aadil_docs/development-workflow-guide.md`
+
+### Backend Management
+- **Startup/Shutdown Guide**: `/docs/aadil_docs/backend-startup-shutdown-guide.md`
+- **Quick Scripts**: `/p2p-backend-app/scripts/` directory
+- **Troubleshooting**: Run `./scripts/troubleshoot-backend.sh`
 
 ### Architecture & Testing
 - Architecture: `/docs/architecture/`

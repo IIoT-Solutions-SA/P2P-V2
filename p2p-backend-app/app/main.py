@@ -11,6 +11,12 @@ from starlette.middleware.errors import ServerErrorMiddleware
 
 from app.core.config import settings
 from app.api.v1.api import api_router
+from app.core.supertokens import init_supertokens
+from supertokens_python.framework.fastapi import get_middleware
+from supertokens_python import get_all_cors_headers
+from supertokens_python.recipe.emailpassword.interfaces import APIInterface
+from supertokens_python.recipe.emailpassword import EmailPasswordRecipe  
+from supertokens_python.recipe.session import SessionRecipe
 from app.core.exceptions import (
     http_exception_handler,
     validation_exception_handler,
@@ -29,8 +35,8 @@ from datetime import datetime
 setup_logging()
 logger = get_logger(__name__)
 
-# Temporarily disable SuperTokens initialization
-# init_supertokens()
+# Initialize SuperTokens
+init_supertokens()
 
 
 @asynccontextmanager
@@ -66,11 +72,11 @@ app = FastAPI(
 app.add_middleware(LoggingMiddleware, service_name=settings.PROJECT_NAME)
 app.add_middleware(UserContextMiddleware)
 
-# Temporarily disable SuperTokens middleware
-# app.add_middleware(get_supertokens_middleware())
-
 # Add server error middleware
 app.add_middleware(ServerErrorMiddleware, handler=general_exception_handler)
+
+# Add SuperTokens middleware FIRST (before CORS)
+app.add_middleware(get_middleware())
 
 # Configure CORS
 # Get CORS origins from settings
@@ -80,9 +86,11 @@ if not cors_origins and settings.DEBUG:
 
 logger.info(f"CORS Origins configured: {cors_origins}")
 
-# Temporarily disable SuperTokens CORS headers
-# supertokens_cors_headers = get_all_cors_headers()
-supertokens_cors_headers = []  # Empty list for now
+# Get SuperTokens CORS headers
+supertokens_cors_headers = get_all_cors_headers()
+
+# Ensure front-token is included in exposed headers
+all_exposed_headers = supertokens_cors_headers + ["front-token", "anti-csrf"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -90,6 +98,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Content-Type", "Authorization"] + supertokens_cors_headers,
+    expose_headers=all_exposed_headers,
 )
 
 # Add exception handlers

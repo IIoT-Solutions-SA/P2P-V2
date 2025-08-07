@@ -26,12 +26,12 @@ export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      onLoginSuccess()
-    }
-  }, [isAuthenticated, onLoginSuccess])
+  // Remove automatic redirect - let the form submission handle it
+  // React.useEffect(() => {
+  //   if (isAuthenticated) {
+  //     onLoginSuccess()
+  //   }
+  // }, [isAuthenticated, onLoginSuccess])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

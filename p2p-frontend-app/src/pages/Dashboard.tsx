@@ -20,7 +20,7 @@ import {
   Settings
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-import { ConnectionTest } from '@/components/ConnectionTest'
+// import { ConnectionTest } from '@/components/ConnectionTest'
 import { type Page } from '@/components/Navigation'
 
 interface DashboardProps {
@@ -47,10 +47,12 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
             </div>
 
             {/* Backend Connection Test - TEMPORARY for Phase 0.5 */}
+            {/* Commented out temporarily due to rendering issue
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-6">🔧 Phase 0.5: Backend Integration Test</h2>
               <ConnectionTest />
             </div>
+            */}
 
             {/* Quick Actions */}
             <div>

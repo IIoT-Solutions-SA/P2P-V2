@@ -62,16 +62,14 @@ class TechnologyCategory(str, Enum):
     OTHER = "other"
 
 
-class ForumCategory(str, Enum):
-    """Forum topic categories."""
-    GENERAL_DISCUSSION = "general_discussion"
-    TECHNICAL_HELP = "technical_help"
-    USE_CASE_DISCUSSION = "use_case_discussion"
-    BEST_PRACTICES = "best_practices"
-    INDUSTRY_NEWS = "industry_news"
-    EVENTS_MEETUPS = "events_meetups"
-    PARTNERSHIPS = "partnerships"
-    FEEDBACK_SUGGESTIONS = "feedback_suggestions"
+class ForumCategoryType(str, Enum):
+    """Forum category types based on frontend implementation."""
+    AUTOMATION = "automation"
+    QUALITY_MANAGEMENT = "quality_management"  
+    MAINTENANCE = "maintenance"
+    ARTIFICIAL_INTELLIGENCE = "artificial_intelligence"
+    IOT = "iot"
+    GENERAL = "general"
 
 
 class MessageStatus(str, Enum):

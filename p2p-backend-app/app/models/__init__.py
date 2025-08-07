@@ -7,7 +7,7 @@ from app.models.base import (
     TimestampMixin,
 )
 from app.models.enums import (
-    ForumCategory,
+    ForumCategoryType,
     IndustryType,
     InvitationStatus,
     MessageStatus,
@@ -21,6 +21,14 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.models.file_new import FileMetadataNew as FileMetadata
 from app.models.invitation import UserInvitation
+from app.models.forum import (
+    ForumCategory,
+    ForumTopic,
+    ForumPost,
+    ForumTopicLike,
+    ForumPostLike,
+    ForumTopicView,
+)
 
 __all__ = [
     # Base models
@@ -33,8 +41,15 @@ __all__ = [
     "User",
     "FileMetadata",
     "UserInvitation",
-    # Enums
+    # Forum models
     "ForumCategory",
+    "ForumTopic",
+    "ForumPost",
+    "ForumTopicLike",
+    "ForumPostLike",
+    "ForumTopicView",
+    # Enums
+    "ForumCategoryType",
     "IndustryType",
     "InvitationStatus",
     "MessageStatus",

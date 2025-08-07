@@ -1,6 +1,6 @@
 """User model definitions."""
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 from datetime import datetime
 from sqlmodel import Field, Relationship, SQLModel
 from sqlalchemy import Column, String, ForeignKey, DateTime, func
@@ -11,6 +11,7 @@ from app.models.enums import UserRole, UserStatus
 
 if TYPE_CHECKING:
     from app.models.organization import Organization
+    from app.models.forum import ForumTopic, ForumPost
 
 
 class User(SQLModel, table=True):
@@ -127,6 +128,14 @@ class User(SQLModel, table=True):
     
     # Relationships
     organization: Optional["Organization"] = Relationship(back_populates="users")
+    forum_topics: List["ForumTopic"] = Relationship(
+        back_populates="author",
+        sa_relationship_kwargs={"foreign_keys": "ForumTopic.author_id"}
+    )
+    forum_posts: List["ForumPost"] = Relationship(
+        back_populates="author", 
+        sa_relationship_kwargs={"foreign_keys": "ForumPost.author_id"}
+    )
     
     @property
     def full_name(self) -> str:

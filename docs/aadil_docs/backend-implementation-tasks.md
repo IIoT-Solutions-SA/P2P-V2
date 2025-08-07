@@ -14,7 +14,7 @@ This document provides a detailed task breakdown for each phase of the P2P Sandb
 | Phase 2: Authentication | ✅ Complete | 100% | 8/8 tasks |
 | Phase 3: User Management | ✅ Complete | 100% | 7/7 tasks |
 | Phase 3.5: Frontend Integration | ✅ Complete | 100% | 6/6 tasks |
-| Phase 4: Forum System | 🔴 Not Started | 0% | 0/10 tasks |
+| Phase 4: Forum System | 🟡 In Progress | 83.3% | 5/6 tasks |
 | Phase 5: Use Cases | 🔴 Not Started | 0% | 0/9 tasks |
 | Phase 6: Messaging & Dashboard | 🔴 Not Started | 0% | 0/8 tasks |
 | Phase 7: Testing & Deployment | 🔴 Not Started | 0% | 0/9 tasks |
@@ -97,7 +97,7 @@ This document provides a detailed task breakdown for each phase of the P2P Sandb
 - [x] Install axios for API calls
 - [x] Install supertokens-auth-react
 - [x] Install @tanstack/react-query
-- [x] Install socket.io-client
+- [x] Install socket.io-client (REMOVED - WebSockets not needed per decision doc)
 - [x] Update package.json
 **Acceptance Criteria**:
 - All packages installed without conflicts
@@ -563,32 +563,6 @@ This document provides a detailed task breakdown for each phase of the P2P Sandb
 - Only one best answer
 - Can filter topics
 
-### P4.WS.01 - WebSocket Infrastructure 🔴
-**Effort**: 5 points
-**Dependencies**: P4.FORUM.01
-**Deliverables**:
-- [ ] WebSocket connection manager
-- [ ] Authentication for WS
-- [ ] Room management
-- [ ] Reconnection handling
-**Acceptance Criteria**:
-- WS connections work
-- Auth required
-- Rooms isolated
-
-### P4.WS.02 - Real-time Updates 🔴
-**Effort**: 4 points
-**Dependencies**: P4.WS.01
-**Deliverables**:
-- [ ] New post notifications
-- [ ] Typing indicators
-- [ ] User presence
-- [ ] Edit notifications
-**Acceptance Criteria**:
-- Updates broadcast to room
-- Typing shows/hides
-- Presence accurate
-
 ### P4.SEARCH.01 - Forum Search 🟡
 **Effort**: 3 points
 **Dependencies**: P4.FORUM.01
@@ -852,12 +826,10 @@ This document provides a detailed task breakdown for each phase of the P2P Sandb
 **Deliverables**:
 - [ ] User journey tests
 - [ ] Frontend-backend tests
-- [ ] WebSocket tests
 - [ ] Performance tests
 **Acceptance Criteria**:
 - Critical paths tested
 - Performance acceptable
-- WebSockets reliable
 
 ### P7.PERF.01 - Load Testing 🟡
 **Effort**: 3 points
@@ -1040,32 +1012,16 @@ This document provides a detailed task breakdown for each phase of the P2P Sandb
 - Reply system works properly
 - All forum data persists correctly
 
-### P4.5.WS.01 - WebSocket Integration 🔴
-**Effort**: 3 points
-**Dependencies**: P4.5.FORUM.01
-**Deliverables**:
-- [ ] Implement WebSocket connection management
-- [ ] Connect real-time post updates
-- [ ] Add typing indicators
-- [ ] Connect user presence system
-- [ ] Handle connection errors and reconnection
-**Acceptance Criteria**:
-- Real-time updates work across users
-- WebSocket connections stable
-- Typing indicators functional
-- Graceful error handling
-
 ### P4.5.TEST.01 - Forum Workflow Testing 🟡
 **Effort**: 2 points
-**Dependencies**: P4.5.WS.01
+**Dependencies**: P4.5.FORUM.01
 **Deliverables**:
 - [ ] Test complete forum user journeys
-- [ ] Validate real-time functionality
+- [ ] Validate forum functionality
 - [ ] Test forum search and filtering
 - [ ] Document forum UX improvements
 **Acceptance Criteria**:
 - Forum workflows work smoothly
-- Real-time features responsive
 - Search returns relevant results
 
 ---
@@ -1122,11 +1078,11 @@ This document provides a detailed task breakdown for each phase of the P2P Sandb
 **Deliverables**:
 - [ ] Connect messaging to POST /messages
 - [ ] Connect conversation listing to GET /messages
-- [ ] Implement real-time message updates
+- [ ] Implement message polling for updates
 - [ ] Connect message notifications
 **Acceptance Criteria**:
 - Private messaging works reliably
-- Real-time updates functional
+- Message updates functional
 - Notifications trigger properly
 
 ### P6.5.DASH.01 - Dashboard Integration 🔴
@@ -1169,8 +1125,8 @@ Total: 47 tasks (35 backend + 12 integration)
 - Phase 2: 5 tasks
 - Phase 3: 1 task
 - **Phase 3.5: 3 tasks**
-- Phase 4: 5 tasks
-- **Phase 4.5: 2 tasks**
+- Phase 4: 3 tasks (was 5, removed 2 WebSocket tasks)
+- **Phase 4.5: 1 task (was 2, removed WebSocket task)**
 - Phase 5: 3 tasks
 - **Phase 5.5: 1 task**
 - Phase 6: 3 tasks
@@ -1229,7 +1185,7 @@ Total: 8 tasks
 ### Week 5.5
 - **Phase 4.5: Forum Integration** (3-4 days)
 - Connect forum components to real APIs
-- Implement WebSocket integration
+- Complete forum integration and testing
 
 ### Week 6-7
 - Phase 5: Use Cases Module Backend (2 weeks)
@@ -1283,15 +1239,13 @@ Phase 7 (Testing & Deployment)
 ## Risk Mitigation
 
 ### Technical Risks
-1. **WebSocket Scaling**: Test early with load
-2. **MongoDB Performance**: Index strategy critical
+1. **MongoDB Performance**: Index strategy critical
 3. **File Upload Size**: Implement chunking
 4. **Session Management**: Test SuperTokens thoroughly
 
 ### Schedule Risks
 1. **Authentication Complexity**: May need extra time
-2. **Real-time Features**: WebSockets often tricky
-3. **Testing Coverage**: Automate early
+2. **Testing Coverage**: Automate early
 4. **AWS Deployment**: Practice in staging
 
 ---

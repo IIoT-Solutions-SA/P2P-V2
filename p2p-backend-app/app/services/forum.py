@@ -489,6 +489,156 @@ class ForumService:
         return post_responses
     
     @staticmethod
+    async def get_topic_posts_threaded(
+        db: AsyncSession,
+        topic_id: UUID,
+        organization_id: UUID,
+        skip: int = 0,
+        limit: int = 50
+    ) -> List[ForumPostResponse]:
+        """Get posts for a topic with nested reply threading."""
+        
+        # Verify topic exists
+        topic = await forum_topic.get(db, topic_id)
+        if not topic or topic.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Topic not found"
+            )
+        
+        posts = await forum_post.get_topic_posts_threaded(
+            db, topic_id, organization_id, skip=skip, limit=limit
+        )
+        
+        # Convert to response format with nested replies
+        post_responses = []
+        for post in posts:
+            post_response = ForumPostResponse.model_validate(post)
+            
+            # Add author information
+            if post.author:
+                post_response.author = ForumTopicAuthor(
+                    id=post.author.id,
+                    first_name=post.author.first_name,
+                    last_name=post.author.last_name,
+                    email=post.author.email,
+                    job_title=post.author.job_title,
+                    is_verified=post.author.email_verified
+                )
+            
+            # Process nested replies recursively
+            if post.replies:
+                post_response.replies = await ForumService._build_nested_replies(post.replies)
+            
+            post_responses.append(post_response)
+        
+        return post_responses
+    
+    @staticmethod
+    async def _build_nested_replies(replies: List) -> List[ForumPostResponse]:
+        """Recursively build nested reply structure."""
+        reply_responses = []
+        
+        for reply in replies:
+            # Skip deleted replies
+            if reply.is_deleted:
+                continue
+                
+            reply_response = ForumPostResponse.model_validate(reply)
+            
+            # Add author information
+            if reply.author:
+                reply_response.author = ForumTopicAuthor(
+                    id=reply.author.id,
+                    first_name=reply.author.first_name,
+                    last_name=reply.author.last_name,
+                    email=reply.author.email,
+                    job_title=reply.author.job_title,
+                    is_verified=reply.author.email_verified
+                )
+            
+            # Process nested replies (replies to replies)
+            if reply.replies:
+                reply_response.replies = await ForumService._build_nested_replies(reply.replies)
+            
+            reply_responses.append(reply_response)
+        
+        # Sort replies by creation date (oldest first)
+        reply_responses.sort(key=lambda x: x.created_at)
+        
+        return reply_responses
+    
+    @staticmethod
+    async def get_post_replies(
+        db: AsyncSession,
+        post_id: UUID,
+        organization_id: UUID,
+        skip: int = 0,
+        limit: int = 50
+    ) -> List[ForumPostResponse]:
+        """Get replies for a specific post with nested threading."""
+        
+        # Verify parent post exists
+        parent_post = await forum_post.get(db, post_id)
+        if not parent_post or parent_post.organization_id != organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
+        
+        # Get all direct replies to this post
+        from sqlalchemy import select, and_
+        from sqlalchemy.orm import selectinload
+        from app.models.forum import ForumPost
+        
+        reply_query = (
+            select(ForumPost)
+            .options(
+                selectinload(ForumPost.author),
+                # Load nested replies recursively
+                selectinload(ForumPost.replies).selectinload(ForumPost.author),
+                selectinload(ForumPost.replies).selectinload(ForumPost.replies).selectinload(ForumPost.author)
+            )
+            .where(
+                and_(
+                    ForumPost.parent_post_id == post_id,
+                    ForumPost.organization_id == organization_id,
+                    ForumPost.is_deleted == False
+                )
+            )
+            .order_by(ForumPost.created_at)
+            .offset(skip)
+            .limit(limit)
+        )
+        
+        result = await db.execute(reply_query)
+        replies = result.scalars().all()
+        
+        # Convert to response format with nested replies
+        reply_responses = []
+        for reply in replies:
+            reply_response = ForumPostResponse.model_validate(reply)
+            
+            # Add author information
+            if reply.author:
+                reply_response.author = ForumTopicAuthor(
+                    id=reply.author.id,
+                    first_name=reply.author.first_name,
+                    last_name=reply.author.last_name,
+                    email=reply.author.email,
+                    job_title=reply.author.job_title,
+                    is_verified=reply.author.email_verified
+                )
+            
+            # Process nested replies recursively
+            if reply.replies:
+                reply_response.replies = await ForumService._build_nested_replies(reply.replies)
+            
+            reply_responses.append(reply_response)
+        
+        return reply_responses
+    
+    @staticmethod
     async def create_post(
         db: AsyncSession,
         *,

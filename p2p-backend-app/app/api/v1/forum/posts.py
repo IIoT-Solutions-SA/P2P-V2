@@ -51,6 +51,40 @@ async def get_topic_posts(
     )
 
 
+@router.get("/threaded", response_model=List[ForumPostResponse])
+async def get_topic_posts_threaded(
+    topic_id: UUID = Query(..., description="Topic ID to get posts for"),
+    skip: int = Query(0, ge=0, description="Number of posts to skip"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum number of posts to return"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get posts for a specific topic with nested reply threading.
+    
+    **Parameters:**
+    - `topic_id`: ID of the topic to get posts for
+    - `skip`: Number of top-level posts to skip (for pagination)
+    - `limit`: Maximum number of top-level posts to return (1-100)
+    
+    **Returns:** List of top-level posts with nested replies, ordered by creation date
+    
+    **Note:** This endpoint returns posts in a nested structure where each post
+    can contain a `replies` array with nested responses, matching the frontend
+    Forum.tsx component requirements.
+    """
+    # Ensure user has access to their organization's forum
+    await require_organization_access(db, current_user, current_user.organization_id)
+    
+    return await ForumService.get_topic_posts_threaded(
+        db,
+        topic_id=topic_id,
+        organization_id=current_user.organization_id,
+        skip=skip,
+        limit=limit
+    )
+
+
 @router.post("/", response_model=ForumPostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
     *,
@@ -196,4 +230,37 @@ async def mark_as_best_answer(
         user_id=current_user.id,
         organization_id=current_user.organization_id,
         is_admin=current_user.is_admin
+    )
+
+
+@router.get("/{post_id}/replies", response_model=List[ForumPostResponse])
+async def get_post_replies(
+    post_id: UUID,
+    skip: int = Query(0, ge=0, description="Number of replies to skip"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum number of replies to return"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get replies for a specific post with nested threading.
+    
+    **Parameters:**
+    - `post_id`: ID of the parent post to get replies for
+    - `skip`: Number of replies to skip (for pagination)
+    - `limit`: Maximum number of replies to return (1-100)
+    
+    **Returns:** List of direct replies to the specified post, with their nested replies
+    
+    **Use Case:** This endpoint is useful for lazy loading replies or expanding
+    specific reply threads without loading the entire topic conversation.
+    """
+    # Ensure user has access to their organization's forum
+    await require_organization_access(db, current_user, current_user.organization_id)
+    
+    return await ForumService.get_post_replies(
+        db,
+        post_id=post_id,
+        organization_id=current_user.organization_id,
+        skip=skip,
+        limit=limit
     )

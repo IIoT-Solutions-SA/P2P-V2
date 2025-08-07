@@ -329,6 +329,41 @@ class CRUDForumPost(CRUDBase[ForumPost, ForumPostCreate, ForumPostUpdate]):
         result = await db.execute(query)
         return result.scalars().all()
     
+    async def get_topic_posts_threaded(
+        self,
+        db: AsyncSession,
+        topic_id: UUID,
+        organization_id: UUID,
+        skip: int = 0,
+        limit: int = 50
+    ) -> List[ForumPost]:
+        """Get topic posts with nested reply threading."""
+        # First, get all top-level posts (posts without parent)
+        top_level_query = (
+            select(self.model)
+            .options(
+                selectinload(self.model.author),
+                # Load replies recursively with their authors
+                selectinload(self.model.replies).selectinload(ForumPost.author),
+                # Load nested replies (replies to replies)
+                selectinload(self.model.replies).selectinload(ForumPost.replies).selectinload(ForumPost.author)
+            )
+            .where(
+                and_(
+                    self.model.topic_id == topic_id,
+                    self.model.organization_id == organization_id,
+                    self.model.parent_post_id == None,  # Only top-level posts
+                    self.model.is_deleted == False
+                )
+            )
+            .order_by(self.model.created_at)
+            .offset(skip)
+            .limit(limit)
+        )
+        
+        result = await db.execute(top_level_query)
+        return result.scalars().all()
+    
     async def get_with_replies(
         self,
         db: AsyncSession,

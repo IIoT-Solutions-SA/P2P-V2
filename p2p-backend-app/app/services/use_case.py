@@ -2581,3 +2581,460 @@ class UseCaseService:
         except Exception as e:
             logger.error(f"Error tracking search: {e}")
             # Don't raise - tracking shouldn't break the search
+    
+    @staticmethod
+    async def get_use_cases_by_location(
+        db: AsyncIOMotorDatabase,
+        *,
+        city: Optional[str] = None,
+        region: Optional[str] = None,
+        country: str = "Saudi Arabia",
+        radius_km: Optional[float] = None,
+        center_coordinates: Optional[Dict[str, float]] = None,
+        page: int = 1,
+        page_size: int = 20,
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """
+        Get use cases filtered by location.
+        
+        Features:
+        - Filter by city, region, country
+        - Geospatial search with radius
+        - Location-based aggregations
+        - Distance calculation from center point
+        """
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Build base query
+            query = {"status": UseCaseStatus.PUBLISHED.value}
+            
+            # Access control
+            if not current_user:
+                query["visibility"] = UseCaseVisibility.PUBLIC.value
+            elif current_user.organization_id:
+                query["$or"] = [
+                    {"visibility": UseCaseVisibility.PUBLIC.value},
+                    {
+                        "$and": [
+                            {"visibility": UseCaseVisibility.ORGANIZATION.value},
+                            {"organization_id": str(current_user.organization_id)}
+                        ]
+                    }
+                ]
+            
+            # Location filters
+            location_query = {}
+            
+            if city:
+                location_query["location.city"] = {"$regex": city, "$options": "i"}
+            
+            if region:
+                location_query["location.region"] = {"$regex": region, "$options": "i"}
+            
+            if country:
+                location_query["location.country"] = {"$regex": country, "$options": "i"}
+            
+            # Geospatial query if coordinates and radius provided
+            if center_coordinates and radius_km:
+                # Convert km to meters for MongoDB
+                radius_meters = radius_km * 1000
+                
+                location_query["location.coordinates"] = {
+                    "$near": {
+                        "$geometry": {
+                            "type": "Point",
+                            "coordinates": [
+                                center_coordinates["lng"],
+                                center_coordinates["lat"]
+                            ]
+                        },
+                        "$maxDistance": radius_meters
+                    }
+                }
+            
+            # Combine queries
+            if location_query:
+                query.update(location_query)
+            
+            # Get total count
+            total = await crud.collection.count_documents(query)
+            
+            # Build aggregation pipeline
+            pipeline = [
+                {"$match": query},
+                {"$sort": {"published_at": -1}},
+                {"$skip": (page - 1) * page_size},
+                {"$limit": page_size}
+            ]
+            
+            # Add distance calculation if center point provided
+            if center_coordinates:
+                pipeline.insert(1, {
+                    "$addFields": {
+                        "distance_km": {
+                            "$cond": {
+                                "if": {"$ne": ["$location.coordinates", None]},
+                                "then": {
+                                    "$divide": [
+                                        {
+                                            "$sqrt": {
+                                                "$add": [
+                                                    {
+                                                        "$pow": [
+                                                            {
+                                                                "$multiply": [
+                                                                    {"$subtract": [
+                                                                        {"$arrayElemAt": ["$location.coordinates", 1]},
+                                                                        center_coordinates["lng"]
+                                                                    ]},
+                                                                    111.12  # km per degree longitude at equator
+                                                                ]
+                                                            },
+                                                            2
+                                                        ]
+                                                    },
+                                                    {
+                                                        "$pow": [
+                                                            {
+                                                                "$multiply": [
+                                                                    {"$subtract": [
+                                                                        {"$arrayElemAt": ["$location.coordinates", 0]},
+                                                                        center_coordinates["lat"]
+                                                                    ]},
+                                                                    110.574  # km per degree latitude
+                                                                ]
+                                                            },
+                                                            2
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        1
+                                    ]
+                                },
+                                "else": None
+                            }
+                        }
+                    }
+                })
+                
+                # Sort by distance if calculating
+                pipeline[2] = {"$sort": {"distance_km": 1, "published_at": -1}}
+            
+            # Execute pipeline
+            cursor = crud.collection.aggregate(pipeline)
+            use_cases = await cursor.to_list(None)
+            
+            return {
+                "results": [UseCaseBrief(**uc) for uc in use_cases],
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "location_filter": {
+                    "city": city,
+                    "region": region,
+                    "country": country,
+                    "radius_km": radius_km,
+                    "center": center_coordinates
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting use cases by location: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get use cases by location"
+            )
+    
+    @staticmethod
+    async def get_location_statistics(
+        db: AsyncIOMotorDatabase,
+        *,
+        group_by: str = "city",  # city, region, country
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """
+        Get statistics about use case locations.
+        
+        Returns distribution of use cases by location.
+        """
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Base query
+            base_query = {"status": UseCaseStatus.PUBLISHED.value}
+            
+            # Access control
+            if not current_user:
+                base_query["visibility"] = UseCaseVisibility.PUBLIC.value
+            elif current_user.organization_id:
+                base_query["$or"] = [
+                    {"visibility": UseCaseVisibility.PUBLIC.value},
+                    {
+                        "$and": [
+                            {"visibility": UseCaseVisibility.ORGANIZATION.value},
+                            {"organization_id": str(current_user.organization_id)}
+                        ]
+                    }
+                ]
+            
+            # Determine group field
+            group_field = f"$location.{group_by}"
+            
+            # Build aggregation pipeline
+            pipeline = [
+                {"$match": base_query},
+                {"$match": {f"location.{group_by}": {"$exists": True, "$ne": None}}},
+                {
+                    "$group": {
+                        "_id": group_field,
+                        "count": {"$sum": 1},
+                        "avg_roi": {"$avg": "$results.roi.percentage"},
+                        "total_views": {"$sum": "$metrics.views"},
+                        "total_likes": {"$sum": "$metrics.likes"},
+                        "categories": {"$addToSet": "$category"},
+                        "latest_date": {"$max": "$published_at"}
+                    }
+                },
+                {"$sort": {"count": -1}},
+                {"$limit": 50}
+            ]
+            
+            # Execute aggregation
+            cursor = crud.collection.aggregate(pipeline)
+            locations = await cursor.to_list(None)
+            
+            # Format results
+            formatted_locations = []
+            for loc in locations:
+                if loc["_id"]:  # Skip null locations
+                    formatted_locations.append({
+                        group_by: loc["_id"],
+                        "use_case_count": loc["count"],
+                        "average_roi": round(loc["avg_roi"], 2) if loc["avg_roi"] else None,
+                        "total_views": loc["total_views"],
+                        "total_likes": loc["total_likes"],
+                        "categories": loc["categories"],
+                        "latest_publication": loc["latest_date"]
+                    })
+            
+            # Get totals
+            total_pipeline = [
+                {"$match": base_query},
+                {"$match": {f"location.{group_by}": {"$exists": True, "$ne": None}}},
+                {"$count": "total"}
+            ]
+            
+            total_cursor = crud.collection.aggregate(total_pipeline)
+            total_result = await total_cursor.to_list(1)
+            total_use_cases = total_result[0]["total"] if total_result else 0
+            
+            return {
+                "group_by": group_by,
+                "locations": formatted_locations,
+                "total_use_cases": total_use_cases,
+                "unique_locations": len(formatted_locations)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting location statistics: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get location statistics"
+            )
+    
+    @staticmethod
+    async def update_use_case_location(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        city: Optional[str] = None,
+        region: Optional[str] = None,
+        country: Optional[str] = None,
+        coordinates: Optional[Dict[str, float]] = None,
+        current_user: User
+    ) -> Dict[str, str]:
+        """Update location information for a use case."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get use case
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check permissions
+            if str(current_user.id) != use_case.published_by.user_id and current_user.role != "admin":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have permission to update this use case"
+                )
+            
+            # Build location update
+            location_update = {}
+            if city is not None:
+                location_update["location.city"] = city
+            if region is not None:
+                location_update["location.region"] = region
+            if country is not None:
+                location_update["location.country"] = country
+            if coordinates is not None:
+                # Validate coordinates
+                if "lat" not in coordinates or "lng" not in coordinates:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Coordinates must include 'lat' and 'lng'"
+                    )
+                
+                # Validate ranges
+                if not (-90 <= coordinates["lat"] <= 90):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Latitude must be between -90 and 90"
+                    )
+                
+                if not (-180 <= coordinates["lng"] <= 180):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Longitude must be between -180 and 180"
+                    )
+                
+                # Store as GeoJSON format for MongoDB geospatial queries
+                location_update["location.coordinates"] = {
+                    "type": "Point",
+                    "coordinates": [coordinates["lng"], coordinates["lat"]]
+                }
+            
+            if not location_update:
+                return {
+                    "message": "No location updates provided",
+                    "use_case_id": use_case_id
+                }
+            
+            # Update timestamp
+            location_update["updated_at"] = datetime.utcnow()
+            
+            # Update in database
+            await crud.collection.update_one(
+                {"id": use_case_id},
+                {"$set": location_update}
+            )
+            
+            logger.info(f"Updated location for use case {use_case_id}")
+            
+            return {
+                "message": "Location updated successfully",
+                "use_case_id": use_case_id
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating use case location: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update location"
+            )
+    
+    @staticmethod
+    async def get_nearby_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        radius_km: float = 50,
+        limit: int = 10,
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """Get use cases near a specific use case."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get the reference use case
+            reference_case = await crud.get(use_case_id=use_case_id)
+            if not reference_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check if reference case has coordinates
+            if not reference_case.location or not reference_case.location.coordinates:
+                return {
+                    "message": "Reference use case has no location coordinates",
+                    "nearby_use_cases": []
+                }
+            
+            # Get coordinates
+            ref_coords = reference_case.location.coordinates
+            
+            # Find nearby use cases
+            result = await UseCaseService.get_use_cases_by_location(
+                db,
+                center_coordinates=ref_coords,
+                radius_km=radius_km,
+                page=1,
+                page_size=limit + 1,  # +1 to exclude self
+                current_user=current_user
+            )
+            
+            # Filter out the reference use case
+            nearby_cases = [
+                uc for uc in result["results"]
+                if uc.id != use_case_id
+            ][:limit]
+            
+            return {
+                "reference_use_case": {
+                    "id": use_case_id,
+                    "title": reference_case.title,
+                    "location": {
+                        "city": reference_case.location.city,
+                        "region": reference_case.location.region,
+                        "coordinates": ref_coords
+                    }
+                },
+                "nearby_use_cases": nearby_cases,
+                "radius_km": radius_km,
+                "total_found": len(nearby_cases)
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting nearby use cases: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get nearby use cases"
+            )
+    
+    @staticmethod
+    async def create_location_index(db: AsyncIOMotorDatabase) -> Dict[str, str]:
+        """Create geospatial index for location-based queries."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Create 2dsphere index for geospatial queries
+            await crud.collection.create_index([("location.coordinates", "2dsphere")])
+            
+            # Create text indexes for location fields
+            await crud.collection.create_index([("location.city", "text")])
+            await crud.collection.create_index([("location.region", "text")])
+            
+            logger.info("Created geospatial and text indexes for location")
+            
+            return {
+                "message": "Location indexes created successfully"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating location index: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create location index"
+            )

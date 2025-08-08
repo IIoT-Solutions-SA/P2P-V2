@@ -1150,6 +1150,204 @@ async def get_search_history(
     return {"history": history}
 
 
+@router.get("/location/filter")
+async def get_use_cases_by_location(
+    city: Optional[str] = Query(None, description="Filter by city"),
+    region: Optional[str] = Query(None, description="Filter by region/state"),
+    country: str = Query("Saudi Arabia", description="Filter by country"),
+    radius_km: Optional[float] = Query(None, ge=1, le=500, description="Search radius in kilometers"),
+    lat: Optional[float] = Query(None, ge=-90, le=90, description="Center latitude for radius search"),
+    lng: Optional[float] = Query(None, ge=-180, le=180, description="Center longitude for radius search"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get use cases filtered by location.
+    
+    **Features:**
+    - Filter by city, region, or country
+    - Geospatial search with radius from center point
+    - Distance calculation for each result
+    - Respects visibility permissions
+    
+    **Geospatial Search:**
+    - Provide lat, lng, and radius_km for radius-based search
+    - Results sorted by distance from center point
+    - Distance included in response for each use case
+    
+    **Use Cases:**
+    - Find implementations in specific cities
+    - Discover nearby success stories
+    - Regional market analysis
+    """
+    # Build center coordinates if provided
+    center_coordinates = None
+    if lat is not None and lng is not None:
+        center_coordinates = {"lat": lat, "lng": lng}
+    
+    result = await UseCaseService.get_use_cases_by_location(
+        db,
+        city=city,
+        region=region,
+        country=country,
+        radius_km=radius_km,
+        center_coordinates=center_coordinates,
+        page=page,
+        page_size=page_size,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.get("/location/statistics")
+async def get_location_statistics(
+    group_by: str = Query("city", regex="^(city|region|country)$", description="Group statistics by"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get statistics about use case locations.
+    
+    **Features:**
+    - Distribution of use cases by location
+    - Average ROI per location
+    - Total engagement metrics per location
+    - Popular categories per location
+    
+    **Group By Options:**
+    - city: City-level statistics
+    - region: Region/state-level statistics  
+    - country: Country-level statistics
+    
+    **Use Cases:**
+    - Market analysis and trends
+    - Regional performance comparison
+    - Investment opportunity identification
+    """
+    result = await UseCaseService.get_location_statistics(
+        db,
+        group_by=group_by,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.patch("/{use_case_id}/location")
+async def update_use_case_location(
+    use_case_id: str,
+    city: Optional[str] = Query(None, description="City name"),
+    region: Optional[str] = Query(None, description="Region/state name"),
+    country: Optional[str] = Query(None, description="Country name"),
+    lat: Optional[float] = Query(None, ge=-90, le=90, description="Latitude"),
+    lng: Optional[float] = Query(None, ge=-180, le=180, description="Longitude"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Update location information for a use case.
+    
+    **Features:**
+    - Update city, region, country
+    - Set GPS coordinates for geospatial features
+    - Validation of coordinate ranges
+    - Permission-based access control
+    
+    **Permissions:**
+    - Only the owner or admin can update location
+    
+    **Coordinates:**
+    - Latitude: -90 to 90
+    - Longitude: -180 to 180
+    - Used for radius searches and distance calculations
+    """
+    # Build coordinates if provided
+    coordinates = None
+    if lat is not None and lng is not None:
+        coordinates = {"lat": lat, "lng": lng}
+    
+    result = await UseCaseService.update_use_case_location(
+        db,
+        use_case_id=use_case_id,
+        city=city,
+        region=region,
+        country=country,
+        coordinates=coordinates,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.get("/{use_case_id}/nearby")
+async def get_nearby_use_cases(
+    use_case_id: str,
+    radius_km: float = Query(50, ge=1, le=500, description="Search radius in kilometers"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get use cases near a specific use case.
+    
+    **Features:**
+    - Find use cases within radius of reference case
+    - Distance calculation from reference point
+    - Sorted by proximity
+    - Excludes the reference use case itself
+    
+    **Requirements:**
+    - Reference use case must have coordinates
+    - Results respect visibility permissions
+    
+    **Use Cases:**
+    - Find similar implementations nearby
+    - Regional clustering analysis
+    - Collaboration opportunities
+    """
+    result = await UseCaseService.get_nearby_use_cases(
+        db,
+        use_case_id=use_case_id,
+        radius_km=radius_km,
+        limit=limit,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.post("/location/create-index")
+async def create_location_index(
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Create geospatial indexes for location queries.
+    
+    **Admin Only**: This endpoint requires admin privileges.
+    
+    **Creates:**
+    - 2dsphere index for coordinate-based queries
+    - Text indexes for city and region searches
+    
+    **Note:**
+    - Run once during initial setup
+    - Improves performance of location-based queries
+    """
+    # Check admin permission
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can create indexes"
+        )
+    
+    result = await UseCaseService.create_location_index(db)
+    return result
+
+
 @router.get("/featured", response_model=UseCaseListResponse)
 async def get_featured_use_cases(
     page: int = Query(1, ge=1, description="Page number"),

@@ -26,6 +26,7 @@ from app.db.session import init_db, close_db, check_postgres_health, check_mongo
 from app.schemas.health import HealthCheckResponse
 from app.core.logging import setup_logging, get_logger
 from app.middleware.logging import LoggingMiddleware, UserContextMiddleware
+from app.middleware.performance import PerformanceMiddleware
 # Temporarily disable SuperTokens due to version compatibility
 # from app.core.supertokens import init_supertokens, get_supertokens_middleware
 # from supertokens_python import get_all_cors_headers
@@ -71,6 +72,7 @@ app = FastAPI(
 # Add logging middleware (should be first to catch all requests)
 app.add_middleware(LoggingMiddleware, service_name=settings.PROJECT_NAME)
 app.add_middleware(UserContextMiddleware)
+app.add_middleware(PerformanceMiddleware, slow_request_threshold=1000.0)
 
 # Add server error middleware
 app.add_middleware(ServerErrorMiddleware, handler=general_exception_handler)

@@ -20,6 +20,7 @@ from app.models.message import Message, Conversation
 from app.models.notification import Notification
 from app.models.use_case import UseCase, UseCaseStatus, UseCaseCategory
 from app.core.logging import logger
+from app.services.performance import cache_result
 import asyncio
 
 
@@ -27,6 +28,7 @@ class DashboardService:
     """Service for dashboard statistics and analytics."""
     
     @staticmethod
+    @cache_result(ttl_seconds=300, key_prefix="dashboard_stats")
     async def get_dashboard_statistics(
         db: Session,
         mongo_db: AsyncIOMotorDatabase,
@@ -430,6 +432,7 @@ class DashboardService:
         return trending_cases
     
     @staticmethod
+    @cache_result(ttl_seconds=60, key_prefix="quick_stats")
     async def get_quick_stats(
         db: Session,
         mongo_db: AsyncIOMotorDatabase,

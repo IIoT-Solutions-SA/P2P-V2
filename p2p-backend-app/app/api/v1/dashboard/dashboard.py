@@ -1,6 +1,7 @@
 """Dashboard API endpoints."""
 
 from typing import Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlmodel import Session
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -10,11 +11,14 @@ from app.core.auth import get_current_active_user
 from app.models.user import User
 from app.models.dashboard import (
     DashboardStatistics, QuickStats, TimeRange, ActivityFeedResponse,
-    TrendingContentResponse
+    TrendingContentResponse, PerformanceMetrics
 )
 from app.services.dashboard import DashboardService
 from app.services.activity_feed import ActivityFeedService
 from app.services.trending import TrendingService, TrendingAlgorithm
+from app.services.performance import (
+    performance_service, cache_service, DatabaseOptimizer
+)
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -179,6 +183,87 @@ async def get_trending_by_category(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch trending content by category: {str(e)}"
         )
+
+
+@router.get("/performance", response_model=PerformanceMetrics)
+async def get_performance_metrics(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get performance metrics and statistics."""
+    try:
+        return await performance_service.get_performance_metrics()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch performance metrics: {str(e)}"
+        )
+
+
+@router.get("/performance/cache")
+async def get_cache_stats(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get cache statistics."""
+    return cache_service.get_stats()
+
+
+@router.post("/performance/cache/clear")
+async def clear_cache(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Clear all cache entries."""
+    cache_service.clear()
+    return {"message": "Cache cleared successfully"}
+
+
+@router.post("/performance/cache/cleanup")
+async def cleanup_cache(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Clean expired cache entries."""
+    result = await performance_service.clean_cache()
+    return result
+
+
+@router.get("/performance/database/indexes")
+async def get_recommended_indexes(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get recommended database indexes for performance optimization."""
+    return {
+        "recommended_indexes": DatabaseOptimizer.get_recommended_indexes(),
+        "optimization_tips": DatabaseOptimizer.get_query_optimization_tips(),
+        "generated_at": datetime.utcnow().isoformat()
+    }
+
+
+@router.get("/performance/database/slow-queries")
+async def get_slow_queries(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get slow query analysis."""
+    try:
+        slow_queries = await performance_service.get_slow_queries()
+        return {
+            "slow_queries": slow_queries,
+            "analysis_time": datetime.utcnow().isoformat(),
+            "recommendations": await performance_service.optimize_database_queries()
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze slow queries: {str(e)}"
+        )
+
+
+@router.post("/performance/reset")
+async def reset_performance_metrics(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Reset performance metrics (admin only)."""
+    # In production, add admin role check
+    performance_service.reset_metrics()
+    return {"message": "Performance metrics reset successfully"}
 
 
 @router.get("/health")

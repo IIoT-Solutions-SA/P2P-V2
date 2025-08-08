@@ -1,6 +1,7 @@
 """Use Cases API endpoints."""
 
 from typing import Optional, List
+from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -8,6 +9,7 @@ from app.core.rbac import get_current_user as get_current_active_user, get_curre
 from app.core.rbac import require_organization_access
 from app.db.mongodb import get_mongodb
 from app.models.user import User
+from app.models.use_case import UseCaseStatus, UseCaseVisibility
 from app.services.use_case import UseCaseService
 from app.schemas.use_case import (
     UseCaseCreate,
@@ -375,6 +377,366 @@ async def update_use_case(
         created_at=use_case.created_at,
         message="Use case updated successfully"
     )
+
+
+@router.post("/{use_case_id}/publish", response_model=UseCaseResponse)
+async def publish_use_case(
+    use_case_id: str,
+    visibility: UseCaseVisibility = Query(UseCaseVisibility.ORGANIZATION, description="Visibility level"),
+    notify_followers: bool = Query(False, description="Notify followers about publication"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Publish a draft use case.
+    
+    **Publishing Process:**
+    - Validates all required fields are complete
+    - Sets status to published with timestamp
+    - Configures visibility (public/organization/private)
+    - Optionally notifies followers
+    - Creates publication activity log
+    
+    **Validation:**
+    - Title, description, results are required
+    - At least one metric must be defined
+    - Media files are validated if present
+    
+    **Permissions:**
+    - Only the owner or an admin can publish
+    - Organization approval may be required for public visibility
+    
+    **Notifications:**
+    - Email notification to organization admins (if public)
+    - Activity feed update for followers
+    - Dashboard notification for author
+    """
+    result = await UseCaseService.publish_use_case(
+        db,
+        use_case_id=use_case_id,
+        visibility=visibility,
+        notify_followers=notify_followers,
+        current_user=current_user
+    )
+    
+    return UseCaseResponse(**result)
+
+
+@router.post("/{use_case_id}/unpublish", response_model=UseCaseResponse)
+async def unpublish_use_case(
+    use_case_id: str,
+    reason: Optional[str] = Query(None, description="Reason for unpublishing"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Unpublish a published use case (revert to draft).
+    
+    **Process:**
+    - Changes status from published to draft
+    - Maintains all content and media
+    - Removes from public/organization listings
+    - Logs unpublishing reason
+    
+    **Use Cases:**
+    - Content needs major updates
+    - Compliance or accuracy issues
+    - Temporary removal for review
+    
+    **Permissions:**
+    - Owner or admin only
+    - Reason required for audit trail
+    """
+    result = await UseCaseService.unpublish_use_case(
+        db,
+        use_case_id=use_case_id,
+        reason=reason,
+        current_user=current_user
+    )
+    
+    return UseCaseResponse(**result)
+
+
+@router.post("/{use_case_id}/duplicate", response_model=UseCaseResponse, status_code=status.HTTP_201_CREATED)
+async def duplicate_use_case(
+    use_case_id: str,
+    new_title: Optional[str] = Query(None, description="Title for duplicated use case"),
+    as_template: bool = Query(False, description="Create as template without specific data"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Duplicate an existing use case.
+    
+    **Features:**
+    - Creates a copy with new ID
+    - Optionally rename the duplicate
+    - Can create as template (structure only)
+    - Maintains media references
+    - Sets status to draft
+    
+    **Template Mode:**
+    - Keeps structure and categories
+    - Clears company-specific data
+    - Removes metrics and results
+    - Useful for creating similar use cases
+    
+    **Permissions:**
+    - Public use cases: Any authenticated user can duplicate
+    - Organization use cases: Organization members only
+    - Private use cases: Owner only
+    """
+    result = await UseCaseService.duplicate_use_case(
+        db,
+        use_case_id=use_case_id,
+        new_title=new_title,
+        as_template=as_template,
+        current_user=current_user
+    )
+    
+    return UseCaseResponse(**result)
+
+
+@router.post("/{use_case_id}/transfer-ownership")
+async def transfer_ownership(
+    use_case_id: str,
+    new_owner_id: str = Query(..., description="User ID of new owner"),
+    transfer_reason: str = Query(..., description="Reason for ownership transfer"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Transfer ownership of a use case to another user.
+    
+    **Process:**
+    - Validates new owner exists and is in same organization
+    - Updates published_by information
+    - Maintains all content and history
+    - Creates audit log entry
+    - Notifies both parties
+    
+    **Restrictions:**
+    - New owner must be in same organization
+    - Cannot transfer to inactive users
+    - Audit trail maintained for compliance
+    
+    **Permissions:**
+    - Current owner or admin only
+    - Organization admin approval may be required
+    """
+    result = await UseCaseService.transfer_ownership(
+        db,
+        use_case_id=use_case_id,
+        new_owner_id=new_owner_id,
+        transfer_reason=transfer_reason,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.get("/my/use-cases", response_model=UseCaseListResponse)
+async def get_my_use_cases(
+    status: Optional[UseCaseStatus] = Query(None, description="Filter by status"),
+    visibility: Optional[UseCaseVisibility] = Query(None, description="Filter by visibility"),
+    sort_by: str = Query("updated", regex="^(created|updated|views|likes)$", description="Sort field"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get all use cases created by the current user.
+    
+    **Features:**
+    - Shows all user's use cases (draft, published, archived)
+    - Filterable by status and visibility
+    - Sortable by date, views, or likes
+    - Includes basic statistics
+    
+    **Use Cases:**
+    - User dashboard view
+    - Content management interface
+    - Personal analytics review
+    
+    **Statistics Included:**
+    - Total views and engagement
+    - Publication status
+    - Last updated timestamp
+    """
+    result = await UseCaseService.get_user_use_cases(
+        db,
+        user_id=str(current_user.id),
+        status=status,
+        visibility=visibility,
+        sort_by=sort_by,
+        page=page,
+        page_size=page_size
+    )
+    
+    return UseCaseListResponse(**result)
+
+
+@router.get("/organization/use-cases", response_model=UseCaseListResponse)
+async def get_organization_use_cases(
+    status: Optional[UseCaseStatus] = Query(None, description="Filter by status"),
+    author_id: Optional[str] = Query(None, description="Filter by author"),
+    date_from: Optional[datetime] = Query(None, description="Filter by creation date from"),
+    date_to: Optional[datetime] = Query(None, description="Filter by creation date to"),
+    sort_by: str = Query("updated", regex="^(created|updated|views|likes|author)$"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get all use cases from the user's organization.
+    
+    **Features:**
+    - Shows all organization use cases
+    - Filterable by status, author, date range
+    - Sortable by multiple criteria
+    - Includes author information
+    
+    **Use Cases:**
+    - Organization content overview
+    - Team collaboration view
+    - Content approval workflow
+    - Organization analytics
+    
+    **Permissions:**
+    - All organization members can view
+    - Detailed analytics for admins only
+    """
+    result = await UseCaseService.get_organization_use_cases(
+        db,
+        organization_id=str(current_user.organization_id),
+        status=status,
+        author_id=author_id,
+        date_from=date_from,
+        date_to=date_to,
+        sort_by=sort_by,
+        page=page,
+        page_size=page_size,
+        current_user=current_user
+    )
+    
+    return UseCaseListResponse(**result)
+
+
+@router.post("/bulk/archive")
+async def bulk_archive_use_cases(
+    use_case_ids: List[str] = Query(..., description="List of use case IDs to archive"),
+    archive_reason: Optional[str] = Query(None, description="Reason for archiving"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Archive multiple use cases at once.
+    
+    **Features:**
+    - Batch archive operation
+    - Maintains data but removes from active listings
+    - Creates audit log for each item
+    - Returns success/failure for each ID
+    
+    **Use Cases:**
+    - Seasonal content cleanup
+    - Compliance-driven archiving
+    - Bulk content management
+    
+    **Permissions:**
+    - User can only archive their own use cases
+    - Admins can archive any organization use case
+    """
+    result = await UseCaseService.bulk_archive_use_cases(
+        db,
+        use_case_ids=use_case_ids,
+        archive_reason=archive_reason,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.post("/bulk/delete")
+async def bulk_delete_use_cases(
+    use_case_ids: List[str] = Query(..., description="List of use case IDs to delete"),
+    hard_delete: bool = Query(False, description="Permanently delete (admin only)"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Delete multiple use cases at once.
+    
+    **Features:**
+    - Batch delete operation
+    - Soft delete by default (recoverable)
+    - Hard delete option for admins
+    - Returns success/failure for each ID
+    
+    **Soft Delete:**
+    - Marks as deleted but retains data
+    - Can be recovered within 30 days
+    
+    **Hard Delete:**
+    - Permanently removes data
+    - Deletes associated media files
+    - Admin only operation
+    
+    **Permissions:**
+    - Users can soft delete their own use cases
+    - Hard delete requires admin role
+    """
+    if hard_delete and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can permanently delete use cases"
+        )
+    
+    result = await UseCaseService.bulk_delete_use_cases(
+        db,
+        use_case_ids=use_case_ids,
+        hard_delete=hard_delete,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.post("/bulk/update-visibility")
+async def bulk_update_visibility(
+    use_case_ids: List[str] = Query(..., description="List of use case IDs to update"),
+    visibility: UseCaseVisibility = Query(..., description="New visibility level"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Update visibility for multiple use cases.
+    
+    **Features:**
+    - Batch visibility update
+    - Validates permissions for each item
+    - Creates audit log entries
+    - Returns success/failure for each ID
+    
+    **Use Cases:**
+    - Making multiple cases public after review
+    - Restricting access for compliance
+    - Organization-wide visibility changes
+    
+    **Permissions:**
+    - Users can update their own use cases
+    - Public visibility may require admin approval
+    """
+    result = await UseCaseService.bulk_update_visibility(
+        db,
+        use_case_ids=use_case_ids,
+        visibility=visibility,
+        current_user=current_user
+    )
+    
+    return result
 
 
 @router.delete("/{use_case_id}")

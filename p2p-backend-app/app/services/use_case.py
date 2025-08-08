@@ -1471,3 +1471,714 @@ class UseCaseService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to toggle save"
             )
+    
+    @staticmethod
+    async def publish_use_case(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        visibility: UseCaseVisibility,
+        notify_followers: bool,
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Publish a draft use case."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get the use case
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check permissions
+            if str(current_user.id) != use_case.published_by.user_id and current_user.role != "admin":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have permission to publish this use case"
+                )
+            
+            # Validate required fields for publication
+            if not use_case.title or not use_case.description:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Title and description are required for publication"
+                )
+            
+            if not use_case.results or not use_case.results.metrics:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="At least one result metric is required for publication"
+                )
+            
+            # Update status and visibility
+            update_data = {
+                "status": UseCaseStatus.PUBLISHED.value,
+                "visibility": visibility.value,
+                "published_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            await crud.collection.update_one(
+                {"id": use_case_id},
+                {"$set": update_data}
+            )
+            
+            # TODO: Send notifications if requested
+            if notify_followers:
+                logger.info(f"Would notify followers about use case {use_case_id} publication")
+            
+            logger.info(f"Published use case {use_case_id} with visibility {visibility.value}")
+            
+            return {
+                "id": use_case_id,
+                "title": use_case.title,
+                "status": UseCaseStatus.PUBLISHED,
+                "message": f"Use case published successfully with {visibility.value} visibility"
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error publishing use case {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to publish use case"
+            )
+    
+    @staticmethod
+    async def unpublish_use_case(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        reason: Optional[str],
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Unpublish a use case (revert to draft)."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get the use case
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check permissions
+            if str(current_user.id) != use_case.published_by.user_id and current_user.role != "admin":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have permission to unpublish this use case"
+                )
+            
+            # Update status
+            update_data = {
+                "status": UseCaseStatus.DRAFT.value,
+                "updated_at": datetime.utcnow(),
+                "unpublished_at": datetime.utcnow(),
+                "unpublish_reason": reason
+            }
+            
+            await crud.collection.update_one(
+                {"id": use_case_id},
+                {"$set": update_data}
+            )
+            
+            logger.info(f"Unpublished use case {use_case_id} with reason: {reason}")
+            
+            return {
+                "id": use_case_id,
+                "title": use_case.title,
+                "status": UseCaseStatus.DRAFT,
+                "message": "Use case unpublished and reverted to draft"
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error unpublishing use case {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to unpublish use case"
+            )
+    
+    @staticmethod
+    async def duplicate_use_case(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        new_title: Optional[str],
+        as_template: bool,
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Duplicate a use case."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get the original use case
+            original = await crud.get(use_case_id=use_case_id)
+            if not original:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check access permissions
+            if original.visibility == UseCaseVisibility.PRIVATE:
+                if str(current_user.id) != original.published_by.user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You don't have permission to duplicate this private use case"
+                    )
+            elif original.visibility == UseCaseVisibility.ORGANIZATION:
+                if str(current_user.organization_id) != original.organization_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You don't have permission to duplicate this organization use case"
+                    )
+            
+            # Create duplicate
+            duplicate_data = original.model_dump()
+            duplicate_data["id"] = str(uuid4())
+            duplicate_data["title"] = new_title or f"Copy of {original.title}"
+            duplicate_data["status"] = UseCaseStatus.DRAFT.value
+            duplicate_data["visibility"] = UseCaseVisibility.PRIVATE.value
+            duplicate_data["published_by"] = {
+                "user_id": str(current_user.id),
+                "name": f"{current_user.first_name} {current_user.last_name}",
+                "title": current_user.title,
+                "email": current_user.email
+            }
+            duplicate_data["organization_id"] = str(current_user.organization_id)
+            duplicate_data["created_at"] = datetime.utcnow()
+            duplicate_data["updated_at"] = datetime.utcnow()
+            duplicate_data["published_at"] = None
+            
+            # Clear metrics if template mode
+            if as_template:
+                duplicate_data["company"] = ""
+                duplicate_data["results"] = {"metrics": [], "roi": None}
+                duplicate_data["metrics"] = {"views": 0, "likes": 0, "saves": 0}
+            
+            # Reset engagement metrics
+            duplicate_data["metrics"] = {"views": 0, "likes": 0, "saves": 0}
+            duplicate_data["verification"] = {"status": "unverified"}
+            duplicate_data["featured"] = {"status": False}
+            
+            # Insert duplicate
+            await crud.collection.insert_one(duplicate_data)
+            
+            logger.info(f"Duplicated use case {use_case_id} as {duplicate_data['id']}")
+            
+            return {
+                "id": duplicate_data["id"],
+                "title": duplicate_data["title"],
+                "status": UseCaseStatus.DRAFT,
+                "message": f"Use case duplicated successfully{'as template' if as_template else ''}"
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error duplicating use case {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to duplicate use case"
+            )
+    
+    @staticmethod
+    async def transfer_ownership(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        new_owner_id: str,
+        transfer_reason: str,
+        current_user: User
+    ) -> Dict[str, str]:
+        """Transfer ownership of a use case."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get the use case
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check permissions
+            if str(current_user.id) != use_case.published_by.user_id and current_user.role != "admin":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have permission to transfer ownership"
+                )
+            
+            # Get new owner
+            from app.crud.user import get_user_crud
+            user_crud = get_user_crud(db)
+            new_owner = await user_crud.get(new_owner_id)
+            
+            if not new_owner:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="New owner not found"
+                )
+            
+            if str(new_owner.organization_id) != use_case.organization_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="New owner must be in the same organization"
+                )
+            
+            if not new_owner.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot transfer to inactive user"
+                )
+            
+            # Update ownership
+            update_data = {
+                "published_by": {
+                    "user_id": str(new_owner.id),
+                    "name": f"{new_owner.first_name} {new_owner.last_name}",
+                    "title": new_owner.title,
+                    "email": new_owner.email
+                },
+                "updated_at": datetime.utcnow(),
+                "ownership_transferred_at": datetime.utcnow(),
+                "ownership_transfer_reason": transfer_reason,
+                "previous_owner_id": use_case.published_by.user_id
+            }
+            
+            await crud.collection.update_one(
+                {"id": use_case_id},
+                {"$set": update_data}
+            )
+            
+            logger.info(
+                f"Transferred ownership of use case {use_case_id} from {current_user.id} to {new_owner_id}"
+            )
+            
+            return {
+                "message": "Ownership transferred successfully",
+                "use_case_id": use_case_id,
+                "new_owner_id": new_owner_id
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error transferring ownership of {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to transfer ownership"
+            )
+    
+    @staticmethod
+    async def get_user_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        user_id: str,
+        status: Optional[UseCaseStatus],
+        visibility: Optional[UseCaseVisibility],
+        sort_by: str,
+        page: int,
+        page_size: int
+    ) -> Dict[str, Any]:
+        """Get all use cases for a specific user."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Build query
+            query = {"published_by.user_id": user_id}
+            
+            if status:
+                query["status"] = status.value
+            
+            if visibility:
+                query["visibility"] = visibility.value
+            
+            # Build sort
+            sort_map = {
+                "created": "created_at",
+                "updated": "updated_at",
+                "views": "metrics.views",
+                "likes": "metrics.likes"
+            }
+            sort_field = sort_map.get(sort_by, "updated_at")
+            
+            # Get total count
+            total = await crud.collection.count_documents(query)
+            
+            # Get use cases
+            skip = (page - 1) * page_size
+            cursor = crud.collection.find(query)
+            cursor = cursor.sort(sort_field, -1)
+            cursor = cursor.skip(skip).limit(page_size)
+            
+            use_cases = await cursor.to_list(length=page_size)
+            
+            # Convert to brief format
+            data = []
+            for uc in use_cases:
+                data.append({
+                    "id": uc["id"],
+                    "title": uc["title"],
+                    "company": uc["company"],
+                    "industry": uc["industry"],
+                    "category": uc["category"],
+                    "description": uc["description"][:200] + "..." if len(uc["description"]) > 200 else uc["description"],
+                    "results": {},
+                    "thumbnail": None,
+                    "tags": uc.get("tags", []),
+                    "verified": uc.get("verification", {}).get("status") == "verified",
+                    "featured": uc.get("featured", {}).get("status", False),
+                    "views": uc.get("metrics", {}).get("views", 0),
+                    "likes": uc.get("metrics", {}).get("likes", 0),
+                    "published_by": {
+                        "name": uc["published_by"]["name"],
+                        "title": uc["published_by"].get("title", "N/A")
+                    },
+                    "published_at": uc.get("published_at"),
+                    "status": uc["status"],
+                    "visibility": uc.get("visibility", "private")
+                })
+            
+            total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+            
+            return {
+                "data": data,
+                "pagination": {
+                    "page": page,
+                    "page_size": page_size,
+                    "total": total,
+                    "total_pages": total_pages,
+                    "has_next": page < total_pages,
+                    "has_prev": page > 1
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting user use cases: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get user use cases"
+            )
+    
+    @staticmethod
+    async def get_organization_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        organization_id: str,
+        status: Optional[UseCaseStatus],
+        author_id: Optional[str],
+        date_from: Optional[datetime],
+        date_to: Optional[datetime],
+        sort_by: str,
+        page: int,
+        page_size: int,
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Get all use cases for an organization."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Build query
+            query = {"organization_id": organization_id}
+            
+            if status:
+                query["status"] = status.value
+            
+            if author_id:
+                query["published_by.user_id"] = author_id
+            
+            if date_from or date_to:
+                date_query = {}
+                if date_from:
+                    date_query["$gte"] = date_from
+                if date_to:
+                    date_query["$lte"] = date_to
+                query["created_at"] = date_query
+            
+            # Build sort
+            sort_map = {
+                "created": "created_at",
+                "updated": "updated_at",
+                "views": "metrics.views",
+                "likes": "metrics.likes",
+                "author": "published_by.name"
+            }
+            sort_field = sort_map.get(sort_by, "updated_at")
+            
+            # Get total count
+            total = await crud.collection.count_documents(query)
+            
+            # Get use cases
+            skip = (page - 1) * page_size
+            cursor = crud.collection.find(query)
+            cursor = cursor.sort(sort_field, -1)
+            cursor = cursor.skip(skip).limit(page_size)
+            
+            use_cases = await cursor.to_list(length=page_size)
+            
+            # Convert to brief format
+            data = []
+            for uc in use_cases:
+                data.append({
+                    "id": uc["id"],
+                    "title": uc["title"],
+                    "company": uc["company"],
+                    "industry": uc["industry"],
+                    "category": uc["category"],
+                    "description": uc["description"][:200] + "..." if len(uc["description"]) > 200 else uc["description"],
+                    "results": {},
+                    "thumbnail": None,
+                    "tags": uc.get("tags", []),
+                    "verified": uc.get("verification", {}).get("status") == "verified",
+                    "featured": uc.get("featured", {}).get("status", False),
+                    "views": uc.get("metrics", {}).get("views", 0),
+                    "likes": uc.get("metrics", {}).get("likes", 0),
+                    "published_by": {
+                        "name": uc["published_by"]["name"],
+                        "title": uc["published_by"].get("title", "N/A")
+                    },
+                    "published_at": uc.get("published_at"),
+                    "status": uc["status"],
+                    "created_at": uc["created_at"]
+                })
+            
+            total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+            
+            return {
+                "data": data,
+                "pagination": {
+                    "page": page,
+                    "page_size": page_size,
+                    "total": total,
+                    "total_pages": total_pages,
+                    "has_next": page < total_pages,
+                    "has_prev": page > 1
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting organization use cases: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get organization use cases"
+            )
+    
+    @staticmethod
+    async def bulk_archive_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_ids: List[str],
+        archive_reason: Optional[str],
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Archive multiple use cases."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            results = {"success": [], "failed": []}
+            
+            for use_case_id in use_case_ids:
+                try:
+                    # Get the use case
+                    use_case = await crud.get(use_case_id=use_case_id)
+                    if not use_case:
+                        results["failed"].append({
+                            "id": use_case_id,
+                            "reason": "Use case not found"
+                        })
+                        continue
+                    
+                    # Check permissions
+                    can_archive = (
+                        str(current_user.id) == use_case.published_by.user_id or
+                        (current_user.role == "admin" and str(current_user.organization_id) == use_case.organization_id)
+                    )
+                    
+                    if not can_archive:
+                        results["failed"].append({
+                            "id": use_case_id,
+                            "reason": "Permission denied"
+                        })
+                        continue
+                    
+                    # Archive the use case
+                    await crud.collection.update_one(
+                        {"id": use_case_id},
+                        {
+                            "$set": {
+                                "status": "archived",
+                                "archived_at": datetime.utcnow(),
+                                "archive_reason": archive_reason,
+                                "archived_by": str(current_user.id)
+                            }
+                        }
+                    )
+                    
+                    results["success"].append(use_case_id)
+                    
+                except Exception as e:
+                    results["failed"].append({
+                        "id": use_case_id,
+                        "reason": str(e)
+                    })
+            
+            return {
+                "message": f"Archived {len(results['success'])} use cases",
+                "results": results
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in bulk archive: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to archive use cases"
+            )
+    
+    @staticmethod
+    async def bulk_delete_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_ids: List[str],
+        hard_delete: bool,
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Delete multiple use cases."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            results = {"success": [], "failed": []}
+            
+            for use_case_id in use_case_ids:
+                try:
+                    # Get the use case
+                    use_case = await crud.get(use_case_id=use_case_id)
+                    if not use_case:
+                        results["failed"].append({
+                            "id": use_case_id,
+                            "reason": "Use case not found"
+                        })
+                        continue
+                    
+                    # Check permissions
+                    can_delete = (
+                        str(current_user.id) == use_case.published_by.user_id or
+                        current_user.role == "admin"
+                    )
+                    
+                    if not can_delete:
+                        results["failed"].append({
+                            "id": use_case_id,
+                            "reason": "Permission denied"
+                        })
+                        continue
+                    
+                    # Delete the use case
+                    success = await crud.delete(
+                        use_case_id=use_case_id,
+                        soft=not hard_delete
+                    )
+                    
+                    if success:
+                        results["success"].append(use_case_id)
+                    else:
+                        results["failed"].append({
+                            "id": use_case_id,
+                            "reason": "Delete operation failed"
+                        })
+                    
+                except Exception as e:
+                    results["failed"].append({
+                        "id": use_case_id,
+                        "reason": str(e)
+                    })
+            
+            return {
+                "message": f"{'Hard' if hard_delete else 'Soft'} deleted {len(results['success'])} use cases",
+                "results": results
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in bulk delete: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete use cases"
+            )
+    
+    @staticmethod
+    async def bulk_update_visibility(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_ids: List[str],
+        visibility: UseCaseVisibility,
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Update visibility for multiple use cases."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            results = {"success": [], "failed": []}
+            
+            for use_case_id in use_case_ids:
+                try:
+                    # Get the use case
+                    use_case = await crud.get(use_case_id=use_case_id)
+                    if not use_case:
+                        results["failed"].append({
+                            "id": use_case_id,
+                            "reason": "Use case not found"
+                        })
+                        continue
+                    
+                    # Check permissions
+                    can_update = (
+                        str(current_user.id) == use_case.published_by.user_id or
+                        current_user.role == "admin"
+                    )
+                    
+                    if not can_update:
+                        results["failed"].append({
+                            "id": use_case_id,
+                            "reason": "Permission denied"
+                        })
+                        continue
+                    
+                    # Update visibility
+                    await crud.collection.update_one(
+                        {"id": use_case_id},
+                        {
+                            "$set": {
+                                "visibility": visibility.value,
+                                "updated_at": datetime.utcnow()
+                            }
+                        }
+                    )
+                    
+                    results["success"].append(use_case_id)
+                    
+                except Exception as e:
+                    results["failed"].append({
+                        "id": use_case_id,
+                        "reason": str(e)
+                    })
+            
+            return {
+                "message": f"Updated visibility for {len(results['success'])} use cases to {visibility.value}",
+                "results": results
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in bulk visibility update: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update visibility"
+            )

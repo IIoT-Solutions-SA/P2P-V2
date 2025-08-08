@@ -3038,3 +3038,514 @@ class UseCaseService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create location index"
             )
+    
+    @staticmethod
+    async def export_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        format: str = "json",  # json, csv, excel, pdf
+        filters: Optional[UseCaseFilters] = None,
+        include_fields: Optional[List[str]] = None,
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """
+        Export use cases in various formats.
+        
+        Features:
+        - Multiple export formats (JSON, CSV, Excel, PDF)
+        - Field selection for custom exports
+        - Filtered exports based on search criteria
+        - Permission-based data access
+        """
+        try:
+            import json
+            import csv
+            import io
+            from datetime import datetime
+            
+            crud = get_use_case_crud(db)
+            
+            # Apply filters if provided
+            if filters:
+                use_cases, total = await crud.get_multi(
+                    filters=filters,
+                    current_user_org_id=str(current_user.organization_id) if current_user else None,
+                    is_guest_user=not current_user
+                )
+            else:
+                # Default filters
+                filters = UseCaseFilters(page=1, page_size=1000)
+                use_cases, total = await crud.get_multi(
+                    filters=filters,
+                    current_user_org_id=str(current_user.organization_id) if current_user else None,
+                    is_guest_user=not current_user
+                )
+            
+            # Determine fields to include
+            if not include_fields:
+                include_fields = [
+                    "id", "title", "company", "industry", "category",
+                    "description", "challenge", "solution", "results",
+                    "technologies", "location", "published_at", "metrics"
+                ]
+            
+            # Filter sensitive fields based on permissions
+            if not current_user or current_user.role != "admin":
+                # Remove sensitive fields for non-admins
+                sensitive_fields = ["published_by.email", "verification.verified_by"]
+                include_fields = [f for f in include_fields if f not in sensitive_fields]
+            
+            # Prepare data for export
+            export_data = []
+            for use_case in use_cases:
+                case_dict = use_case.model_dump()
+                
+                # Filter to include only requested fields
+                filtered_case = {}
+                for field in include_fields:
+                    if "." in field:
+                        # Handle nested fields
+                        parts = field.split(".")
+                        value = case_dict
+                        for part in parts:
+                            if isinstance(value, dict) and part in value:
+                                value = value[part]
+                            else:
+                                value = None
+                                break
+                        filtered_case[field.replace(".", "_")] = value
+                    elif field in case_dict:
+                        filtered_case[field] = case_dict[field]
+                
+                # Flatten complex fields for CSV/Excel
+                if format in ["csv", "excel"]:
+                    # Convert lists to comma-separated strings
+                    if "technologies" in filtered_case and isinstance(filtered_case["technologies"], list):
+                        filtered_case["technologies"] = ", ".join(filtered_case["technologies"])
+                    
+                    if "tags" in filtered_case and isinstance(filtered_case["tags"], list):
+                        filtered_case["tags"] = ", ".join(filtered_case["tags"])
+                    
+                    # Flatten location
+                    if "location" in filtered_case and isinstance(filtered_case["location"], dict):
+                        loc = filtered_case["location"]
+                        filtered_case["location_city"] = loc.get("city", "")
+                        filtered_case["location_region"] = loc.get("region", "")
+                        filtered_case["location_country"] = loc.get("country", "")
+                        del filtered_case["location"]
+                    
+                    # Flatten metrics
+                    if "metrics" in filtered_case and isinstance(filtered_case["metrics"], dict):
+                        metrics = filtered_case["metrics"]
+                        filtered_case["metrics_views"] = metrics.get("views", 0)
+                        filtered_case["metrics_likes"] = metrics.get("likes", 0)
+                        filtered_case["metrics_saves"] = metrics.get("saves", 0)
+                        del filtered_case["metrics"]
+                    
+                    # Flatten results
+                    if "results" in filtered_case and isinstance(filtered_case["results"], dict):
+                        results = filtered_case["results"]
+                        if "roi" in results and isinstance(results["roi"], dict):
+                            filtered_case["roi_percentage"] = results["roi"].get("percentage", 0)
+                            filtered_case["roi_timeframe"] = results["roi"].get("timeframe_months", 0)
+                        if "metrics_improved" in results:
+                            filtered_case["metrics_improved"] = ", ".join(results.get("metrics_improved", []))
+                        del filtered_case["results"]
+                
+                export_data.append(filtered_case)
+            
+            # Generate export based on format
+            if format == "json":
+                # JSON export
+                export_content = json.dumps({
+                    "export_date": datetime.utcnow().isoformat(),
+                    "total_records": len(export_data),
+                    "filters_applied": filters.model_dump() if filters else None,
+                    "use_cases": export_data
+                }, indent=2, default=str)
+                
+                return {
+                    "format": "json",
+                    "content": export_content,
+                    "filename": f"use_cases_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json",
+                    "mime_type": "application/json",
+                    "record_count": len(export_data)
+                }
+            
+            elif format == "csv":
+                # CSV export
+                output = io.StringIO()
+                
+                if export_data:
+                    # Get all unique keys for headers
+                    all_keys = set()
+                    for item in export_data:
+                        all_keys.update(item.keys())
+                    
+                    fieldnames = sorted(list(all_keys))
+                    writer = csv.DictWriter(output, fieldnames=fieldnames)
+                    writer.writeheader()
+                    
+                    for item in export_data:
+                        # Convert datetime objects to strings
+                        row = {}
+                        for key, value in item.items():
+                            if isinstance(value, datetime):
+                                row[key] = value.isoformat()
+                            else:
+                                row[key] = value
+                        writer.writerow(row)
+                
+                csv_content = output.getvalue()
+                output.close()
+                
+                return {
+                    "format": "csv",
+                    "content": csv_content,
+                    "filename": f"use_cases_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv",
+                    "mime_type": "text/csv",
+                    "record_count": len(export_data)
+                }
+            
+            elif format == "excel":
+                # Excel export (requires openpyxl)
+                try:
+                    from openpyxl import Workbook
+                    from openpyxl.styles import Font, PatternFill, Alignment
+                    from openpyxl.utils import get_column_letter
+                    import tempfile
+                    import base64
+                    
+                    wb = Workbook()
+                    ws = wb.active
+                    ws.title = "Use Cases"
+                    
+                    # Add metadata sheet
+                    metadata_sheet = wb.create_sheet("Export Info")
+                    metadata_sheet["A1"] = "Export Date"
+                    metadata_sheet["B1"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                    metadata_sheet["A2"] = "Total Records"
+                    metadata_sheet["B2"] = len(export_data)
+                    metadata_sheet["A3"] = "Exported By"
+                    metadata_sheet["B3"] = f"{current_user.first_name} {current_user.last_name}" if current_user else "Guest"
+                    
+                    if export_data:
+                        # Headers
+                        all_keys = set()
+                        for item in export_data:
+                            all_keys.update(item.keys())
+                        headers = sorted(list(all_keys))
+                        
+                        # Style for headers
+                        header_font = Font(bold=True, color="FFFFFF")
+                        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+                        header_alignment = Alignment(horizontal="center", vertical="center")
+                        
+                        # Write headers
+                        for col, header in enumerate(headers, 1):
+                            cell = ws.cell(row=1, column=col, value=header.replace("_", " ").title())
+                            cell.font = header_font
+                            cell.fill = header_fill
+                            cell.alignment = header_alignment
+                        
+                        # Write data
+                        for row_idx, item in enumerate(export_data, 2):
+                            for col_idx, header in enumerate(headers, 1):
+                                value = item.get(header, "")
+                                if isinstance(value, datetime):
+                                    value = value.strftime("%Y-%m-%d %H:%M:%S")
+                                ws.cell(row=row_idx, column=col_idx, value=value)
+                        
+                        # Auto-adjust column widths
+                        for column in ws.columns:
+                            max_length = 0
+                            column_letter = get_column_letter(column[0].column)
+                            
+                            for cell in column:
+                                try:
+                                    if len(str(cell.value)) > max_length:
+                                        max_length = len(str(cell.value))
+                                except:
+                                    pass
+                            
+                            adjusted_width = min(max_length + 2, 50)
+                            ws.column_dimensions[column_letter].width = adjusted_width
+                        
+                        # Freeze header row
+                        ws.freeze_panes = "A2"
+                    
+                    # Save to temporary file and encode
+                    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+                        wb.save(tmp.name)
+                        tmp.seek(0)
+                        excel_content = base64.b64encode(tmp.read()).decode('utf-8')
+                    
+                    return {
+                        "format": "excel",
+                        "content": excel_content,
+                        "filename": f"use_cases_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "record_count": len(export_data),
+                        "encoding": "base64"
+                    }
+                    
+                except ImportError:
+                    raise HTTPException(
+                        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                        detail="Excel export requires 'openpyxl' package. Please install it."
+                    )
+            
+            elif format == "pdf":
+                # PDF export (basic implementation)
+                try:
+                    from reportlab.lib import colors
+                    from reportlab.lib.pagesizes import letter, landscape
+                    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+                    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                    from reportlab.lib.units import inch
+                    import tempfile
+                    import base64
+                    
+                    # Create PDF
+                    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                        doc = SimpleDocTemplate(
+                            tmp.name,
+                            pagesize=landscape(letter),
+                            rightMargin=30,
+                            leftMargin=30,
+                            topMargin=30,
+                            bottomMargin=30
+                        )
+                        
+                        story = []
+                        styles = getSampleStyleSheet()
+                        
+                        # Title
+                        title_style = ParagraphStyle(
+                            'CustomTitle',
+                            parent=styles['Heading1'],
+                            fontSize=24,
+                            textColor=colors.HexColor('#1a5490'),
+                            spaceAfter=30,
+                            alignment=1  # Center
+                        )
+                        
+                        story.append(Paragraph("Use Cases Export Report", title_style))
+                        story.append(Spacer(1, 0.2 * inch))
+                        
+                        # Metadata
+                        metadata_style = styles['Normal']
+                        story.append(Paragraph(f"<b>Export Date:</b> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}", metadata_style))
+                        story.append(Paragraph(f"<b>Total Records:</b> {len(export_data)}", metadata_style))
+                        if current_user:
+                            story.append(Paragraph(f"<b>Exported By:</b> {current_user.first_name} {current_user.last_name}", metadata_style))
+                        story.append(Spacer(1, 0.3 * inch))
+                        
+                        # Create table data
+                        if export_data:
+                            # Select key fields for PDF (too many columns won't fit)
+                            pdf_fields = ["title", "company", "industry", "category", "roi_percentage"]
+                            
+                            # Headers
+                            headers = [field.replace("_", " ").title() for field in pdf_fields]
+                            table_data = [headers]
+                            
+                            # Data rows
+                            for item in export_data[:50]:  # Limit to 50 rows for PDF
+                                row = []
+                                for field in pdf_fields:
+                                    value = item.get(field, "")
+                                    if isinstance(value, (int, float)):
+                                        value = str(value)
+                                    elif isinstance(value, datetime):
+                                        value = value.strftime("%Y-%m-%d")
+                                    elif not value:
+                                        value = "-"
+                                    # Truncate long values
+                                    if len(str(value)) > 30:
+                                        value = str(value)[:27] + "..."
+                                    row.append(value)
+                                table_data.append(row)
+                            
+                            # Create table
+                            table = Table(table_data)
+                            
+                            # Table style
+                            table.setStyle(TableStyle([
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a5490')),
+                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                            ]))
+                            
+                            story.append(table)
+                            
+                            if len(export_data) > 50:
+                                story.append(Spacer(1, 0.2 * inch))
+                                story.append(Paragraph(f"<i>Note: Showing first 50 of {len(export_data)} records</i>", styles['Normal']))
+                        
+                        # Build PDF
+                        doc.build(story)
+                        
+                        # Read and encode
+                        tmp.seek(0)
+                        pdf_content = base64.b64encode(tmp.read()).decode('utf-8')
+                    
+                    return {
+                        "format": "pdf",
+                        "content": pdf_content,
+                        "filename": f"use_cases_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.pdf",
+                        "mime_type": "application/pdf",
+                        "record_count": min(len(export_data), 50),
+                        "encoding": "base64"
+                    }
+                    
+                except ImportError:
+                    raise HTTPException(
+                        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                        detail="PDF export requires 'reportlab' package. Please install it."
+                    )
+            
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unsupported export format: {format}"
+                )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error exporting use cases: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to export use cases"
+            )
+    
+    @staticmethod
+    async def export_single_use_case(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        format: str = "json",
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """Export a single use case with full details."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get the use case
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check access permissions
+            if use_case.visibility == UseCaseVisibility.PRIVATE:
+                if not current_user or (
+                    str(current_user.id) != use_case.published_by.user_id and
+                    current_user.role != "admin"
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You don't have permission to export this use case"
+                    )
+            elif use_case.visibility == UseCaseVisibility.ORGANIZATION:
+                if not current_user or (
+                    str(current_user.organization_id) != use_case.organization_id and
+                    current_user.role != "admin"
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You don't have permission to export this use case"
+                    )
+            
+            # Prepare export data
+            export_data = use_case.model_dump()
+            
+            # Remove sensitive fields for non-owners
+            if not current_user or (str(current_user.id) != use_case.published_by.user_id and current_user.role != "admin"):
+                if "published_by" in export_data and "email" in export_data["published_by"]:
+                    del export_data["published_by"]["email"]
+            
+            # Generate export based on format
+            if format == "json":
+                import json
+                export_content = json.dumps({
+                    "export_date": datetime.utcnow().isoformat(),
+                    "use_case": export_data
+                }, indent=2, default=str)
+                
+                return {
+                    "format": "json",
+                    "content": export_content,
+                    "filename": f"use_case_{use_case_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json",
+                    "mime_type": "application/json"
+                }
+            
+            elif format == "markdown":
+                # Markdown export for documentation
+                md_content = f"""# {export_data.get('title', 'Use Case')}
+
+## Overview
+- **Company**: {export_data.get('company', 'N/A')}
+- **Industry**: {export_data.get('industry', 'N/A')}
+- **Category**: {export_data.get('category', 'N/A')}
+- **Status**: {export_data.get('status', 'N/A')}
+
+## Description
+{export_data.get('description', 'No description available.')}
+
+## Challenge
+{export_data.get('challenge', 'No challenge description available.')}
+
+## Solution
+{export_data.get('solution', 'No solution description available.')}
+
+## Implementation
+- **Timeline**: {export_data.get('implementation', {}).get('timeline', 'N/A')}
+- **Team Size**: {export_data.get('implementation', {}).get('team_size', 'N/A')}
+- **Budget Range**: {export_data.get('implementation', {}).get('budget_range', 'N/A')}
+
+## Results
+- **ROI**: {export_data.get('results', {}).get('roi', {}).get('percentage', 0)}% over {export_data.get('results', {}).get('roi', {}).get('timeframe_months', 0)} months
+- **Metrics Improved**: {', '.join(export_data.get('results', {}).get('metrics_improved', []))}
+
+## Technologies Used
+{', '.join(export_data.get('technologies', []))}
+
+## Location
+- **City**: {export_data.get('location', {}).get('city', 'N/A')}
+- **Region**: {export_data.get('location', {}).get('region', 'N/A')}
+- **Country**: {export_data.get('location', {}).get('country', 'N/A')}
+
+---
+*Exported on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}*
+"""
+                
+                return {
+                    "format": "markdown",
+                    "content": md_content,
+                    "filename": f"use_case_{use_case_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.md",
+                    "mime_type": "text/markdown"
+                }
+            
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unsupported export format for single use case: {format}"
+                )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error exporting single use case: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to export use case"
+            )

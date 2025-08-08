@@ -131,27 +131,217 @@ async def browse_use_cases(
 
 
 @router.get("/{use_case_id}", response_model=UseCaseDetail)
-async def get_use_case(
+async def get_use_case_details(
     use_case_id: str,
-    track_view: bool = Query(True, description="Track this view"),
+    track_view: bool = Query(True, description="Track this view for analytics"),
+    include_related: bool = Query(True, description="Include related use cases"),
+    include_engagement: bool = Query(True, description="Include engagement metrics"),
     db: AsyncIOMotorDatabase = Depends(get_mongodb),
-    current_user: Optional[User] = Depends(get_current_active_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """
-    Get detailed information about a specific use case.
+    Get comprehensive details about a specific use case.
     
     **Features:**
-    - Full use case details including all fields
-    - View tracking (can be disabled with track_view=false)
-    - Related use cases
-    - Respects visibility settings (public/organization/private)
+    - Complete use case information including all sections
+    - Smart view tracking with duplicate prevention
+    - Related use cases with similarity scoring
+    - Engagement metrics (views, likes, saves)
+    - Media gallery with optimized loading
+    - Implementation timeline and phases
+    - Results metrics and ROI analysis
+    - Vendor and technology details
+    - Location and contact information
+    
+    **Access Control:**
+    - Public: Available to all users
+    - Organization: Members of same organization
+    - Private: Only owner and admins
+    
+    **Performance:**
+    - Optimized data loading with selective inclusion
+    - Cached related use cases
+    - Compressed media metadata
     """
-    return await UseCaseService.get_use_case(
+    result = await UseCaseService.get_use_case_details(
         db,
         use_case_id=use_case_id,
         current_user=current_user,
-        track_view=track_view
+        track_view=track_view,
+        include_related=include_related,
+        include_engagement=include_engagement
     )
+    
+    return result
+
+
+@router.get("/{use_case_id}/related", response_model=UseCaseListResponse)
+async def get_related_use_cases(
+    use_case_id: str,
+    limit: int = Query(5, ge=1, le=20, description="Number of related use cases"),
+    similarity_threshold: float = Query(0.3, ge=0.0, le=1.0, description="Minimum similarity score"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get use cases related to the specified use case.
+    
+    **Similarity Algorithm:**
+    - Technology overlap scoring
+    - Industry and category matching
+    - ROI and metrics similarity
+    - Geographic proximity (if available)
+    - User engagement patterns
+    
+    **Features:**
+    - Configurable similarity threshold
+    - Respects access permissions
+    - Excludes the original use case
+    - Sorted by relevance score
+    
+    **Use Cases:**
+    - "You might also like" recommendations
+    - Cross-selling opportunities
+    - Learning from similar implementations
+    """
+    result = await UseCaseService.get_related_use_cases(
+        db,
+        use_case_id=use_case_id,
+        current_user=current_user,
+        limit=limit,
+        similarity_threshold=similarity_threshold
+    )
+    
+    return UseCaseListResponse(**result)
+
+
+@router.get("/{use_case_id}/engagement")
+async def get_use_case_engagement(
+    use_case_id: str,
+    include_timeline: bool = Query(True, description="Include engagement timeline"),
+    days_back: int = Query(30, ge=1, le=365, description="Days of history to include"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Get detailed engagement metrics for a use case.
+    
+    **Metrics:**
+    - Total views, likes, saves, shares
+    - View timeline (daily/weekly breakdown)
+    - Geographic distribution of views
+    - User segment analysis (roles, industries)
+    - Referrer sources and discovery methods
+    - Peak engagement times and patterns
+    
+    **Access Control:**
+    - Basic metrics: Available to all viewers
+    - Detailed analytics: Owner and admins only
+    - Anonymized data for organization members
+    
+    **Use Cases:**
+    - Content performance analysis
+    - Engagement optimization
+    - ROI measurement for content creation
+    """
+    # Check if user has access to detailed analytics
+    can_view_detailed = False
+    if current_user:
+        use_case = await UseCaseService.get_use_case_basic(db, use_case_id)
+        if use_case and (
+            str(current_user.id) == use_case.published_by.user_id or 
+            current_user.role == 'admin'
+        ):
+            can_view_detailed = True
+    
+    result = await UseCaseService.get_use_case_engagement(
+        db,
+        use_case_id=use_case_id,
+        current_user=current_user,
+        include_timeline=include_timeline,
+        days_back=days_back,
+        detailed_analytics=can_view_detailed
+    )
+    
+    return result
+
+
+@router.get("/{use_case_id}/versions")
+async def get_use_case_versions(
+    use_case_id: str,
+    include_drafts: bool = Query(False, description="Include draft versions"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get version history for a use case.
+    
+    **Features:**
+    - Published version history
+    - Draft versions (owner/admin only)
+    - Change tracking and diff support
+    - Restore capability for previous versions
+    
+    **Permissions:**
+    - View history: Owner and admins only
+    - Draft versions: Owner and admins only
+    - Version comparison: Full access for owners
+    
+    **Use Cases:**
+    - Content audit trails
+    - Version comparison and rollback
+    - Collaboration history tracking
+    """
+    result = await UseCaseService.get_use_case_versions(
+        db,
+        use_case_id=use_case_id,
+        current_user=current_user,
+        include_drafts=include_drafts
+    )
+    
+    return result
+
+
+@router.post("/{use_case_id}/report")
+async def report_use_case(
+    use_case_id: str,
+    reason: str = Query(..., description="Reason for reporting"),
+    details: Optional[str] = Query(None, description="Additional details"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Report a use case for review.
+    
+    **Report Reasons:**
+    - inappropriate_content: Contains inappropriate material
+    - spam: Spam or promotional content
+    - misinformation: Contains false or misleading information
+    - copyright: Copyright infringement
+    - duplicate: Duplicate content
+    - privacy: Privacy concerns
+    - other: Other reason (requires details)
+    
+    **Process:**
+    - Creates report record for admin review
+    - Notifies moderation team
+    - Anonymous reporting supported
+    - Prevents duplicate reports from same user
+    
+    **Moderation:**
+    - Admin review queue
+    - Automated flagging for obvious violations
+    - User notification system for report status
+    """
+    result = await UseCaseService.report_use_case(
+        db,
+        use_case_id=use_case_id,
+        reporter_user_id=str(current_user.id),
+        reason=reason,
+        details=details
+    )
+    
+    return result
 
 
 @router.patch("/{use_case_id}", response_model=UseCaseResponse)

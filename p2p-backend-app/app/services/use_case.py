@@ -2,7 +2,7 @@
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import HTTPException, status
@@ -67,18 +67,32 @@ class UseCaseService:
             )
     
     @staticmethod
-    async def get_use_case(
+    async def get_use_case_basic(
+        db: AsyncIOMotorDatabase,
+        use_case_id: str
+    ) -> Optional[UseCase]:
+        """Get basic use case info for permission checks."""
+        try:
+            crud = get_use_case_crud(db)
+            return await crud.get(use_case_id=use_case_id)
+        except Exception:
+            return None
+    
+    @staticmethod
+    async def get_use_case_details(
         db: AsyncIOMotorDatabase,
         *,
         use_case_id: str,
         current_user: Optional[User] = None,
-        track_view: bool = True
+        track_view: bool = True,
+        include_related: bool = True,
+        include_engagement: bool = True
     ) -> UseCaseDetail:
-        """Get a use case by ID."""
+        """Get comprehensive use case details with enhanced features."""
         try:
             crud = get_use_case_crud(db)
             
-            # Get use case
+            # Get use case with full projection
             use_case = await crud.get(use_case_id=use_case_id)
             
             if not use_case:
@@ -102,47 +116,302 @@ class UseCaseService:
                         detail="This use case is only visible to organization members"
                     )
             
-            # Track view if requested
+            # Smart view tracking with duplicate prevention
             if track_view:
-                await crud.track_view(
+                await UseCaseService._track_smart_view(
+                    crud,
                     use_case_id=use_case_id,
                     viewer_id=str(current_user.id) if current_user else None,
                     organization_id=str(current_user.organization_id) if current_user else None
                 )
             
-            # Get related use cases (simple implementation for now)
+            # Get related use cases with similarity scoring
             related = []
-            if use_case.related_use_cases:
-                for related_id in use_case.related_use_cases[:3]:
-                    related_uc = await crud.get(use_case_id=related_id)
-                    if related_uc:
-                        related.append({
-                            "id": related_uc.id,
-                            "title": related_uc.title,
-                            "category": related_uc.category,
-                            "roi": related_uc.results.roi.percentage if related_uc.results.roi else None
-                        })
+            if include_related:
+                related = await UseCaseService._get_related_use_cases_smart(
+                    db, use_case, current_user, limit=5
+                )
+            
+            # Get engagement metrics if requested
+            engagement_data = {}
+            if include_engagement:
+                engagement_data = await UseCaseService._get_engagement_summary(
+                    crud, use_case_id, current_user
+                )
             
             # Convert to detail schema
             use_case_dict = use_case.model_dump()
             
             # Remove sensitive information if not owner
-            if not current_user or str(current_user.id) != use_case.published_by.user_id:
+            is_owner = current_user and str(current_user.id) == use_case.published_by.user_id
+            if not is_owner:
                 use_case_dict["published_by"].pop("email", None)
             
-            # Add related use cases
+            # Add enhanced data
             use_case_dict["related_use_cases"] = related
+            if engagement_data:
+                use_case_dict.update(engagement_data)
+            
+            logger.info(
+                f"Retrieved use case details {use_case_id} for user {current_user.id if current_user else 'guest'}"
+            )
             
             return UseCaseDetail(**use_case_dict)
             
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error getting use case {use_case_id}: {e}")
+            logger.error(f"Error getting use case details {use_case_id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to get use case"
+                detail="Failed to get use case details"
             )
+    
+    @staticmethod
+    async def _track_smart_view(
+        crud: 'CRUDUseCase',
+        use_case_id: str,
+        viewer_id: Optional[str],
+        organization_id: Optional[str]
+    ):
+        """Track view with duplicate prevention and session management."""
+        try:
+            from datetime import timedelta
+            
+            # Check if this user already viewed this use case recently (last hour)
+            recent_cutoff = datetime.utcnow() - timedelta(hours=1)
+            
+            if viewer_id:
+                # Check for recent view by this user
+                recent_view = await crud.views.find_one({
+                    "use_case_id": use_case_id,
+                    "viewer_id": viewer_id,
+                    "viewed_at": {"$gte": recent_cutoff}
+                })
+                
+                if recent_view:
+                    # Don't track duplicate view, but update timestamp
+                    await crud.views.update_one(
+                        {"_id": recent_view["_id"]},
+                        {"$set": {"viewed_at": datetime.utcnow()}}
+                    )
+                    return
+            
+            # Track the view
+            await crud.track_view(
+                use_case_id=use_case_id,
+                viewer_id=viewer_id,
+                organization_id=organization_id
+            )
+            
+        except Exception as e:
+            # Don't fail the request if view tracking fails
+            logger.warning(f"Failed to track view for use case {use_case_id}: {e}")
+    
+    @staticmethod
+    async def _get_related_use_cases_smart(
+        db: AsyncIOMotorDatabase,
+        use_case: UseCase,
+        current_user: Optional[User],
+        limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Get related use cases using similarity algorithm."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Build query for potential related cases
+            base_query = {
+                "status": "published",
+                "id": {"$ne": use_case.id}  # Exclude current use case
+            }
+            
+            # Apply visibility filters
+            if current_user:
+                base_query["$or"] = [
+                    {"visibility": "public"},
+                    {
+                        "$and": [
+                            {"visibility": "organization"},
+                            {"organization_id": str(current_user.organization_id)}
+                        ]
+                    }
+                ]
+            else:
+                base_query["visibility"] = "public"
+            
+            # Use MongoDB aggregation for similarity scoring
+            pipeline = [
+                {"$match": base_query},
+                {
+                    "$addFields": {
+                        "similarity_score": {
+                            "$add": [
+                                # Category match (weight: 3)
+                                {
+                                    "$cond": [
+                                        {"$eq": ["$category", use_case.category.value]},
+                                        3,
+                                        0
+                                    ]
+                                },
+                                # Industry match (weight: 2)
+                                {
+                                    "$cond": [
+                                        {"$eq": ["$industry", use_case.industry]},
+                                        2,
+                                        0
+                                    ]
+                                },
+                                # Technology overlap (weight: 1 per match, max 3)
+                                {
+                                    "$min": [
+                                        3,
+                                        {
+                                            "$size": {
+                                                "$setIntersection": [
+                                                    "$technologies",
+                                                    use_case.technologies
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                # Similar ROI range (weight: 1)
+                                {
+                                    "$cond": [
+                                        {
+                                            "$and": [
+                                                {"$ne": ["$results.roi.percentage", None]},
+                                                {"$ne": [use_case.results.roi.percentage if use_case.results and use_case.results.roi else None, None]},
+                                                {
+                                                    "$lte": [
+                                                        {
+                                                            "$abs": {
+                                                                "$subtract": [
+                                                                    "$results.roi.percentage",
+                                                                    use_case.results.roi.percentage if use_case.results and use_case.results.roi else 0
+                                                                ]
+                                                            }
+                                                        },
+                                                        20  # Within 20% ROI difference
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        1,
+                                        0
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                {"$match": {"similarity_score": {"$gte": 1}}},  # Minimum threshold
+                {"$sort": {"similarity_score": -1, "metrics.views": -1}},
+                {"$limit": limit},
+                {
+                    "$project": {
+                        "id": 1, "title": 1, "category": 1, "company": 1,
+                        "description": {"$substr": ["$description", 0, 150]},
+                        "results.roi.percentage": 1,
+                        "metrics.views": 1, "metrics.likes": 1,
+                        "media": {"$slice": ["$media", 1]},
+                        "similarity_score": 1
+                    }
+                }
+            ]
+            
+            cursor = crud.collection.aggregate(pipeline)
+            related_docs = await cursor.to_list(length=limit)
+            
+            # Convert to response format
+            related = []
+            for doc in related_docs:
+                thumbnail = None
+                if doc.get('media'):
+                    first_media = doc['media'][0]
+                    thumbnail = first_media.get('thumbnail_url') or first_media.get('url')
+                
+                related.append({
+                    "id": doc["id"],
+                    "title": doc["title"],
+                    "category": doc["category"],
+                    "company": doc["company"],
+                    "description": doc["description"],
+                    "roi_percentage": doc.get("results", {}).get("roi", {}).get("percentage"),
+                    "views": doc.get("metrics", {}).get("views", 0),
+                    "likes": doc.get("metrics", {}).get("likes", 0),
+                    "thumbnail": thumbnail,
+                    "similarity_score": doc["similarity_score"]
+                })
+            
+            return related
+            
+        except Exception as e:
+            logger.warning(f"Failed to get related use cases: {e}")
+            return []
+    
+    @staticmethod
+    async def _get_engagement_summary(
+        crud: 'CRUDUseCase',
+        use_case_id: str,
+        current_user: Optional[User]
+    ) -> Dict[str, Any]:
+        """Get engagement metrics summary."""
+        try:
+            # Get basic engagement counts
+            views_count = await crud.views.count_documents({"use_case_id": use_case_id})
+            likes_count = await crud.likes.count_documents({"use_case_id": use_case_id})
+            saves_count = await crud.saves.count_documents({"use_case_id": use_case_id})
+            
+            # Check user's personal engagement
+            user_engagement = {}
+            if current_user:
+                user_liked = await crud.likes.find_one({
+                    "use_case_id": use_case_id,
+                    "user_id": str(current_user.id)
+                }) is not None
+                
+                user_saved = await crud.saves.find_one({
+                    "use_case_id": use_case_id,
+                    "user_id": str(current_user.id)
+                }) is not None
+                
+                user_engagement = {
+                    "user_liked": user_liked,
+                    "user_saved": user_saved
+                }
+            
+            return {
+                "engagement_summary": {
+                    "total_views": views_count,
+                    "total_likes": likes_count,
+                    "total_saves": saves_count,
+                    **user_engagement
+                }
+            }
+            
+        except Exception as e:
+            logger.warning(f"Failed to get engagement summary: {e}")
+            return {}
+    
+    @staticmethod
+    async def get_use_case(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        current_user: Optional[User] = None,
+        track_view: bool = True
+    ) -> UseCaseDetail:
+        """Legacy method - redirect to enhanced version."""
+        return await UseCaseService.get_use_case_details(
+            db,
+            use_case_id=use_case_id,
+            current_user=current_user,
+            track_view=track_view,
+            include_related=True,
+            include_engagement=True
+        )
     
     @staticmethod
     async def browse_use_cases(
@@ -742,6 +1011,425 @@ class UseCaseService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to get category statistics"
+            )
+    
+    @staticmethod
+    async def get_related_use_cases(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        current_user: Optional[User] = None,
+        limit: int = 5,
+        similarity_threshold: float = 0.3
+    ) -> Dict[str, Any]:
+        """Get related use cases as standalone endpoint."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Get the original use case
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check access permissions
+            if use_case.visibility == UseCaseVisibility.PRIVATE:
+                if not current_user or str(current_user.id) != use_case.published_by.user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You don't have permission to view this use case"
+                    )
+            elif use_case.visibility == UseCaseVisibility.ORGANIZATION:
+                if not current_user or str(current_user.organization_id) != use_case.organization_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="This use case is only visible to organization members"
+                    )
+            
+            # Get related use cases
+            related = await UseCaseService._get_related_use_cases_smart(
+                db, use_case, current_user, limit
+            )
+            
+            # Filter by similarity threshold
+            filtered_related = [
+                r for r in related 
+                if r.get('similarity_score', 0) >= similarity_threshold
+            ]
+            
+            # Convert to brief format for consistency
+            brief_cases = []
+            for related_case in filtered_related:
+                brief_cases.append({
+                    "id": related_case["id"],
+                    "title": related_case["title"],
+                    "company": related_case["company"],
+                    "industry": "N/A",  # Not included in related query
+                    "category": related_case["category"],
+                    "description": related_case["description"],
+                    "results": {
+                        "roi_percentage": related_case.get("roi_percentage")
+                    },
+                    "thumbnail": related_case.get("thumbnail"),
+                    "tags": [],  # Not included in related query
+                    "verified": False,  # Not included in related query
+                    "featured": False,  # Not included in related query
+                    "views": related_case["views"],
+                    "likes": related_case["likes"],
+                    "published_by": {"name": "N/A", "title": "N/A"},
+                    "published_at": None,
+                    "similarity_score": related_case["similarity_score"]
+                })
+            
+            return {
+                "data": brief_cases,
+                "pagination": {
+                    "page": 1,
+                    "page_size": len(brief_cases),
+                    "total": len(brief_cases),
+                    "total_pages": 1,
+                    "has_next": False,
+                    "has_prev": False
+                },
+                "filters_applied": {
+                    "related_to": use_case_id,
+                    "similarity_threshold": similarity_threshold
+                }
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting related use cases for {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get related use cases"
+            )
+    
+    @staticmethod
+    async def get_use_case_engagement(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        current_user: Optional[User] = None,
+        include_timeline: bool = True,
+        days_back: int = 30,
+        detailed_analytics: bool = False
+    ) -> Dict[str, Any]:
+        """Get detailed engagement analytics for a use case."""
+        try:
+            from datetime import timedelta
+            
+            crud = get_use_case_crud(db)
+            
+            # Verify use case exists and user has permission
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Basic engagement metrics (available to all)
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=days_back)
+            
+            # Get engagement counts
+            total_views = await crud.views.count_documents({"use_case_id": use_case_id})
+            total_likes = await crud.likes.count_documents({"use_case_id": use_case_id})
+            total_saves = await crud.saves.count_documents({"use_case_id": use_case_id})
+            
+            # Period-specific counts
+            period_views = await crud.views.count_documents({
+                "use_case_id": use_case_id,
+                "viewed_at": {"$gte": start_date}
+            })
+            
+            period_likes = await crud.likes.count_documents({
+                "use_case_id": use_case_id,
+                "liked_at": {"$gte": start_date}
+            })
+            
+            period_saves = await crud.saves.count_documents({
+                "use_case_id": use_case_id,
+                "saved_at": {"$gte": start_date}
+            })
+            
+            engagement_data = {
+                "use_case_id": use_case_id,
+                "period_days": days_back,
+                "total_engagement": {
+                    "views": total_views,
+                    "likes": total_likes,
+                    "saves": total_saves
+                },
+                "period_engagement": {
+                    "views": period_views,
+                    "likes": period_likes,
+                    "saves": period_saves
+                }
+            }
+            
+            # Add timeline data if requested
+            if include_timeline:
+                timeline_data = await UseCaseService._get_engagement_timeline(
+                    crud, use_case_id, start_date, end_date
+                )
+                engagement_data["timeline"] = timeline_data
+            
+            # Add detailed analytics for authorized users
+            if detailed_analytics:
+                detailed_data = await UseCaseService._get_detailed_analytics(
+                    crud, use_case_id, start_date, end_date
+                )
+                engagement_data["detailed_analytics"] = detailed_data
+            
+            return engagement_data
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting engagement data for {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get engagement data"
+            )
+    
+    @staticmethod
+    async def _get_engagement_timeline(
+        crud: 'CRUDUseCase',
+        use_case_id: str,
+        start_date: datetime,
+        end_date: datetime
+    ) -> List[Dict[str, Any]]:
+        """Get daily engagement timeline."""
+        try:
+            pipeline = [
+                {
+                    "$match": {
+                        "use_case_id": use_case_id,
+                        "viewed_at": {"$gte": start_date, "$lte": end_date}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "$dateToString": {
+                                "format": "%Y-%m-%d",
+                                "date": "$viewed_at"
+                            }
+                        },
+                        "views": {"$sum": 1}
+                    }
+                },
+                {"$sort": {"_id": 1}}
+            ]
+            
+            cursor = crud.views.aggregate(pipeline)
+            timeline_data = await cursor.to_list(length=None)
+            
+            return [
+                {
+                    "date": item["_id"],
+                    "views": item["views"]
+                }
+                for item in timeline_data
+            ]
+            
+        except Exception as e:
+            logger.warning(f"Failed to get engagement timeline: {e}")
+            return []
+    
+    @staticmethod
+    async def _get_detailed_analytics(
+        crud: 'CRUDUseCase',
+        use_case_id: str,
+        start_date: datetime,
+        end_date: datetime
+    ) -> Dict[str, Any]:
+        """Get detailed analytics for authorized users."""
+        try:
+            # Get viewer organization distribution
+            org_pipeline = [
+                {
+                    "$match": {
+                        "use_case_id": use_case_id,
+                        "viewed_at": {"$gte": start_date, "$lte": end_date},
+                        "organization_id": {"$ne": None}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$organization_id",
+                        "views": {"$sum": 1}
+                    }
+                },
+                {"$sort": {"views": -1}},
+                {"$limit": 10}
+            ]
+            
+            cursor = crud.views.aggregate(org_pipeline)
+            org_distribution = await cursor.to_list(length=10)
+            
+            # Get peak viewing hours
+            hour_pipeline = [
+                {
+                    "$match": {
+                        "use_case_id": use_case_id,
+                        "viewed_at": {"$gte": start_date, "$lte": end_date}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {"$hour": "$viewed_at"},
+                        "views": {"$sum": 1}
+                    }
+                },
+                {"$sort": {"views": -1}}
+            ]
+            
+            cursor = crud.views.aggregate(hour_pipeline)
+            hour_distribution = await cursor.to_list(length=24)
+            
+            return {
+                "top_viewing_organizations": [
+                    {"organization_id": item["_id"], "views": item["views"]}
+                    for item in org_distribution
+                ],
+                "peak_hours": [
+                    {"hour": item["_id"], "views": item["views"]}
+                    for item in hour_distribution
+                ]
+            }
+            
+        except Exception as e:
+            logger.warning(f"Failed to get detailed analytics: {e}")
+            return {}
+    
+    @staticmethod
+    async def get_use_case_versions(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        current_user: User,
+        include_drafts: bool = False
+    ) -> Dict[str, Any]:
+        """Get version history for a use case."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Verify use case exists and user has permission
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check permissions (owner or admin only)
+            if str(current_user.id) != use_case.published_by.user_id and current_user.role != "admin":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You don't have permission to view version history"
+                )
+            
+            # For now, return basic version info
+            # This would be enhanced with actual version tracking
+            versions = [
+                {
+                    "version": "1.0",
+                    "created_at": use_case.created_at,
+                    "updated_at": use_case.updated_at,
+                    "status": use_case.status.value,
+                    "changes": "Initial version",
+                    "created_by": use_case.published_by.name
+                }
+            ]
+            
+            return {
+                "use_case_id": use_case_id,
+                "versions": versions,
+                "total_versions": len(versions)
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting versions for {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get version history"
+            )
+    
+    @staticmethod
+    async def report_use_case(
+        db: AsyncIOMotorDatabase,
+        *,
+        use_case_id: str,
+        reporter_user_id: str,
+        reason: str,
+        details: Optional[str] = None
+    ) -> Dict[str, str]:
+        """Report a use case for review."""
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Verify use case exists
+            use_case = await crud.get(use_case_id=use_case_id)
+            if not use_case:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Use case not found"
+                )
+            
+            # Check for duplicate reports from same user
+            existing_report = await db.use_case_reports.find_one({
+                "use_case_id": use_case_id,
+                "reporter_user_id": reporter_user_id,
+                "status": "pending"
+            })
+            
+            if existing_report:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="You have already reported this use case"
+                )
+            
+            # Create report record
+            report_data = {
+                "id": str(uuid4()),
+                "use_case_id": use_case_id,
+                "reporter_user_id": reporter_user_id,
+                "reason": reason,
+                "details": details,
+                "status": "pending",
+                "created_at": datetime.utcnow(),
+                "reviewed_at": None,
+                "reviewed_by": None,
+                "resolution": None
+            }
+            
+            await db.use_case_reports.insert_one(report_data)
+            
+            logger.info(
+                f"Use case {use_case_id} reported by user {reporter_user_id} for reason: {reason}"
+            )
+            
+            return {
+                "message": "Use case reported successfully",
+                "report_id": report_data["id"],
+                "status": "pending"
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error reporting use case {use_case_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to report use case"
             )
 
     @staticmethod

@@ -3,9 +3,10 @@
 from typing import AsyncGenerator
 import asyncpg
 from motor.motor_asyncio import AsyncIOMotorClient
-from sqlalchemy import text
+from sqlalchemy import text, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
+from contextlib import contextmanager
 import logging
 
 from app.core.config import settings
@@ -27,6 +28,25 @@ engine = create_async_engine(
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+)
+
+# Synchronous engine for background tasks
+sync_engine = create_engine(
+    str(settings.DATABASE_URL).replace("+asyncpg", ""),  # Remove asyncpg for sync
+    echo=settings.DEBUG,
+    pool_size=10,
+    max_overflow=5,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+)
+
+# Create sync session factory
+SyncSessionLocal = sessionmaker(
+    bind=sync_engine,
+    class_=Session,
     expire_on_commit=False,
     autocommit=False,
     autoflush=False,
@@ -131,6 +151,20 @@ async def get_asyncpg_connection() -> AsyncGenerator[asyncpg.Connection, None]:
         yield conn
     finally:
         await conn.close()
+
+
+@contextmanager
+def get_session_sync():
+    """Get synchronous database session for background tasks."""
+    session = SyncSessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 # Health check functions

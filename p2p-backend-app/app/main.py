@@ -27,6 +27,7 @@ from app.schemas.health import HealthCheckResponse
 from app.core.logging import setup_logging, get_logger
 from app.middleware.logging import LoggingMiddleware, UserContextMiddleware
 from app.middleware.performance import PerformanceMiddleware
+from app.services.background_tasks import background_task_service
 # Temporarily disable SuperTokens due to version compatibility
 # from app.core.supertokens import init_supertokens, get_supertokens_middleware
 # from supertokens_python import get_all_cors_headers
@@ -48,14 +49,20 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         logger.info("Database connections initialized successfully")
+        
+        # Start background task worker
+        await background_task_service.start_worker()
+        logger.info("Background task worker started successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize databases: {e}")
+        logger.error(f"Failed to initialize services: {e}")
         raise
     
     yield
     
     # Shutdown
     logger.info("Shutting down P2P Sandbox Backend...")
+    await background_task_service.stop_worker()
+    logger.info("Background task worker stopped successfully")
     await close_db()
     logger.info("Database connections closed successfully")
 

@@ -9,10 +9,12 @@ from app.core.database import get_session, get_mongo_db
 from app.core.auth import get_current_active_user
 from app.models.user import User
 from app.models.dashboard import (
-    DashboardStatistics, QuickStats, TimeRange, ActivityFeedResponse
+    DashboardStatistics, QuickStats, TimeRange, ActivityFeedResponse,
+    TrendingContentResponse
 )
 from app.services.dashboard import DashboardService
 from app.services.activity_feed import ActivityFeedService
+from app.services.trending import TrendingService, TrendingAlgorithm
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -120,6 +122,65 @@ async def get_user_activity_feed(
         )
 
 
+@router.get("/trending", response_model=TrendingContentResponse)
+async def get_trending_content(
+    content_types: Optional[str] = Query(None, description="Comma-separated list of content types"),
+    time_window: TimeRange = Query(TimeRange.WEEK),
+    algorithm: TrendingAlgorithm = Query(TrendingAlgorithm.HOT),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_session),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get trending content across all types."""
+    try:
+        # Parse content types filter
+        content_types_list = None
+        if content_types:
+            content_types_list = [t.strip() for t in content_types.split(',')]
+        
+        return await TrendingService.get_trending_content(
+            db=db,
+            mongo_db=mongo_db,
+            organization_id=current_user.organization_id,
+            content_types=content_types_list,
+            time_window=time_window,
+            algorithm=algorithm,
+            limit=limit
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch trending content: {str(e)}"
+        )
+
+
+@router.get("/trending/{category}")
+async def get_trending_by_category(
+    category: str,
+    content_type: str = Query("use_case"),
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_session),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get trending content by category."""
+    try:
+        return await TrendingService.get_trending_by_category(
+            db=db,
+            mongo_db=mongo_db,
+            organization_id=current_user.organization_id,
+            category=category,
+            content_type=content_type,
+            limit=limit
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch trending content by category: {str(e)}"
+        )
+
+
 @router.get("/health")
 async def get_dashboard_health(
     db: Session = Depends(get_session),
@@ -137,7 +198,8 @@ async def get_dashboard_health(
                 "postgresql": "connected",
                 "mongodb": "connected",
                 "dashboard_api": "operational",
-                "activity_feed": "operational"
+                "activity_feed": "operational",
+                "trending_service": "operational"
             }
         }
     except Exception as e:

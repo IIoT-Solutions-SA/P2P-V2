@@ -85,6 +85,16 @@ All backend code should use async/await patterns for:
    - Frontend-backend integration tests
    - Performance tests for async operations
 
+## Application Startup Requirements
+
+### Starting Backend and Frontend Services
+
+When starting up or shutting down the backend or frontend services, Claude MUST:
+- **Always follow the Application Startup Guide**: `/docs/aadil_docs/application-startup-guide.md`
+- Use the documented graceful startup/shutdown methods
+- Use the frontend control script for reliable frontend management
+- Verify services are healthy after startup
+
 ## Code Writing Requirements
 
 ### SuperTokens Documentation
@@ -166,23 +176,6 @@ Key areas requiring backend integration:
 - `UseCases.tsx`: Load from backend instead of JSON file
 - `Forum.tsx`: Implement real-time updates via WebSocket
 
-## Backend Management Commands
-
-```bash
-# Quick start (recommended)
-cd p2p-backend-app
-./scripts/start-backend.sh
-
-# Quick stop  
-./scripts/stop-backend.sh
-
-# Troubleshoot issues
-./scripts/troubleshoot-backend.sh
-
-# Manual start (if needed)
-source venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
 
 ## Testing Commands
 
@@ -297,9 +290,7 @@ When completing tasks, Claude MUST update the following documents:
 - Development Workflow: `/docs/aadil_docs/development-workflow-guide.md`
 
 ### Backend Management
-- **Startup/Shutdown Guide**: `/docs/aadil_docs/backend-startup-shutdown-guide.md`
-- **Quick Scripts**: `/p2p-backend-app/scripts/` directory
-- **Troubleshooting**: Run `./scripts/troubleshoot-backend.sh`
+- **Application Startup Guide**: `/docs/aadil_docs/application-startup-guide.md` (Covers both backend and frontend)
 
 ### Architecture & Testing
 - Architecture: `/docs/architecture/`

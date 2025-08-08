@@ -6,7 +6,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable
 
 from app.services.performance import performance_service
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class PerformanceMiddleware(BaseHTTPMiddleware):

@@ -3,10 +3,10 @@
 from typing import Optional, List
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
-from app.core.auth import get_current_active_user
+from app.db.session import get_db
+from app.core.rbac import get_current_user as get_current_active_user
 from app.models.user import User
 from app.models.notification import (
     NotificationResponse, NotificationListResponse,
@@ -26,7 +26,7 @@ async def get_notifications(
     page_size: int = Query(20, ge=1, le=100),
     unread_only: bool = Query(False),
     notification_type: Optional[NotificationType] = Query(None),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get user's notifications."""
@@ -43,7 +43,7 @@ async def get_notifications(
 @router.post("/mark-read")
 async def mark_notifications_as_read(
     request: NotificationMarkReadRequest,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Mark specific notifications as read."""
@@ -56,7 +56,7 @@ async def mark_notifications_as_read(
 
 @router.post("/mark-all-read")
 async def mark_all_notifications_as_read(
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Mark all notifications as read."""
@@ -69,7 +69,7 @@ async def mark_all_notifications_as_read(
 @router.delete("/{notification_id}")
 async def delete_notification(
     notification_id: UUID,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Delete a notification."""
@@ -88,7 +88,7 @@ async def delete_notification(
 
 @router.get("/preferences", response_model=NotificationPreference)
 async def get_notification_preferences(
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get user's notification preferences."""
@@ -101,7 +101,7 @@ async def get_notification_preferences(
 @router.put("/preferences", response_model=NotificationPreference)
 async def update_notification_preferences(
     update_data: NotificationPreferenceUpdate,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Update user's notification preferences."""
@@ -114,7 +114,7 @@ async def update_notification_preferences(
 
 @router.get("/stats", response_model=NotificationStats)
 async def get_notification_stats(
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get notification statistics."""
@@ -126,7 +126,7 @@ async def get_notification_stats(
 
 @router.get("/unread-count")
 async def get_unread_count(
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get unread notification count (for polling)."""

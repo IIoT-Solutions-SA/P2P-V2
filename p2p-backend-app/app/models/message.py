@@ -3,6 +3,8 @@
 from typing import Optional, Dict, Any
 from datetime import datetime
 from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy import Column, Enum as SQLEnum, String
+from sqlalchemy.dialects.postgresql import JSONB
 from uuid import UUID, uuid4
 from enum import Enum
 
@@ -78,7 +80,7 @@ class MessageBase(SQLModel):
     
     # Content
     content: str
-    content_type: MessageType = MessageType.TEXT
+    content_type: MessageType = Field(default=MessageType.TEXT, sa_column=Column(SQLEnum(MessageType)))
     
     # Status
     is_read: bool = False
@@ -90,7 +92,7 @@ class MessageBase(SQLModel):
     deleted_by: Optional[UUID] = None
     
     # Metadata for attachments, reactions, etc.
-    metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column_kwargs={"type": "JSONB"})
+    extra_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
 
 
 class Message(MessageBase, table=True):
@@ -106,7 +108,7 @@ class Message(MessageBase, table=True):
     thread_count: int = 0
     
     # Delivery status
-    status: MessageStatus = MessageStatus.SENT
+    status: MessageStatus = Field(default=MessageStatus.SENT, sa_column=Column(SQLEnum(MessageStatus)))
     delivered_at: Optional[datetime] = None
     
     # Relationships
@@ -197,7 +199,7 @@ class MessageCreate(SQLModel):
     content: str
     content_type: MessageType = MessageType.TEXT
     parent_message_id: Optional[UUID] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_data: Optional[Dict[str, Any]] = None
 
 
 class MessageUpdate(SQLModel):

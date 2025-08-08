@@ -3,6 +3,8 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy import Column, Enum as SQLEnum, ARRAY, String
+from sqlalchemy.dialects.postgresql import JSONB
 from uuid import UUID, uuid4
 from enum import Enum
 
@@ -38,10 +40,10 @@ class NotificationPriority(str, Enum):
 class NotificationBase(SQLModel):
     """Base notification model."""
     user_id: UUID
-    type: NotificationType
+    type: NotificationType = Field(default=NotificationType.SYSTEM_ANNOUNCEMENT, sa_column=Column(SQLEnum(NotificationType)))
     title: str
     message: str
-    priority: NotificationPriority = NotificationPriority.MEDIUM
+    priority: NotificationPriority = Field(default=NotificationPriority.MEDIUM, sa_column=Column(SQLEnum(NotificationPriority)))
     
     # Related entities
     related_entity_type: Optional[str] = None  # message, forum_post, use_case, etc.
@@ -56,8 +58,8 @@ class NotificationBase(SQLModel):
     is_read: bool = False
     read_at: Optional[datetime] = None
     
-    # Metadata
-    metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column_kwargs={"type": "JSONB"})
+    # Extra data (renamed from metadata to avoid SQLModel conflict)  
+    extra_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
     action_url: Optional[str] = None  # URL to navigate to when clicked
 
 
@@ -70,7 +72,7 @@ class Notification(NotificationBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Delivery status
-    delivered_channels: List[NotificationChannel] = Field(default=[], sa_column_kwargs={"type": "ARRAY"})
+    delivered_channels: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(String)))
     email_sent: bool = False
     email_sent_at: Optional[datetime] = None
     sms_sent: bool = False
@@ -130,8 +132,8 @@ class NotificationTemplate(SQLModel, table=True):
     __tablename__ = "notification_templates"
     
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    type: NotificationType
-    channel: NotificationChannel
+    type: NotificationType = Field(sa_column=Column(SQLEnum(NotificationType)))
+    channel: NotificationChannel = Field(sa_column=Column(SQLEnum(NotificationChannel)))
     language: str = "en"
     
     # Template content
@@ -161,7 +163,7 @@ class NotificationCreate(SQLModel):
     sender_id: Optional[UUID] = None
     sender_name: Optional[str] = None
     action_url: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_data: Optional[Dict[str, Any]] = None
 
 
 class NotificationResponse(NotificationBase):

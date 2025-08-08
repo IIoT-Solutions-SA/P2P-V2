@@ -1,6 +1,6 @@
 """Role-Based Access Control (RBAC) dependencies for FastAPI."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from supertokens_python.recipe.session import SessionContainer
@@ -278,6 +278,52 @@ async def get_current_user(
         User object from database
     """
     return user_data["user"]
+
+
+async def get_current_user_optional(
+    session: Optional[SessionContainer] = Depends(verify_session(session_required=False)),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[User]:
+    """
+    Get the current user object (optional - returns None if no valid session).
+    
+    This dependency is used for endpoints that work for both authenticated
+    and unauthenticated users, providing different experiences based on
+    authentication status.
+    
+    Returns:
+        User object if valid session exists, None otherwise
+    """
+    try:
+        # If no session, return None
+        if session is None:
+            return None
+            
+        # Get SuperTokens user ID from session
+        supertokens_user_id = session.get_user_id()
+        
+        # Get user with organization data from our database
+        user_data = await auth_service.get_user_with_organization(
+            db, supertokens_user_id=supertokens_user_id
+        )
+        
+        if not user_data:
+            logger.debug(f"Optional auth: No user data found for SuperTokens ID: {supertokens_user_id}")
+            return None
+        
+        user = user_data["user"]
+        
+        # Check if user is active
+        if not user.is_active:
+            logger.debug(f"Optional auth: Inactive user: {user.email}")
+            return None
+        
+        logger.debug(f"Optional auth: User {user.email} authenticated")
+        return user
+        
+    except Exception as e:
+        logger.debug(f"Optional auth failed: {e}")
+        return None
 
 
 async def get_current_admin_user(

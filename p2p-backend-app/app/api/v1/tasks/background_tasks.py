@@ -3,10 +3,10 @@
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
-from app.core.auth import get_current_active_user
+from app.db.session import get_db
+from app.core.rbac import get_current_user as get_current_active_user
 from app.models.user import User
 from app.services.background_tasks import (
     background_task_service, TaskPriority, send_email_async,

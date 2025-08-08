@@ -74,7 +74,8 @@ db.createCollection('use_cases', {
         submitted_by: { bsonType: 'string' },
         industry: { bsonType: 'string' },
         technology: { bsonType: 'array' },
-        problem_statement: { bsonType: 'string' },
+        description: { bsonType: 'string' },
+        challenge: { bsonType: 'string' },
         solution: { bsonType: 'string' },
         outcomes: { bsonType: 'object' },
         vendor_info: { bsonType: 'object' },
@@ -94,6 +95,6 @@ db.use_cases.createIndex({ organization_id: 1 });
 db.use_cases.createIndex({ industry: 1 });
 db.use_cases.createIndex({ technology: 1 });
 db.use_cases.createIndex({ tags: 1 });
-db.use_cases.createIndex({ 'title': 'text', 'problem_statement': 'text', 'solution': 'text' });
+db.use_cases.createIndex({ 'title': 'text', 'description': 'text', 'challenge': 'text', 'solution': 'text', 'tags': 'text' });
 
 print('MongoDB initialization completed successfully!');

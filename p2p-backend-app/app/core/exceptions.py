@@ -1,12 +1,36 @@
 """Custom exception handlers for the P2P Sandbox backend."""
 
-from fastapi import Request
+from fastapi import Request, HTTPException as FastAPIHTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class NotFoundException(FastAPIHTTPException):
+    """Exception for when a resource is not found."""
+    def __init__(self, detail: str = "Not found"):
+        super().__init__(status_code=404, detail=detail)
+
+
+class ForbiddenException(FastAPIHTTPException):
+    """Exception for when access is forbidden."""
+    def __init__(self, detail: str = "Forbidden"):
+        super().__init__(status_code=403, detail=detail)
+
+
+class BadRequestException(FastAPIHTTPException):
+    """Exception for bad requests."""
+    def __init__(self, detail: str = "Bad request"):
+        super().__init__(status_code=400, detail=detail)
+
+
+class UnauthorizedException(FastAPIHTTPException):
+    """Exception for unauthorized access."""
+    def __init__(self, detail: str = "Unauthorized"):
+        super().__init__(status_code=401, detail=detail)
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:

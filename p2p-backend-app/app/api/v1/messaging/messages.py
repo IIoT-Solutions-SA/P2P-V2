@@ -3,10 +3,10 @@
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
-from app.core.auth import get_current_active_user
+from app.db.session import get_db
+from app.core.rbac import get_current_user as get_current_active_user
 from app.models.user import User
 from app.models.message import (
     MessageCreate, MessageUpdate, MessageResponse,
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/messages", tags=["messaging"])
 @router.post("/send", response_model=MessageResponse)
 async def send_message(
     message_data: MessageCreate,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Send a new message to another user."""
@@ -47,7 +47,7 @@ async def get_conversations(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     archived: bool = Query(False),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get user's conversations."""
@@ -66,7 +66,7 @@ async def get_messages(
     conversation_id: UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get messages in a conversation."""
@@ -93,7 +93,7 @@ async def get_messages(
 @router.patch("/{message_id}/read", response_model=MessageResponse)
 async def mark_message_as_read(
     message_id: UUID,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Mark a message as read."""
@@ -119,7 +119,7 @@ async def mark_message_as_read(
 async def edit_message(
     message_id: UUID,
     update_data: MessageUpdate,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Edit a message."""
@@ -145,7 +145,7 @@ async def edit_message(
 @router.delete("/{message_id}")
 async def delete_message(
     message_id: UUID,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Delete a message."""
@@ -169,7 +169,7 @@ async def delete_message(
 
 @router.get("/unread/count", response_model=UnreadCountResponse)
 async def get_unread_counts(
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get unread message counts."""
@@ -183,7 +183,7 @@ async def get_unread_counts(
 @router.post("/search", response_model=List[MessageResponse])
 async def search_messages(
     search_params: MessageSearchRequest,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Search messages."""
@@ -199,7 +199,7 @@ async def search_messages(
 async def add_reaction(
     message_id: UUID,
     reaction: str = Query(..., min_length=1, max_length=10),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Add or remove a reaction to a message."""
@@ -221,7 +221,7 @@ async def add_reaction(
 async def archive_conversation(
     conversation_id: UUID,
     archive: bool = Query(True),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Archive or unarchive a conversation."""
@@ -247,7 +247,7 @@ async def archive_conversation(
 @router.post("/conversations/{conversation_id}/mark-all-read")
 async def mark_all_as_read(
     conversation_id: UUID,
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Mark all messages in a conversation as read."""

@@ -60,13 +60,14 @@ class MongoDB:
             use_cases = cls.database.use_cases
             
             # Text search index for full-text search
-            await use_cases.create_index([
-                ("title", TEXT),
-                ("description", TEXT),
-                ("challenge", TEXT),
-                ("solution", TEXT),
-                ("tags", TEXT)
-            ])
+            # Note: This index is created by init-mongo.js to avoid conflicts
+            # await use_cases.create_index([
+            #     ("title", TEXT),
+            #     ("description", TEXT),
+            #     ("challenge", TEXT),
+            #     ("solution", TEXT),
+            #     ("tags", TEXT)
+            # ])
             
             # Single field indexes for filtering
             await use_cases.create_index([("organization_id", ASCENDING)])

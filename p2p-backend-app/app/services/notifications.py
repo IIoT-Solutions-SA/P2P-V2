@@ -17,8 +17,10 @@ from app.models.notification import (
 from app.models.user import User
 from app.models.message import Message
 from app.core.exceptions import NotFoundException
-from app.core.logging import logger
+from app.core.logging import get_logger
 from app.services.email import email_service
+
+logger = get_logger(__name__)
 
 
 class NotificationService:

@@ -3,11 +3,12 @@
 from typing import Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.database import get_session, get_mongo_db
-from app.core.auth import get_current_active_user
+from app.db.session import get_db
+from app.db.mongodb import get_mongodb
+from app.core.rbac import get_current_user as get_current_active_user
 from app.models.user import User
 from app.models.dashboard import (
     DashboardStatistics, QuickStats, TimeRange, ActivityFeedResponse,
@@ -26,8 +27,8 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("/stats", response_model=DashboardStatistics)
 async def get_dashboard_statistics(
     time_range: TimeRange = Query(TimeRange.MONTH),
-    db: Session = Depends(get_session),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    db: AsyncSession = Depends(get_db),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongodb),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get comprehensive dashboard statistics."""
@@ -48,8 +49,8 @@ async def get_dashboard_statistics(
 
 @router.get("/quick-stats", response_model=QuickStats)
 async def get_quick_stats(
-    db: Session = Depends(get_session),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    db: AsyncSession = Depends(get_db),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongodb),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get quick statistics for dashboard header."""
@@ -74,8 +75,8 @@ async def get_activity_feed(
     page_size: int = Query(20, ge=1, le=100),
     activity_types: Optional[str] = Query(None, description="Comma-separated list of activity types to filter"),
     hours_back: int = Query(168, ge=1, le=8760, description="Hours back to fetch activities (max 1 year)"),
-    db: Session = Depends(get_session),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    db: AsyncSession = Depends(get_db),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongodb),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get organization activity feed."""
@@ -105,8 +106,8 @@ async def get_activity_feed(
 async def get_user_activity_feed(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_session),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    db: AsyncSession = Depends(get_db),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongodb),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get user-specific activity feed."""
@@ -132,8 +133,8 @@ async def get_trending_content(
     time_window: TimeRange = Query(TimeRange.WEEK),
     algorithm: TrendingAlgorithm = Query(TrendingAlgorithm.HOT),
     limit: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_session),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    db: AsyncSession = Depends(get_db),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongodb),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get trending content across all types."""
@@ -164,8 +165,8 @@ async def get_trending_by_category(
     category: str,
     content_type: str = Query("use_case"),
     limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_session),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db),
+    db: AsyncSession = Depends(get_db),
+    mongo_db: AsyncIOMotorDatabase = Depends(get_mongodb),
     current_user: User = Depends(get_current_active_user)
 ):
     """Get trending content by category."""
@@ -267,21 +268,25 @@ async def reset_performance_metrics(
 
 
 @router.get("/health")
-async def get_dashboard_health(
-    db: Session = Depends(get_session),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db)
-):
+async def get_dashboard_health():
     """Check dashboard service health."""
+    from app.db.session import check_postgres_health, check_mongodb_health
+    
     try:
         # Test database connections
-        db.exec("SELECT 1")
-        await mongo_db.command("ismaster")
+        postgres_health = await check_postgres_health()
+        mongodb_health = await check_mongodb_health()
+        
+        all_healthy = (
+            postgres_health["status"] == "healthy" and 
+            mongodb_health["status"] == "healthy"
+        )
         
         return {
-            "status": "healthy",
+            "status": "healthy" if all_healthy else "degraded",
             "services": {
-                "postgresql": "connected",
-                "mongodb": "connected",
+                "postgresql": postgres_health["status"],
+                "mongodb": mongodb_health["status"],
                 "dashboard_api": "operational",
                 "activity_feed": "operational",
                 "trending_service": "operational"

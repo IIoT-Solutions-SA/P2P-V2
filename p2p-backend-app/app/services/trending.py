@@ -10,8 +10,10 @@ from enum import Enum
 from app.models.dashboard import TrendingContent, TrendingContentResponse, TimeRange
 from app.models.user import User
 from app.models.forum import ForumTopic, ForumPost
-from app.core.logging import logger
+from app.core.logging import get_logger
 import asyncio
+
+logger = get_logger(__name__)
 import math
 
 

@@ -19,8 +19,10 @@ from app.models.forum import ForumTopic, ForumPost
 from app.models.message import Message, Conversation
 from app.models.notification import Notification
 from app.models.use_case import UseCase, UseCaseStatus, UseCaseCategory
-from app.core.logging import logger
+from app.core.logging import get_logger
 from app.services.performance import cache_result
+
+logger = get_logger(__name__)
 import asyncio
 
 

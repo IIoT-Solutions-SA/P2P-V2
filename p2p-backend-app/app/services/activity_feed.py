@@ -11,8 +11,10 @@ from app.models.user import User
 from app.models.forum import ForumTopic, ForumPost
 from app.models.message import Message
 from app.models.notification import Notification
-from app.core.logging import logger
+from app.core.logging import get_logger
 import asyncio
+
+logger = get_logger(__name__)
 
 
 class ActivityFeedService:

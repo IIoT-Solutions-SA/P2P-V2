@@ -21,7 +21,9 @@ from app.schemas.use_case import (
     DraftSave,
     DraftResponse,
     LikeResponse,
-    SaveResponse
+    SaveResponse,
+    TrendingResponse,
+    SuggestionsResponse
 )
 
 router = APIRouter()

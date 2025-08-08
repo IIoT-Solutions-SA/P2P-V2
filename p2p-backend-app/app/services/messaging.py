@@ -17,7 +17,9 @@ from app.models.message import (
 )
 from app.models.user import User
 from app.core.exceptions import NotFoundException, ForbiddenException
-from app.core.logging import logger
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 from app.services.notifications import NotificationService
 
 

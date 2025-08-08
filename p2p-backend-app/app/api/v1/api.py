@@ -10,6 +10,7 @@ from app.api.v1.organizations import organizations_router
 from app.api.v1.forum import forum_router
 from app.api.v1.use_cases import router as use_cases_router
 from app.api.v1.messaging import messaging_router
+from app.api.v1.notifications import notifications_router
 from app.api.v1.files import router as files_router
 from app.api.v1.media import router as media_router
 from app.api.v1.invitations import router as invitations_router
@@ -35,6 +36,7 @@ api_router.include_router(invitations_router, prefix="/invitations", tags=["invi
 api_router.include_router(forum_router, prefix="/forum", tags=["forum"])
 api_router.include_router(use_cases_router, prefix="/use-cases", tags=["use-cases"])
 api_router.include_router(messaging_router, prefix="/messaging", tags=["messaging"])
+api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 # api_router.include_router(test_auth_router, prefix="/test-auth", tags=["testing"])
 # api_router.include_router(test_rbac_router, prefix="/test-rbac", tags=["rbac-testing"])
 # api_router.include_router(password_reset_router, prefix="/password-reset", tags=["password-reset"])

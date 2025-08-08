@@ -329,6 +329,36 @@ class EmailService:
             text_content=text_content
         )
     
+    async def send_notification_email(
+        self,
+        to_email: str,
+        subject: str,
+        body: str,
+        notification_id: Optional[str] = None
+    ) -> bool:
+        """Send notification email."""
+        html_content = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <h2 style="color: #333; margin-bottom: 20px;">{subject}</h2>
+                    <p style="font-size: 16px; line-height: 1.6; color: #555;">{body}</p>
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    <p style="font-size: 12px; color: #888; text-align: center;">
+                        P2P Sandbox - Empowering Saudi Industrial SMEs
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            text_content=body
+        )
+    
     def is_configured(self) -> bool:
         """Check if email service is properly configured."""
         return bool(
@@ -404,6 +434,20 @@ class MockEmailService:
             to_email=user.email,
             subject=subject,
             html_content=content
+        )
+    
+    async def send_notification_email(
+        self,
+        to_email: str,
+        subject: str,
+        body: str,
+        notification_id: Optional[str] = None
+    ) -> bool:
+        """Mock send notification email."""
+        return await self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=body
         )
     
     def is_configured(self) -> bool:

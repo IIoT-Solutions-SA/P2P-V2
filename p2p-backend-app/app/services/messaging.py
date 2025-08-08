@@ -18,6 +18,7 @@ from app.models.message import (
 from app.models.user import User
 from app.core.exceptions import NotFoundException, ForbiddenException
 from app.core.logging import logger
+from app.services.notifications import NotificationService
 
 
 class MessagingService:
@@ -108,6 +109,14 @@ class MessagingService:
         
         # Get sender info
         sender = db.get(User, sender_id)
+        
+        # Create notification for message recipient
+        try:
+            await NotificationService.create_message_notification(
+                db, message, sender
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create message notification: {e}")
         
         return MessageResponse(
             **message.dict(),

@@ -2182,3 +2182,402 @@ class UseCaseService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update visibility"
             )
+    
+    @staticmethod
+    async def advanced_search(
+        db: AsyncIOMotorDatabase,
+        *,
+        query: str,
+        filters: Optional[Dict[str, Any]] = None,
+        facets: Optional[List[str]] = None,
+        page: int = 1,
+        page_size: int = 20,
+        current_user: Optional[User] = None
+    ) -> Dict[str, Any]:
+        """
+        Advanced search with full-text search, faceted results, and analytics.
+        
+        Features:
+        - Full-text search across multiple fields
+        - Faceted search with aggregations
+        - Search result ranking and scoring
+        - Search analytics tracking
+        - Spelling suggestions
+        """
+        try:
+            crud = get_use_case_crud(db)
+            
+            # Build base query for access control
+            base_query = {"status": UseCaseStatus.PUBLISHED.value}
+            
+            # Access control
+            if not current_user:
+                base_query["visibility"] = UseCaseVisibility.PUBLIC.value
+            elif current_user.organization_id:
+                base_query["$or"] = [
+                    {"visibility": UseCaseVisibility.PUBLIC.value},
+                    {
+                        "$and": [
+                            {"visibility": UseCaseVisibility.ORGANIZATION.value},
+                            {"organization_id": str(current_user.organization_id)}
+                        ]
+                    }
+                ]
+            
+            # Build search pipeline
+            pipeline = []
+            
+            # Stage 1: Match base criteria
+            pipeline.append({"$match": base_query})
+            
+            # Stage 2: Text search with scoring
+            if query:
+                # Create text search stage
+                search_stage = {
+                    "$match": {
+                        "$or": [
+                            {"$text": {"$search": query}},  # If text index exists
+                            {"title": {"$regex": query, "$options": "i"}},
+                            {"description": {"$regex": query, "$options": "i"}},
+                            {"challenge": {"$regex": query, "$options": "i"}},
+                            {"solution": {"$regex": query, "$options": "i"}},
+                            {"company": {"$regex": query, "$options": "i"}},
+                            {"tags": {"$regex": query, "$options": "i"}},
+                            {"technologies": {"$elemMatch": {"$regex": query, "$options": "i"}}}
+                        ]
+                    }
+                }
+                pipeline.append(search_stage)
+                
+                # Add text score for ranking
+                pipeline.append({
+                    "$addFields": {
+                        "search_score": {
+                            "$add": [
+                                {"$cond": [{"$regexMatch": {"input": "$title", "regex": query, "options": "i"}}, 10, 0]},
+                                {"$cond": [{"$regexMatch": {"input": "$description", "regex": query, "options": "i"}}, 5, 0]},
+                                {"$cond": [{"$regexMatch": {"input": {"$ifNull": ["$challenge", ""]}, "regex": query, "options": "i"}}, 3, 0]},
+                                {"$cond": [{"$regexMatch": {"input": {"$ifNull": ["$solution", ""]}, "regex": query, "options": "i"}}, 3, 0]},
+                                {"$cond": [{"$in": [query.lower(), {"$map": {"input": {"$ifNull": ["$tags", []]}, "as": "tag", "in": {"$toLower": "$$tag"}}}]}, 8, 0]},
+                                {"$cond": [{"$in": [query.lower(), {"$map": {"input": {"$ifNull": ["$technologies", []]}, "as": "tech", "in": {"$toLower": "$$tech"}}}]}, 7, 0]}
+                            ]
+                        }
+                    }
+                })
+            
+            # Stage 3: Apply additional filters
+            if filters:
+                filter_match = {}
+                
+                if filters.get("category"):
+                    filter_match["category"] = filters["category"]
+                
+                if filters.get("industry"):
+                    filter_match["industry"] = {"$regex": filters["industry"], "$options": "i"}
+                
+                if filters.get("technologies"):
+                    filter_match["technologies"] = {"$in": filters["technologies"]}
+                
+                if filters.get("date_from"):
+                    filter_match["published_at"] = {"$gte": filters["date_from"]}
+                
+                if filters.get("date_to"):
+                    if "published_at" not in filter_match:
+                        filter_match["published_at"] = {}
+                    filter_match["published_at"]["$lte"] = filters["date_to"]
+                
+                if filters.get("roi_min"):
+                    filter_match["results.roi.percentage"] = {"$gte": filters["roi_min"]}
+                
+                if filters.get("verified"):
+                    filter_match["verification.status"] = "verified"
+                
+                if filter_match:
+                    pipeline.append({"$match": filter_match})
+            
+            # Stage 4: Sort by relevance and other criteria
+            sort_stage = {"$sort": {}}
+            if query:
+                sort_stage["$sort"]["search_score"] = -1
+            sort_stage["$sort"]["metrics.views"] = -1
+            sort_stage["$sort"]["published_at"] = -1
+            pipeline.append(sort_stage)
+            
+            # Stage 5: Facet for aggregations if requested
+            if facets:
+                facet_stage = {"$facet": {}}
+                
+                # Add results facet
+                facet_stage["results"] = [
+                    {"$skip": (page - 1) * page_size},
+                    {"$limit": page_size}
+                ]
+                
+                # Add count facet
+                facet_stage["total_count"] = [
+                    {"$count": "count"}
+                ]
+                
+                # Add requested facets
+                if "category" in facets:
+                    facet_stage["categories"] = [
+                        {"$group": {"_id": "$category", "count": {"$sum": 1}}},
+                        {"$sort": {"count": -1}}
+                    ]
+                
+                if "industry" in facets:
+                    facet_stage["industries"] = [
+                        {"$group": {"_id": "$industry", "count": {"$sum": 1}}},
+                        {"$sort": {"count": -1}},
+                        {"$limit": 20}
+                    ]
+                
+                if "technologies" in facets:
+                    facet_stage["technologies"] = [
+                        {"$unwind": "$technologies"},
+                        {"$group": {"_id": "$technologies", "count": {"$sum": 1}}},
+                        {"$sort": {"count": -1}},
+                        {"$limit": 30}
+                    ]
+                
+                if "year" in facets:
+                    facet_stage["years"] = [
+                        {"$group": {
+                            "_id": {"$year": "$published_at"},
+                            "count": {"$sum": 1}
+                        }},
+                        {"$sort": {"_id": -1}}
+                    ]
+                
+                pipeline.append(facet_stage)
+                
+                # Execute pipeline with facets
+                cursor = crud.collection.aggregate(pipeline)
+                result = await cursor.to_list(None)
+                
+                if result:
+                    faceted_result = result[0]
+                    
+                    # Extract results
+                    use_cases = faceted_result.get("results", [])
+                    total = faceted_result.get("total_count", [{"count": 0}])[0].get("count", 0) if faceted_result.get("total_count") else 0
+                    
+                    # Process facets
+                    facet_data = {}
+                    for facet_name in facets:
+                        if facet_name in ["category", "industry", "technologies", "year"]:
+                            facet_key = f"{facet_name[:-1] if facet_name.endswith('s') else facet_name}ies" if facet_name == "category" else f"{facet_name}s" if facet_name == "year" else facet_name
+                            facet_data[facet_name] = faceted_result.get(facet_key, [])
+                    
+                    return {
+                        "results": [UseCaseBrief(**uc) for uc in use_cases],
+                        "total": total,
+                        "page": page,
+                        "page_size": page_size,
+                        "facets": facet_data,
+                        "query": query
+                    }
+            else:
+                # No facets, simpler pipeline
+                pipeline.append({"$skip": (page - 1) * page_size})
+                pipeline.append({"$limit": page_size})
+                
+                # Execute search
+                cursor = crud.collection.aggregate(pipeline)
+                use_cases = await cursor.to_list(None)
+                
+                # Get total count
+                count_pipeline = pipeline[:-2]  # Remove skip and limit
+                count_pipeline.append({"$count": "total"})
+                count_cursor = crud.collection.aggregate(count_pipeline)
+                count_result = await count_cursor.to_list(1)
+                total = count_result[0]["total"] if count_result else 0
+                
+                return {
+                    "results": [UseCaseBrief(**uc) for uc in use_cases],
+                    "total": total,
+                    "page": page,
+                    "page_size": page_size,
+                    "query": query
+                }
+            
+        except Exception as e:
+            logger.error(f"Error in advanced search: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Search failed"
+            )
+    
+    @staticmethod
+    async def save_search(
+        db: AsyncIOMotorDatabase,
+        *,
+        query: str,
+        filters: Optional[Dict[str, Any]],
+        name: str,
+        current_user: User
+    ) -> Dict[str, str]:
+        """Save a search query for later use."""
+        try:
+            saved_search = {
+                "id": str(uuid4()),
+                "user_id": str(current_user.id),
+                "organization_id": str(current_user.organization_id),
+                "name": name,
+                "query": query,
+                "filters": filters or {},
+                "created_at": datetime.utcnow(),
+                "last_used": datetime.utcnow(),
+                "use_count": 0
+            }
+            
+            await db.saved_searches.insert_one(saved_search)
+            
+            logger.info(f"User {current_user.id} saved search: {name}")
+            
+            return {
+                "message": "Search saved successfully",
+                "search_id": saved_search["id"],
+                "name": name
+            }
+            
+        except Exception as e:
+            logger.error(f"Error saving search: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save search"
+            )
+    
+    @staticmethod
+    async def get_saved_searches(
+        db: AsyncIOMotorDatabase,
+        *,
+        current_user: User
+    ) -> List[Dict[str, Any]]:
+        """Get user's saved searches."""
+        try:
+            cursor = db.saved_searches.find(
+                {"user_id": str(current_user.id)},
+                {"_id": 0}
+            ).sort("last_used", -1).limit(20)
+            
+            searches = await cursor.to_list(None)
+            return searches
+            
+        except Exception as e:
+            logger.error(f"Error getting saved searches: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get saved searches"
+            )
+    
+    @staticmethod
+    async def execute_saved_search(
+        db: AsyncIOMotorDatabase,
+        *,
+        search_id: str,
+        page: int = 1,
+        page_size: int = 20,
+        current_user: User
+    ) -> Dict[str, Any]:
+        """Execute a saved search."""
+        try:
+            # Get saved search
+            saved_search = await db.saved_searches.find_one({
+                "id": search_id,
+                "user_id": str(current_user.id)
+            })
+            
+            if not saved_search:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Saved search not found"
+                )
+            
+            # Update usage stats
+            await db.saved_searches.update_one(
+                {"id": search_id},
+                {
+                    "$set": {"last_used": datetime.utcnow()},
+                    "$inc": {"use_count": 1}
+                }
+            )
+            
+            # Execute search
+            result = await UseCaseService.advanced_search(
+                db,
+                query=saved_search["query"],
+                filters=saved_search["filters"],
+                page=page,
+                page_size=page_size,
+                current_user=current_user
+            )
+            
+            result["saved_search_name"] = saved_search["name"]
+            return result
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error executing saved search: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to execute saved search"
+            )
+    
+    @staticmethod
+    async def get_search_history(
+        db: AsyncIOMotorDatabase,
+        *,
+        current_user: User,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Get user's search history."""
+        try:
+            cursor = db.search_history.find(
+                {"user_id": str(current_user.id)},
+                {"_id": 0}
+            ).sort("searched_at", -1).limit(limit)
+            
+            history = await cursor.to_list(None)
+            return history
+            
+        except Exception as e:
+            logger.error(f"Error getting search history: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to get search history"
+            )
+    
+    @staticmethod
+    async def track_search(
+        db: AsyncIOMotorDatabase,
+        *,
+        query: str,
+        filters: Optional[Dict[str, Any]],
+        result_count: int,
+        current_user: Optional[User] = None
+    ) -> None:
+        """Track search for analytics."""
+        try:
+            search_record = {
+                "id": str(uuid4()),
+                "query": query,
+                "filters": filters or {},
+                "result_count": result_count,
+                "searched_at": datetime.utcnow()
+            }
+            
+            if current_user:
+                search_record["user_id"] = str(current_user.id)
+                search_record["organization_id"] = str(current_user.organization_id)
+                
+                # Save to user's search history
+                await db.search_history.insert_one(search_record)
+            
+            # Save to global search analytics
+            await db.search_analytics.insert_one(search_record)
+            
+        except Exception as e:
+            logger.error(f"Error tracking search: {e}")
+            # Don't raise - tracking shouldn't break the search

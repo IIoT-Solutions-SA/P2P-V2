@@ -967,6 +967,189 @@ async def get_category_statistics(
     return result
 
 
+@router.post("/search/advanced")
+async def advanced_search(
+    query: str = Query(..., description="Search query"),
+    filters: Optional[str] = Query(None, description="JSON-encoded filters"),
+    facets: Optional[List[str]] = Query(None, description="Facets to include: category, industry, technologies, year"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Results per page"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Advanced search with faceted results and ranking.
+    
+    **Features:**
+    - Full-text search across multiple fields
+    - Faceted search with aggregations
+    - Search result ranking and scoring
+    - Filters for date range, category, industry, ROI
+    
+    **Facets available:**
+    - category: Category distribution
+    - industry: Industry distribution
+    - technologies: Technology distribution
+    - year: Year distribution
+    
+    **Ranking factors:**
+    - Title match (highest weight)
+    - Tag match
+    - Technology match
+    - Description match
+    - View count
+    - Publication date
+    """
+    import json
+    
+    # Parse filters if provided
+    parsed_filters = None
+    if filters:
+        try:
+            parsed_filters = json.loads(filters)
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid filters format. Must be valid JSON."
+            )
+    
+    result = await UseCaseService.advanced_search(
+        db,
+        query=query,
+        filters=parsed_filters,
+        facets=facets,
+        page=page,
+        page_size=page_size,
+        current_user=current_user
+    )
+    
+    # Track search for analytics
+    await UseCaseService.track_search(
+        db,
+        query=query,
+        filters=parsed_filters,
+        result_count=result.get("total", 0),
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.post("/search/save")
+async def save_search(
+    query: str = Query(..., description="Search query to save"),
+    name: str = Query(..., description="Name for the saved search"),
+    filters: Optional[str] = Query(None, description="JSON-encoded filters"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Save a search query for later use.
+    
+    **Features:**
+    - Save complex search queries
+    - Include filters and settings
+    - Quick access from dashboard
+    - Usage tracking
+    """
+    import json
+    
+    # Parse filters if provided
+    parsed_filters = None
+    if filters:
+        try:
+            parsed_filters = json.loads(filters)
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid filters format. Must be valid JSON."
+            )
+    
+    result = await UseCaseService.save_search(
+        db,
+        query=query,
+        filters=parsed_filters,
+        name=name,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.get("/search/saved")
+async def get_saved_searches(
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get user's saved searches.
+    
+    **Returns:**
+    - List of saved searches
+    - Usage statistics
+    - Last used timestamp
+    - Quick access links
+    """
+    searches = await UseCaseService.get_saved_searches(
+        db,
+        current_user=current_user
+    )
+    
+    return {"searches": searches}
+
+
+@router.get("/search/saved/{search_id}/execute")
+async def execute_saved_search(
+    search_id: str,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Results per page"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Execute a saved search.
+    
+    **Features:**
+    - Quick execution of saved searches
+    - Updates usage statistics
+    - Maintains original filters
+    - Paginated results
+    """
+    result = await UseCaseService.execute_saved_search(
+        db,
+        search_id=search_id,
+        page=page,
+        page_size=page_size,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.get("/search/history")
+async def get_search_history(
+    limit: int = Query(20, ge=1, le=50, description="Number of history items"),
+    db: AsyncIOMotorDatabase = Depends(get_mongodb),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get user's search history.
+    
+    **Features:**
+    - Recent search queries
+    - Result counts
+    - Search timestamps
+    - Quick re-run capability
+    """
+    history = await UseCaseService.get_search_history(
+        db,
+        current_user=current_user,
+        limit=limit
+    )
+    
+    return {"history": history}
+
+
 @router.get("/featured", response_model=UseCaseListResponse)
 async def get_featured_use_cases(
     page: int = Query(1, ge=1, description="Page number"),

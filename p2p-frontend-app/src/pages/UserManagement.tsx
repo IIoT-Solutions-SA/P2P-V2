@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -29,11 +30,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/services/api'
 import type { InviteUserData, PendingInvitation } from '@/types/auth'
-import { type Page } from '@/components/Navigation'
-
-interface UserManagementProps {
-  onPageChange?: (page: Page) => void
-}
 
 interface UserData {
   id: string
@@ -47,7 +43,8 @@ interface UserData {
   jobTitle?: string
 }
 
-export default function UserManagement({ onPageChange }: UserManagementProps) {
+export default function UserManagement() {
+  const navigate = useNavigate()
   const { user, organization } = useAuth()
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -283,7 +280,7 @@ export default function UserManagement({ onPageChange }: UserManagementProps) {
         <Button 
           variant="ghost" 
           className="mb-6"
-          onClick={() => onPageChange?.('dashboard')}
+          onClick={() => navigate('/dashboard')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard

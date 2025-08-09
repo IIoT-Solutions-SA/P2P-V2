@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -13,26 +14,18 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
-interface LoginProps {
-  onNavigateToSignup: () => void
-  onLoginSuccess: () => void
-}
-
-export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps) {
-  console.log('🔑 Login component rendering')
-  const { login, isAuthenticated } = useAuth()
+export default function Login() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-
-  // Remove automatic redirect - let the form submission handle it
-  // React.useEffect(() => {
-  //   if (isAuthenticated) {
-  //     onLoginSuccess()
-  //   }
-  // }, [isAuthenticated, onLoginSuccess])
+  
+  // Get the page the user was trying to access before being redirected
+  const from = location.state?.from?.pathname || '/dashboard'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +34,8 @@ export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps
 
     try {
       await login({ email, password })
-      onLoginSuccess()
+      // Navigate to the page they were trying to access or dashboard
+      navigate(from, { replace: true })
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed')
     } finally {
@@ -167,7 +161,7 @@ export default function Login({ onNavigateToSignup, onLoginSuccess }: LoginProps
                 <p className="text-slate-600">
                   Don't have an account?{' '}
                   <button
-                    onClick={onNavigateToSignup}
+                    onClick={() => navigate('/signup')}
                     className="text-blue-600 hover:text-blue-700 font-medium"
                   >
                     Create organization

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -24,13 +25,9 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/services/api'
-import { type Page } from '@/components/Navigation'
 
-interface DashboardProps {
-  onPageChange?: (page: Page) => void
-}
-
-export default function Dashboard({ onPageChange }: DashboardProps) {
+export default function Dashboard() {
+  const navigate = useNavigate()
   const { user, organization } = useAuth()
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -87,7 +84,7 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
               <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <button 
-                  onClick={() => onPageChange?.('forum')}
+                  onClick={() => navigate('/forum')}
                   className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
                 >
                   <div className="bg-blue-600 p-4 rounded-lg mb-4 group-hover:bg-blue-700 transition-colors">
@@ -99,7 +96,7 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
                   </div>
                 </button>
                 <button 
-                  onClick={() => onPageChange?.('submit')}
+                  onClick={() => navigate('/use-cases/submit')}
                   className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
                 >
                   <div className="bg-slate-600 p-4 rounded-lg mb-4 group-hover:bg-slate-700 transition-colors">
@@ -112,7 +109,7 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
                 </button>
                 {user?.role === 'admin' ? (
                   <button 
-                    onClick={() => onPageChange?.('user-management')}
+                    onClick={() => navigate('/users')}
                     className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
                   >
                     <div className="bg-green-600 p-4 rounded-lg mb-4 group-hover:bg-green-700 transition-colors">

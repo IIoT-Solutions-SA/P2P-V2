@@ -1,14 +1,11 @@
+import { useNavigate } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Users, BookOpen, TrendingUp, Star, Sparkles, Globe, Building2, Cog, BarChart3, Factory, Wrench, CheckCircle, MapPin } from "lucide-react"
 import InteractiveMap from "@/components/InteractiveMap"
 import { SaudiRiyalCurrency } from "@/components/SaudiRiyal"
 
-interface LandingPageProps {
-  onNavigate?: (page: string) => void
-}
-
-export default function LandingPage({ onNavigate }: LandingPageProps) {
-  console.log('🏠 LandingPage component rendering')
+export default function LandingPage() {
+  const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -46,7 +43,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               <Button 
                 size="lg" 
                 className="text-lg px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg"
-                onClick={() => onNavigate?.('usecases')}
+                onClick={() => navigate('/use-cases')}
               >
                 Explore Success Stories
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -55,7 +52,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                 variant="outline" 
                 size="lg" 
                 className="text-lg px-8 py-4 text-white border-white/30 hover:bg-white/10 backdrop-blur-sm"
-                onClick={() => onNavigate?.('forum')}
+                onClick={() => navigate('/forum')}
               >
                 Join Discussions
               </Button>
@@ -170,7 +167,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             <Button 
               variant="outline" 
               className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => onNavigate?.('usecase-detail')}
+              onClick={() => navigate('/use-cases/1')}
             >
               View Full Case Study
             </Button>
@@ -197,7 +194,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             <Button 
               variant="outline" 
               className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => onNavigate?.('usecase-detail')}
+              onClick={() => navigate('/use-cases/1')}
             >
               View Full Case Study
             </Button>

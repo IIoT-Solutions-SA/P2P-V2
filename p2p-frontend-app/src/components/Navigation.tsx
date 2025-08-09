@@ -1,28 +1,23 @@
+import { NavLink, useNavigate } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Zap, Home, MessageSquare, BookOpen, BarChart3, Bell, Plus, LogOut, User } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
-export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management' | 'organization-settings' | 'profile' | 'login' | 'signup'
-
-interface NavigationProps {
-  currentPage: Page
-  onPageChange: (page: Page) => void
-}
-
-export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
+export default function Navigation() {
+  const navigate = useNavigate()
   const { user, organization, isAuthenticated, logout } = useAuth()
   
   const navigationItems = [
-    { id: 'landing' as Page, label: 'Home', icon: Home },
-    { id: 'dashboard' as Page, label: 'Dashboard', icon: BarChart3 },
-    { id: 'forum' as Page, label: 'Forum', icon: MessageSquare },
-    { id: 'usecases' as Page, label: 'Use Cases', icon: BookOpen },
-    { id: 'submit' as Page, label: 'Submit Story', icon: Plus },
+    { path: '/', label: 'Home', icon: Home },
+    { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { path: '/forum', label: 'Forum', icon: MessageSquare },
+    { path: '/use-cases', label: 'Use Cases', icon: BookOpen },
+    { path: '/use-cases/submit', label: 'Submit Story', icon: Plus },
   ]
 
   const handleLogout = () => {
     logout()
-    onPageChange('landing')
+    navigate('/')
   }
 
   return (
@@ -44,120 +39,110 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
           <nav className="hidden md:flex items-center space-x-1">
             {navigationItems.map((item) => {
               const IconComponent = item.icon
-              const isActive = currentPage === item.id
               return (
-                <Button
-                  key={item.id}
-                  variant={isActive ? "default" : "ghost"}
-                  className={`flex items-center space-x-2 ${
-                    isActive 
-                      ? "bg-blue-600 text-white hover:bg-blue-700" 
-                      : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-                  onClick={() => onPageChange(item.id)}
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                      isActive 
+                        ? "bg-blue-600 text-white hover:bg-blue-700" 
+                        : "text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                    }`
+                  }
                 >
                   <IconComponent className="h-4 w-4" />
                   <span>{item.label}</span>
-                </Button>
+                </NavLink>
               )
             })}
           </nav>
 
-          {/* Right side actions */}
-          <div className="flex items-center space-x-4">
-            {isAuthenticated && (
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5 text-slate-600" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full"></div>
-              </Button>
-            )}
+          {/* Actions */}
+          <div className="hidden md:flex items-center space-x-3">
+            <Button variant="ghost" size="icon" className="text-slate-600 hover:text-blue-600">
+              <Bell className="h-5 w-5" />
+            </Button>
             
-            {!isAuthenticated || currentPage === 'landing' ? (
-              <div className="flex items-center space-x-3">
-                <Button 
-                  variant="ghost" 
-                  className="text-slate-600 hover:text-blue-600"
-                  onClick={() => onPageChange('login' as Page)}
-                >
-                  Sign In
-                </Button>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => onPageChange('signup' as Page)}
-                >
-                  Sign Up
-                </Button>
-              </div>
-            ) : (
+            {isAuthenticated && (
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => onPageChange('profile')}
-                  className="flex items-center space-x-3 hover:opacity-80 cursor-pointer"
-                  title="View Profile"
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center space-x-2 text-slate-600 hover:text-blue-600"
                 >
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">
-                      {user?.firstName?.charAt(0) || 'U'}
-                    </span>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{user?.first_name} {user?.last_name}</p>
+                    <p className="text-xs text-slate-500">{organization?.name}</p>
                   </div>
-                  <div className="hidden sm:block text-left">
-                    <div className="text-sm font-semibold text-slate-900">
-                      {user?.firstName} {user?.lastName}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {user?.role === 'admin' ? 'Organization Admin' : 'Team Member'} • {organization?.name}
-                    </div>
+                  <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User className="h-5 w-5 text-blue-600" />
                   </div>
                 </button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={handleLogout}
-                  className="text-slate-600 hover:text-red-600 hover:bg-red-50"
+                  className="text-slate-600 hover:text-red-600"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-5 w-5" />
                 </Button>
               </div>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <Button variant="ghost" size="icon" className="md:hidden">
+            <svg className="h-6 w-6" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </Button>
         </div>
       </div>
     </header>
   )
 }
 
-// Mobile Navigation Component
-export function MobileNavigation({ currentPage, onPageChange }: NavigationProps) {
-  const navigationItems = [
-    { id: 'landing' as Page, label: 'Home', icon: Home },
-    { id: 'dashboard' as Page, label: 'Dashboard', icon: BarChart3 },
-    { id: 'forum' as Page, label: 'Forum', icon: MessageSquare },
-    { id: 'usecases' as Page, label: 'Cases', icon: BookOpen },
-    { id: 'submit' as Page, label: 'Submit', icon: Plus },
+// Mobile Navigation (updated to use React Router)
+export function MobileNavigation() {
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  
+  if (!isAuthenticated) return null
+  
+  const mobileNavItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { path: '/forum', label: 'Forum', icon: MessageSquare },
+    { path: '/use-cases', label: 'Use Cases', icon: BookOpen },
+    { path: '/use-cases/submit', label: 'Submit', icon: Plus },
   ]
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
-      <div className="grid grid-cols-5 gap-1 p-2">
-        {navigationItems.map((item) => {
+      <div className="flex justify-around items-center py-2">
+        {mobileNavItems.map((item) => {
           const IconComponent = item.icon
-          const isActive = currentPage === item.id
           return (
-            <button
-              key={item.id}
-              onClick={() => onPageChange(item.id)}
-              className={`flex flex-col items-center space-y-1 p-3 rounded-lg transition-colors ${
-                isActive 
-                  ? "bg-blue-600 text-white" 
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex flex-col items-center p-2 rounded-lg ${
+                  isActive 
+                    ? "text-blue-600 bg-blue-50" 
+                    : "text-slate-600"
+                }`
+              }
             >
               <IconComponent className="h-5 w-5" />
-              <span className="text-xs font-medium">{item.label}</span>
-            </button>
+              <span className="text-xs mt-1">{item.label}</span>
+            </NavLink>
           )
         })}
       </div>
     </div>
   )
 }
+
+// For backward compatibility - export the type even though it's not used anymore
+export type Page = 'landing' | 'dashboard' | 'forum' | 'usecases' | 'submit' | 'usecase-detail' | 'user-management' | 'organization-settings' | 'profile' | 'login' | 'signup'

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,11 +26,6 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/services/api'
-import type { Page } from '@/components/Navigation'
-
-interface OrganizationSettingsProps {
-  onPageChange?: (page: Page) => void
-}
 
 interface OrganizationData {
   name: string
@@ -55,7 +51,8 @@ interface OrganizationStats {
   trialExpiresAt?: string
 }
 
-export default function OrganizationSettings({ onPageChange }: OrganizationSettingsProps) {
+export default function OrganizationSettings() {
+  const navigate = useNavigate()
   const { user, organization } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -261,7 +258,7 @@ export default function OrganizationSettings({ onPageChange }: OrganizationSetti
               <Shield className="h-16 w-16 text-gray-400 mx-auto" />
               <h2 className="text-2xl font-bold text-gray-900">Access Restricted</h2>
               <p className="text-gray-600">Only organization administrators can access these settings.</p>
-              <Button onClick={() => onPageChange?.('dashboard')}>
+              <Button onClick={() => navigate('/dashboard')}>
                 Return to Dashboard
               </Button>
             </div>
@@ -278,7 +275,7 @@ export default function OrganizationSettings({ onPageChange }: OrganizationSetti
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => onPageChange?.('dashboard')}
+            onClick={() => navigate('/dashboard')}
             className="mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -609,7 +606,7 @@ export default function OrganizationSettings({ onPageChange }: OrganizationSetti
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
-                    onClick={() => onPageChange?.('user-management')}
+                    onClick={() => navigate('/users')}
                   >
                     <Users className="mr-2 h-4 w-4" />
                     Manage Users

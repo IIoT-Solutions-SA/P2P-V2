@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Forum from './pages/Forum'
@@ -10,104 +10,101 @@ import OrganizationSettings from './pages/OrganizationSettings'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
-import Navigation, { MobileNavigation, type Page } from './components/Navigation'
+import Navigation, { MobileNavigation } from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './contexts/AuthContext'
 import { initSuperTokens } from './config/supertokens'
+import { useLocation } from 'react-router-dom'
 
 // Initialize SuperTokens on app load
 initSuperTokens()
 
-function App() {
-  // Start with landing page, let ProtectedRoute handle auth redirects
-  const [currentPage, setCurrentPage] = useState<Page>('landing')
+// Layout wrapper component to handle navigation display
+function Layout() {
+  const location = useLocation()
+  const isLandingPage = location.pathname === '/'
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup'
   
-  // Debug page changes
-  const handlePageChange = (page: Page) => {
-    console.log('🔍 Page changing from', currentPage, 'to', page)
-    console.trace('Stack trace for page change')
-    setCurrentPage(page)
-  }
+  return (
+    <div className="min-h-screen">
+      {!isLandingPage && !isAuthPage && <Navigation />}
+      <main className={!isLandingPage ? 'pt-0' : ''}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/forum" element={
+            <ProtectedRoute>
+              <Forum />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/forum/:topicId" element={
+            <ProtectedRoute>
+              <Forum />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/use-cases" element={
+            <ProtectedRoute>
+              <UseCases />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/use-cases/submit" element={
+            <ProtectedRoute>
+              <SubmitUseCase />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/use-cases/:id" element={
+            <ProtectedRoute>
+              <UseCaseDetail />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/users" element={
+            <ProtectedRoute>
+              <UserManagement />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <OrganizationSettings />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          
+          {/* Catch all - redirect to landing or 404 page */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      {!isLandingPage && !isAuthPage && <MobileNavigation />}
+    </div>
+  )
+}
 
-  const renderPage = () => {
-    console.log('🎯 renderPage called with currentPage:', currentPage)
-    switch (currentPage) {
-      case 'landing':
-        console.log('📍 Rendering LandingPage')
-        return <LandingPage onNavigate={(page) => handlePageChange(page as Page)} />
-      case 'dashboard':
-        return (
-          <ProtectedRoute>
-            <Dashboard onPageChange={handlePageChange} />
-          </ProtectedRoute>
-        )
-      case 'forum':
-        return (
-          <ProtectedRoute>
-            <Forum />
-          </ProtectedRoute>
-        )
-      case 'usecases':
-        return (
-          <ProtectedRoute>
-            <UseCases />
-          </ProtectedRoute>
-        )
-      case 'submit':
-        return (
-          <ProtectedRoute>
-            <SubmitUseCase />
-          </ProtectedRoute>
-        )
-      case 'usecase-detail':
-        return (
-          <ProtectedRoute>
-            <UseCaseDetail onBack={() => handlePageChange('usecases')} />
-          </ProtectedRoute>
-        )
-      case 'user-management':
-        return (
-          <ProtectedRoute>
-            <UserManagement onPageChange={handlePageChange} />
-          </ProtectedRoute>
-        )
-      case 'organization-settings':
-        return (
-          <ProtectedRoute>
-            <OrganizationSettings onPageChange={handlePageChange} />
-          </ProtectedRoute>
-        )
-      case 'profile':
-        return (
-          <ProtectedRoute>
-            <Profile onPageChange={handlePageChange} />
-          </ProtectedRoute>
-        )
-      case 'login':
-        console.log('📍 Rendering Login page')
-        return <Login 
-          onLoginSuccess={() => handlePageChange('dashboard')} 
-          onNavigateToSignup={() => handlePageChange('signup')} 
-        />
-      case 'signup':
-        return <Signup 
-          onNavigateToLogin={() => handlePageChange('login')}
-          onSignupSuccess={() => handlePageChange('dashboard')} 
-        />
-      default:
-        return <LandingPage onNavigate={(page) => handlePageChange(page as Page)} />
-    }
-  }
-
+function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen">
-        <Navigation currentPage={currentPage} onPageChange={handlePageChange} />
-        <main className={currentPage !== 'landing' ? 'pt-0' : ''}>
-          {renderPage()}
-        </main>
-        <MobileNavigation currentPage={currentPage} onPageChange={handlePageChange} />
-      </div>
+      <Router>
+        <Layout />
+      </Router>
     </AuthProvider>
   )
 }

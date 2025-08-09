@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { 
   ArrowLeft, 
@@ -25,10 +26,6 @@ import {
 } from "lucide-react"
 import SaudiRiyal, { SaudiRiyalCurrency, SaudiRiyalFallback } from '@/components/SaudiRiyal'
 
-interface UseCaseDetailProps {
-  useCaseId?: number
-  onBack?: () => void
-}
 
 // Comprehensive use case data structure - enhanced for detailed white paper
 const sampleUseCase = {
@@ -392,7 +389,10 @@ const sampleUseCase = {
   technologyTags: ["Computer Vision", "TensorFlow", "Edge Computing", "Industrial IoT"]
 }
 
-export default function UseCaseDetail({ useCaseId = 1, onBack }: UseCaseDetailProps) {
+export default function UseCaseDetail() {
+  const navigate = useNavigate()
+  const { id } = useParams()
+  const useCaseId = parseInt(id || '1', 10)
   const useCase = sampleUseCase // In real app, would fetch by useCaseId
 
   return (
@@ -403,7 +403,7 @@ export default function UseCaseDetail({ useCaseId = 1, onBack }: UseCaseDetailPr
           <div className="flex items-center justify-between">
             <Button 
               variant="ghost" 
-              onClick={onBack}
+              onClick={() => navigate('/use-cases')}
               className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-4 w-4" />

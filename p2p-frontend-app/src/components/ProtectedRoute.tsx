@@ -1,7 +1,6 @@
 import React from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import Login from '@/pages/Login'
-import Signup from '@/pages/Signup'
 import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
@@ -10,7 +9,7 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth()
-  const [showSignup, setShowSignup] = React.useState(false)
+  const location = useLocation()
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -24,29 +23,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
-  // If not authenticated, show login/signup
+  // If not authenticated, redirect to login with return URL
   if (!isAuthenticated) {
-    if (showSignup) {
-      return (
-        <Signup
-          onNavigateToLogin={() => setShowSignup(false)}
-          onSignupSuccess={() => {
-            // Authentication state will be updated by the signup function
-            // Component will re-render and show protected content
-          }}
-        />
-      )
-    }
-
-    return (
-      <Login
-        onNavigateToSignup={() => setShowSignup(true)}
-        onLoginSuccess={() => {
-          // Authentication state will be updated by the login function
-          // Component will re-render and show protected content
-        }}
-      />
-    )
+    // Save the attempted location for redirecting after login
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   // If authenticated, render the protected content

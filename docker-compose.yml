@@ -126,14 +126,11 @@ services:
 
 volumes:
   postgres_data:
-    external: true
-    name: p2p-backend-app_postgres_data
+    driver: local
   mongo_data:
-    external: true  
-    name: p2p-backend-app_mongo_data
+    driver: local
   file_storage:
-    external: true
-    name: p2p-backend-app_file_storage
+    driver: local
 
 networks:
   p2p-network:

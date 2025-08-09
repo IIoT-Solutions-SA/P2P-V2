@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -22,183 +22,42 @@ import {
   Heart,
   Share2,
   Bookmark,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
+import { 
+  forumApi, 
+  ForumTopic, 
+  ForumPost, 
+  ForumCategory, 
+  ForumStatsResponse,
+  ForumTopicListResponse 
+} from '@/services/forumApi'
 
-const categories = [
-  { id: "all", name: "All Topics", count: 156, color: "bg-gray-100" },
-  { id: "automation", name: "Automation", count: 42, color: "bg-blue-100" },
-  { id: "quality", name: "Quality Management", count: 38, color: "bg-green-100" },
-  { id: "maintenance", name: "Maintenance", count: 29, color: "bg-yellow-100" },
-  { id: "ai", name: "Artificial Intelligence", count: 25, color: "bg-purple-100" },
-  { id: "iot", name: "Internet of Things", count: 22, color: "bg-orange-100" }
-]
+// Categories will be loaded from API
 
-interface Comment {
-  id: number
-  author: string
-  authorTitle: string
-  content: string
-  timeAgo: string
-  likes: number
-  isVerified: boolean
-  replies?: Comment[]
-}
+// Types are now imported from forumApi service
 
-interface ForumPost {
-  id: number
-  title: string
-  author: string
-  authorTitle: string
-  category: string
-  content?: string
-  replies: number
-  views: number
-  likes: number
-  timeAgo: string
-  isPinned: boolean
-  hasBestAnswer: boolean
-  isVerified: boolean
-  excerpt: string
-  comments?: Comment[]
-}
-
-const forumPosts: ForumPost[] = [
-  {
-    id: 1,
-    title: "How to improve production line efficiency using sensors?",
-    author: "Sarah Ahmed",
-    authorTitle: "Production Engineer - Jeddah", 
-    category: "Automation",
-    replies: 12,
-    views: 234,
-    likes: 8,
-    timeAgo: "2 hours ago",
-    isPinned: true,
-    hasBestAnswer: false,
-    isVerified: true,
-    excerpt: "We're facing challenges in monitoring operations on the production line and want to implement smart solutions...",
-    content: `We're currently operating a medium-scale electronics manufacturing facility and facing several challenges in real-time monitoring of our production lines.
-
-**Current Challenges:**
-- Manual quality checks causing delays
-- Difficulty tracking production metrics in real-time
-- Limited visibility into equipment performance
-- High rate of undetected defects reaching final inspection
-
-**What We're Looking For:**
-- Sensor recommendations for real-time monitoring
-- Integration with existing equipment
-- Cost-effective solutions suitable for SMEs
-- Success stories from similar implementations
-
-Has anyone successfully implemented IoT sensors in their production lines? What were the key considerations and ROI achieved?`,
-    comments: [
-      {
-        id: 1,
-        author: "Mohammed Al-Rashid",
-        authorTitle: "IoT Specialist - Riyadh",
-        content: "We implemented a similar solution last year using industrial-grade sensors from Siemens. The key is to start small with critical points in your production line. We started with temperature and vibration sensors on our most critical machines and expanded from there. ROI was visible within 6 months.",
-        timeAgo: "1 hour ago",
-        likes: 5,
-        isVerified: true,
-        replies: [
-          {
-            id: 11,
-            author: "Sarah Ahmed",
-            authorTitle: "Production Engineer - Jeddah",
-            content: "Thanks for sharing! What was the approximate cost per sensor? And did you face any integration challenges with legacy equipment?",
-            timeAgo: "45 minutes ago",
-            likes: 2,
-            isVerified: true
-          },
-          {
-            id: 12,
-            author: "Mohammed Al-Rashid",
-            authorTitle: "IoT Specialist - Riyadh",
-            content: "Sensors ranged from SAR 500-2000 depending on type. For legacy equipment, we used edge computing devices as intermediaries. Happy to share more details if you DM me.",
-            timeAgo: "30 minutes ago",
-            likes: 3,
-            isVerified: true
-          }
-        ]
-      },
-      {
-        id: 2,
-        author: "Fatima Hassan",
-        authorTitle: "Quality Manager - Dammam",
-        content: "Consider starting with vision-based quality inspection systems. We use cameras with AI models to detect defects. Much more cost-effective than traditional sensors for quality control. Local company TechVision SA provides excellent solutions.",
-        timeAgo: "50 minutes ago",
-        likes: 4,
-        isVerified: true
-      },
-      {
-        id: 3,
-        author: "Ahmed Al-Zahrani",
-        authorTitle: "Factory Owner - Mecca",
-        content: "Before investing in sensors, ensure your team is ready for the digital transformation. We made the mistake of implementing too quickly without proper training. Now we have a phased approach: 1) Team training, 2) Pilot project, 3) Full implementation.",
-        timeAgo: "30 minutes ago",
-        likes: 8,
-        isVerified: true
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: "My experience implementing predictive maintenance in a plastic factory",
-    author: "Mohammed Al-Shahri",
-    authorTitle: "Operations Manager - Riyadh",
-    category: "Maintenance", 
-    replies: 18,
-    views: 456,
-    likes: 15,
-    timeAgo: "4 hours ago",
-    isPinned: false,
-    hasBestAnswer: true,
-    isVerified: true,
-    excerpt: "Sharing my experience implementing a predictive maintenance system and how it saved 30% of maintenance costs..."
-  },
-  {
-    id: 3,
-    title: "Best smart inventory management systems for small factories?",
-    author: "Fatima Al-Otaibi",
-    authorTitle: "Factory Owner - Dammam",
-    category: "Quality Management",
-    replies: 9,
-    views: 189,
-    likes: 6,
-    timeAgo: "Yesterday",
-    isPinned: false,
-    hasBestAnswer: false,
-    isVerified: true,
-    excerpt: "Looking for a suitable inventory management system for a small factory that produces electrical equipment..."
-  },
-  {
-    id: 4,
-    title: "Challenges of implementing AI in quality inspection",
-    author: "Khalid Al-Ghamdi",
-    authorTitle: "Quality Engineer - Mecca",
-    category: "Artificial Intelligence",
-    replies: 22,
-    views: 678,
-    likes: 19,
-    timeAgo: "2 days ago",
-    isPinned: false,
-    hasBestAnswer: true,
-    isVerified: true,
-    excerpt: "We're facing difficulties in training AI models to inspect product defects..."
-  }
-]
+// Forum posts will be loaded from API
 
 export default function Forum() {
   const { user } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null)
+  const [selectedTopic, setSelectedTopic] = useState<ForumTopic | null>(null)
   const [newComment, setNewComment] = useState("")
-  const [likedPosts, setLikedPosts] = useState<number[]>([])
-  const [likedComments, setLikedComments] = useState<number[]>([])
+  const [likedPosts, setLikedPosts] = useState<string[]>([])
+  const [likedComments, setLikedComments] = useState<string[]>([])
+  
+  // API Data State
+  const [topics, setTopics] = useState<ForumTopic[]>([])
+  const [categories, setCategories] = useState<ForumCategory[]>([])
+  const [forumStats, setForumStats] = useState<ForumStatsResponse | null>(null)
+  const [topicPosts, setTopicPosts] = useState<ForumPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [postsLoading, setPostsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const filteredPosts = forumPosts.filter(post => {
     const matchesCategory = selectedCategory === "all" || post.category === selectedCategory
@@ -360,84 +219,95 @@ export default function Forum() {
             </div>
 
             {/* Comments List */}
-            <div className="space-y-6">
-              {selectedPost.comments?.map((comment) => (
-                <div key={comment.id} className="border-b border-slate-200 pb-6 last:border-0">
-                  <div className="flex space-x-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-white">
-                        {comment.author.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <div className="flex items-center space-x-1">
-                            <span className="font-semibold text-slate-900">{comment.author}</span>
-                            {comment.isVerified && (
-                              <CheckCircle className="h-4 w-4 text-blue-600" />
-                            )}
-                          </div>
-                          <span className="text-sm text-slate-500">{comment.authorTitle}</span>
-                        </div>
-                        <span className="text-sm text-slate-500">{comment.timeAgo}</span>
+            {postsLoading ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-slate-500">Loading comments...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {topicPosts.map((comment) => (
+                  <div key={comment.id} className="border-b border-slate-200 pb-6 last:border-0">
+                    <div className="flex space-x-3">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-bold text-white">
+                          {comment.author?.first_name?.charAt(0) || 'U'}
+                        </span>
                       </div>
-                      <p className="text-slate-700 mb-3">{comment.content}</p>
-                      <div className="flex items-center space-x-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleLikeComment(comment.id)}
-                          className={`text-sm ${likedComments.includes(comment.id) ? "text-blue-600" : ""}`}
-                        >
-                          <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(comment.id) ? "fill-current" : ""}`} />
-                          {comment.likes + (likedComments.includes(comment.id) ? 1 : 0)}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-sm">
-                          Reply
-                        </Button>
-                      </div>
-
-                      {/* Nested Replies */}
-                      {comment.replies && comment.replies.length > 0 && (
-                        <div className="mt-4 ml-8 space-y-4">
-                          {comment.replies.map((reply) => (
-                            <div key={reply.id} className="flex space-x-3">
-                              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-bold text-white">
-                                  {reply.author.charAt(0)}
-                                </span>
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="flex items-center space-x-1">
-                                    <span className="font-semibold text-sm text-slate-900">{reply.author}</span>
-                                    {reply.isVerified && (
-                                      <CheckCircle className="h-3 w-3 text-blue-600" />
-                                    )}
-                                  </div>
-                                  <span className="text-xs text-slate-500">{reply.timeAgo}</span>
-                                </div>
-                                <p className="text-sm text-slate-700 mb-2">{reply.content}</p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleLikeComment(reply.id)}
-                                  className={`text-xs ${likedComments.includes(reply.id) ? "text-blue-600" : ""}`}
-                                >
-                                  <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(reply.id) ? "fill-current" : ""}`} />
-                                  {reply.likes + (likedComments.includes(reply.id) ? 1 : 0)}
-                                </Button>
-                              </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <div className="flex items-center space-x-1">
+                              <span className="font-semibold text-slate-900">
+                                {comment.author ? `${comment.author.first_name} ${comment.author.last_name}` : 'Unknown'}
+                              </span>
+                              {comment.author?.is_verified && (
+                                <CheckCircle className="h-4 w-4 text-blue-600" />
+                              )}
                             </div>
-                          ))}
+                            <span className="text-sm text-slate-500">{comment.author?.job_title || 'Member'}</span>
+                          </div>
+                          <span className="text-sm text-slate-500">{formatTimeAgo(comment.created_at)}</span>
                         </div>
-                      )}
+                        <p className="text-slate-700 mb-3">{comment.content}</p>
+                        <div className="flex items-center space-x-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLikePost(comment.id)}
+                            className={`text-sm ${likedComments.includes(comment.id) ? "text-blue-600" : ""}`}
+                          >
+                            <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(comment.id) ? "fill-current" : ""}`} />
+                            {comment.likes_count}
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-sm">
+                            Reply
+                          </Button>
+                        </div>
+
+                        {/* Nested Replies */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <div className="mt-4 ml-8 space-y-4">
+                            {comment.replies.map((reply) => (
+                              <div key={reply.id} className="flex space-x-3">
+                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-bold text-white">
+                                    {reply.author?.first_name?.charAt(0) || 'U'}
+                                  </span>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center space-x-1">
+                                      <span className="font-semibold text-sm text-slate-900">
+                                        {reply.author ? `${reply.author.first_name} ${reply.author.last_name}` : 'Unknown'}
+                                      </span>
+                                      {reply.author?.is_verified && (
+                                        <CheckCircle className="h-3 w-3 text-blue-600" />
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-slate-500">{formatTimeAgo(reply.created_at)}</span>
+                                  </div>
+                                  <p className="text-sm text-slate-700 mb-2">{reply.content}</p>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleLikePost(reply.id)}
+                                    className={`text-xs ${likedComments.includes(reply.id) ? "text-blue-600" : ""}`}
+                                  >
+                                    <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(reply.id) ? "fill-current" : ""}`} />
+                                    {reply.likes_count}
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -472,7 +342,7 @@ export default function Forum() {
                           ? "bg-white/20 text-white" 
                           : "bg-slate-600 text-white"
                       }`}>
-                        {category.count}
+                        {category.topics_count || 0}
                       </span>
                     </div>
                   </button>
@@ -487,7 +357,7 @@ export default function Forum() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-600">Total Topics</p>
-                    <p className="text-xl font-bold text-blue-600">156</p>
+                    <p className="text-xl font-bold text-blue-600">{forumStats?.total_topics || 0}</p>
                   </div>
                   <div className="p-2 bg-blue-600 rounded-lg">
                     <MessageSquare className="h-6 w-6 text-white" />
@@ -496,7 +366,7 @@ export default function Forum() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-600">Active Members</p>
-                    <p className="text-xl font-bold text-slate-600">89</p>
+                    <p className="text-xl font-bold text-slate-600">{forumStats?.active_members || 0}</p>
                   </div>
                   <div className="p-2 bg-slate-600 rounded-lg">
                     <Users className="h-6 w-6 text-white" />
@@ -505,7 +375,7 @@ export default function Forum() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-600">Helpful Answers</p>
-                    <p className="text-xl font-bold text-blue-500">234</p>
+                    <p className="text-xl font-bold text-blue-500">{forumStats?.helpful_answers || 0}</p>
                   </div>
                   <div className="p-2 bg-blue-500 rounded-lg">
                     <CheckCircle className="h-6 w-6 text-white" />
@@ -564,39 +434,33 @@ export default function Forum() {
               </div>
             </div>
 
-            {/* Forum Posts */}
+            {/* Forum Topics */}
             <div className="space-y-4">
-              {filteredPosts.map((post) => (
-                <div key={post.id} className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
+              {filteredTopics.map((topic) => (
+                <div key={topic.id} className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
                     <div className="space-y-4">
                       {/* Post Header */}
                       <div className="flex items-start justify-between">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center space-x-2">
-                            {post.isPinned && (
+                            {topic.is_pinned && (
                               <Pin className="h-4 w-4 text-blue-600" />
                             )}
-                            {post.hasBestAnswer && (
-                              <CheckCircle className="h-4 w-4 text-blue-600" />
+                            {topic.has_best_answer && (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
                             )}
-                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                              post.category === "Automation" ? "bg-blue-600 text-white" :
-                              post.category === "Maintenance" ? "bg-slate-600 text-white" :
-                              post.category === "Quality Management" ? "bg-blue-500 text-white" :
-                              post.category === "Artificial Intelligence" ? "bg-slate-700 text-white" :
-                              "bg-slate-500 text-white"
-                            }`}>
+                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${getCategoryColor(topic.category?.name)}`}>
                               <Tag className="h-3 w-3 mr-1 inline" />
-                              {post.category}
+                              {topic.category?.name || 'General'}
                             </span>
                           </div>
                           <h3 
                             className="text-lg font-semibold text-slate-900 hover:text-blue-600 cursor-pointer"
-                            onClick={() => setSelectedPost(post)}
+                            onClick={() => handleTopicClick(topic)}
                           >
-                            {post.title}
+                            {topic.title}
                           </h3>
-                          <p className="text-sm text-slate-600">{post.excerpt}</p>
+                          <p className="text-sm text-slate-600">{topic.excerpt}</p>
                         </div>
                       </div>
 
@@ -605,20 +469,20 @@ export default function Forum() {
                         <div className="flex items-center space-x-6">
                           <div className="flex items-center space-x-1 text-sm text-slate-500">
                             <MessageSquare className="h-4 w-4" />
-                            <span>{post.replies}</span>
+                            <span>{topic.posts_count}</span>
                           </div>
                           <div className="flex items-center space-x-1 text-sm text-slate-500">
                             <Eye className="h-4 w-4" />
-                            <span>{post.views}</span>
+                            <span>{topic.views_count}</span>
                           </div>
                           <button 
-                            onClick={() => handleLikePost(post.id)}
+                            onClick={() => handleLikeTopic(topic.id)}
                             className={`flex items-center space-x-1 text-sm transition-colors ${
-                              likedPosts.includes(post.id) ? "text-blue-600" : "text-slate-500 hover:text-blue-600"
+                              likedPosts.includes(topic.id) ? "text-blue-600" : "text-slate-500 hover:text-blue-600"
                             }`}
                           >
-                            <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(post.id) ? "fill-current" : ""}`} />
-                            <span>{post.likes + (likedPosts.includes(post.id) ? 1 : 0)}</span>
+                            <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(topic.id) ? "fill-current" : ""}`} />
+                            <span>{topic.likes_count}</span>
                           </button>
                         </div>
                         
@@ -626,22 +490,24 @@ export default function Forum() {
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                               <span className="text-xs font-bold text-white">
-                                {post.author.charAt(0)}
+                                {topic.author?.first_name?.charAt(0) || 'U'}
                               </span>
                             </div>
                             <div>
                               <div className="flex items-center space-x-1">
-                                <span className="text-sm font-semibold text-slate-900">{post.author}</span>
-                                {post.isVerified && (
+                                <span className="text-sm font-semibold text-slate-900">
+                                  {topic.author ? `${topic.author.first_name} ${topic.author.last_name}` : 'Unknown'}
+                                </span>
+                                {topic.author?.is_verified && (
                                   <CheckCircle className="h-3 w-3 text-blue-600" />
                                 )}
                               </div>
-                              <span className="text-xs text-slate-500">{post.authorTitle}</span>
+                              <span className="text-xs text-slate-500">{topic.author?.job_title || 'Member'}</span>
                             </div>
                           </div>
                           <div className="flex items-center space-x-1 text-xs text-slate-500">
                             <Clock className="h-3 w-3" />
-                            <span>{post.timeAgo}</span>
+                            <span>{formatTimeAgo(topic.created_at)}</span>
                           </div>
                         </div>
                       </div>

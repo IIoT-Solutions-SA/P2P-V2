@@ -33,7 +33,6 @@ httpx==0.24.1
 
 
 # Email
-emails==0.6.0
 email-validator==2.1.0
 
 # File Handling

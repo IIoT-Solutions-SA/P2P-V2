@@ -87,13 +87,29 @@ All backend code should use async/await patterns for:
 
 ## Application Startup Requirements
 
-### Starting Backend and Frontend Services
+### Docker-First Development Environment
 
-When starting up or shutting down the backend or frontend services, Claude MUST:
-- **Always follow the Application Startup Guide**: `/docs/aadil_docs/application-startup-guide.md`
-- Use the documented graceful startup/shutdown methods
-- Use the frontend control script for reliable frontend management
-- Verify services are healthy after startup
+The entire application stack now runs in Docker containers for consistent development across all environments. Claude MUST:
+
+- **Always use Docker for startup/shutdown**: Reference `/DOCKER.md` for comprehensive Docker setup guide
+- **Use the unified docker-control.sh script**: Located at project root for all container management
+- **Never use legacy startup methods**: All non-Docker startup methods have been deprecated
+- **Verify services are healthy after startup**: Check all containers are running and accessible
+
+### Quick Start Commands
+
+```bash
+# Start entire application stack
+./docker-control.sh start
+
+# Stop entire application stack  
+./docker-control.sh stop
+
+# Check status of all services
+./docker-control.sh status
+```
+
+**Primary Documentation**: `/DOCKER.md` - Contains complete Docker setup, commands, and troubleshooting
 
 ## Code Writing Requirements
 
@@ -180,21 +196,30 @@ Key areas requiring backend integration:
 ## Testing Commands
 
 ```bash
-# Backend tests (once implemented)
-cd p2p-backend-app
-pytest
+# Backend tests
+./docker-control.sh exec backend python -m pytest
 
 # Frontend tests
-cd p2p-frontend-app
-npm test
+./docker-control.sh exec frontend npm test
+
+# Backend tests with coverage
+./docker-control.sh exec backend python -m pytest --cov=app
+
+# All services health check
+curl http://localhost:8000/health && curl http://localhost:5173
 ```
 
 ## Development Workflow
 
-1. Always work on the `aadil-backend` branch
-2. Test API endpoints with frontend before committing
-3. Update this file when adding major features
-4. Follow async best practices for all I/O operations
+1. **Start Development Environment**: `./docker-control.sh start`
+2. **Always work on the `aadil-backend` branch**
+3. **Test API endpoints with frontend before committing**
+4. **Run tests**: Use Docker commands from Testing section above
+5. **Update documentation when adding major features**
+6. **Follow async best practices for all I/O operations**
+7. **Stop cleanly**: `./docker-control.sh stop`
+
+**See `/DOCKER.md` and `/CONTRIBUTING.md` for detailed development workflows.**
 
 ## Version Control Requirements for Claude
 
@@ -266,6 +291,11 @@ git push origin aadil-backend
 
 ## Resources
 
+### Primary Documentation
+- **Docker Setup**: `/DOCKER.md` - Complete containerization guide and startup instructions
+- **Main README**: `/README.md` - Developer onboarding and quick start
+- **Contributing Guide**: `/CONTRIBUTING.md` - Development workflow and standards
+
 ### Planning Documents
 - Backend Plan: `/docs/aadil_docs/unified-backend-development-plan.md`
 - Implementation Tasks: `/docs/aadil_docs/backend-implementation-tasks.md`
@@ -289,8 +319,9 @@ When completing tasks, Claude MUST update the following documents:
 - API Communication: `/docs/aadil_docs/api-communication-guide.md`
 - Development Workflow: `/docs/aadil_docs/development-workflow-guide.md`
 
-### Backend Management
-- **Application Startup Guide**: `/docs/aadil_docs/application-startup-guide.md` (Covers both backend and frontend)
+### Container Management
+- **Docker Setup Guide**: `/DOCKER.md` - Primary method for all application management
+- **Legacy Startup Guide**: `/docs/aadil_docs/application-startup-guide.md` - Contains deprecated methods for reference
 
 ### Architecture & Testing
 - Architecture: `/docs/architecture/`

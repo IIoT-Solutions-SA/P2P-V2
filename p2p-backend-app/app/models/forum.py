@@ -87,7 +87,10 @@ class ForumTopic(BaseModel, table=True):
     category: ForumCategory = Relationship(back_populates="topics")
     posts: List["ForumPost"] = Relationship(
         back_populates="topic",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+        sa_relationship_kwargs={
+            "foreign_keys": "[ForumPost.topic_id]",
+            "cascade": "all, delete-orphan"
+        }
     )
     likes: List["ForumTopicLike"] = Relationship(
         back_populates="topic",
@@ -157,7 +160,10 @@ class ForumPost(BaseModel, table=True):
     replies_count: int = Field(default=0)
     
     # Relationships
-    topic: ForumTopic = Relationship(back_populates="posts")
+    topic: ForumTopic = Relationship(
+        back_populates="posts",
+        sa_relationship_kwargs={"foreign_keys": "[ForumPost.topic_id]"}
+    )
     author: User = Relationship(
         back_populates="forum_posts",
         sa_relationship_kwargs={"foreign_keys": "[ForumPost.author_id]"}

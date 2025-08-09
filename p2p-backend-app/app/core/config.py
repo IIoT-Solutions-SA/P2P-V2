@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     
     # SuperTokens
     SUPERTOKENS_CONNECTION_URI: str = "http://supertokens:3567"
-    SUPERTOKENS_API_KEY: Optional[str] = None  # Optional for development
+    SUPERTOKENS_API_KEY: Optional[str] = None  # Not needed for self-hosted SuperTokens
     API_DOMAIN: str = "http://localhost:8000"
     WEBSITE_DOMAIN: str = "http://localhost:5173"
     

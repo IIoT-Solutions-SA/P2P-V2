@@ -77,10 +77,9 @@ def init_supertokens() -> None:
             invalid_claim_status_code=403,
         ),
         # Dashboard Recipe for monitoring and management
-        # NOTE: Dashboard disabled for now - needs proper setup
-        # dashboard.init(
-        #     api_key=getattr(settings, 'SUPERTOKENS_API_KEY', None),
-        # ),
+        dashboard.init(
+            # No additional config needed - API key handled by core
+        ),
     ]
     
     # Initialize SuperTokens

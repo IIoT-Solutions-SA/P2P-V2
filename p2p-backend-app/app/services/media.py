@@ -3,11 +3,12 @@
 import io
 import hashlib
 import uuid
+import mimetypes
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import logging
 from PIL import Image
-import magic
+# import magic  # Disabled - using mimetypes instead
 from fastapi import UploadFile, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -263,7 +264,8 @@ class MediaUploadService:
         file.file.seek(0)  # Reset
         
         try:
-            detected_type = magic.from_buffer(content, mime=True)
+            # Use filename-based type detection instead of magic
+            detected_type = mimetypes.guess_type(file.filename)[0] or file.content_type
             if not self._are_types_compatible(detected_type, file.content_type):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,

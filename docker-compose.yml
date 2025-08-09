@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # PostgreSQL - Our main database for structured data
   postgres:
@@ -9,7 +11,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-p2p_sandbox}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/01-init.sql
+      # - ./docker/scripts/init-postgres.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -28,7 +30,7 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-p2p_sandbox}
     volumes:
       - mongo_data:/data/db
-      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+      # - ./docker/scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     ports:
       - "27017:27017"
     healthcheck:
@@ -78,14 +80,14 @@ services:
     #   timeout: 5s
     #   retries: 5
 
-  # FastAPI Backend (we'll build this)
+  # FastAPI Backend
   backend:
     build:
-      context: .
+      context: ./p2p-backend-app
       dockerfile: Dockerfile.dev
     container_name: p2p-backend
     volumes:
-      - ./:/app
+      - ./p2p-backend-app:/app
       - /app/__pycache__
       - /app/.pytest_cache
       - file_storage:/app/storage
@@ -97,8 +99,11 @@ services:
       - MONGODB_URL=mongodb://mongodb:27017/${MONGO_DB_NAME:-p2p_sandbox}
       - REDIS_URL=redis://redis:6379
       - SUPERTOKENS_CONNECTION_URI=http://supertokens:3567
+      - BACKEND_CORS_ORIGINS=http://localhost:5173,http://frontend:5173,http://localhost:3000
       - PYTHONUNBUFFERED=1
-      - DEBUG=True
+      - DEBUG=${DEBUG:-True}
+      - API_DOMAIN=http://localhost:8000
+      - WEBSITE_DOMAIN=http://localhost:5173
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,6 +114,32 @@ services:
       supertokens:
         condition: service_started
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - p2p-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./p2p-frontend-app
+      dockerfile: Dockerfile.dev
+    container_name: p2p-frontend
+    volumes:
+      - ./p2p-frontend-app:/app
+      - /app/node_modules  # Anonymous volume for node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      # Use backend service name for internal Docker network communication
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8000}
+      - VITE_SUPERTOKENS_API_DOMAIN=${VITE_SUPERTOKENS_API_DOMAIN:-http://localhost:8000}
+      - VITE_SUPERTOKENS_API_BASE_PATH=/auth
+      - VITE_WEBSITE_DOMAIN=${VITE_WEBSITE_DOMAIN:-http://localhost:5173}
+      - VITE_APP_NAME=P2P Sandbox
+      - VITE_DEBUG_MODE=${VITE_DEBUG_MODE:-true}
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true  # For hot reload on Windows/Mac
+    depends_on:
+      - backend
     networks:
       - p2p-network
 

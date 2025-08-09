@@ -14,6 +14,8 @@ __pycache__/
 
 # Environment variables
 .env
+.env.local
+.env.docker.local
 
 # Logs
 logs/
@@ -27,3 +29,12 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Docker specific
+docker-compose.override.yml.local
+docker/data/
+
+# Frontend specific
+node_modules/
+dist/
+build/

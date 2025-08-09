@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     # Build essentials for some Python packages
     gcc \
     python3-dev \
+    # libmagic for file type detection
+    libmagic1 \
     # Clean up to reduce image size
     && rm -rf /var/lib/apt/lists/*
 

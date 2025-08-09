@@ -1,0 +1,58 @@
+version: '3.8'
+
+# Production overrides for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # Production backend with Gunicorn
+  backend:
+    build:
+      dockerfile: Dockerfile  # Use production Dockerfile
+    environment:
+      - DEBUG=False
+      - LOG_LEVEL=INFO
+      - RELOAD=False
+      - WORKERS=4
+    command: gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"  # Remove debug port
+    # Remove volume mounts for production
+    volumes:
+      - file_storage:/app/storage
+
+  # Production frontend with Nginx
+  frontend:
+    build:
+      dockerfile: Dockerfile  # Use production Dockerfile with nginx
+    ports:
+      - "80:80"  # Use standard HTTP port
+    environment:
+      - NODE_ENV=production
+      - VITE_DEBUG_MODE=false
+    # Remove volume mounts for production
+    volumes: []
+    
+  # Production database settings  
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Use strong password from env
+    # Remove init scripts for production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      
+  mongodb:
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    # Remove init scripts for production  
+    volumes:
+      - mongo_data:/data/db
+      
+  redis:
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      
+  supertokens:
+    environment:
+      POSTGRESQL_CONNECTION_URI: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/supertokens"

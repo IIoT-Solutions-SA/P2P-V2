@@ -5,7 +5,22 @@
 ### Complete Application Startup & Shutdown
 
 ```bash
-# ✅ GRACEFUL STARTUP
+# ✅ UNIFIED DOCKER STARTUP (NEW - Containerized Frontend & Backend)
+cd /mnt/d/Projects/P2P-V2
+./docker-control.sh start
+
+# ✅ UNIFIED SHUTDOWN
+cd /mnt/d/Projects/P2P-V2
+./docker-control.sh stop
+```
+
+### Legacy Startup (Deprecated - Use Docker method above)
+
+<details>
+<summary>Click to expand legacy method</summary>
+
+```bash
+# ❌ OLD METHOD (Backend Docker + Frontend Local)
 # 1. Backend (from backend directory)
 cd /mnt/d/Projects/P2P-V2/p2p-backend-app
 docker-compose up -d
@@ -14,15 +29,12 @@ docker-compose up -d
 cd /mnt/d/Projects/P2P-V2/p2p-frontend-app
 ./frontend-control.sh start
 
-# ✅ GRACEFUL SHUTDOWN
-# 1. Frontend
-cd /mnt/d/Projects/P2P-V2/p2p-frontend-app
+# Shutdown
 ./frontend-control.sh stop
-
-# 2. Backend (from backend directory)
 cd /mnt/d/Projects/P2P-V2/p2p-backend-app
 docker-compose down
 ```
+</details>
 
 ### Access Points
 - 🖥️ **Frontend**: http://localhost:5173

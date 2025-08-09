@@ -41,22 +41,6 @@ services:
     networks:
       - p2p-network
 
-  # Redis - For caching and session storage
-  redis:
-    image: redis:7-alpine
-    container_name: p2p-redis
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - p2p-network
 
   # SuperTokens - Authentication service
   # KNOWN ISSUE: Health check disabled due to missing curl/nc/wget tools in container
@@ -97,7 +81,6 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-p2p_sandbox}
       - MONGODB_URL=mongodb://mongodb:27017/${MONGO_DB_NAME:-p2p_sandbox}
-      - REDIS_URL=redis://redis:6379
       - SUPERTOKENS_CONNECTION_URI=http://supertokens:3567
       - BACKEND_CORS_ORIGINS=http://localhost:5173,http://frontend:5173,http://localhost:3000
       - PYTHONUNBUFFERED=1
@@ -108,8 +91,6 @@ services:
       postgres:
         condition: service_healthy
       mongodb:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       supertokens:
         condition: service_started
@@ -150,9 +131,6 @@ volumes:
   mongo_data:
     external: true  
     name: p2p-backend-app_mongo_data
-  redis_data:
-    external: true
-    name: p2p-backend-app_redis_data
   file_storage:
     external: true
     name: p2p-backend-app_file_storage

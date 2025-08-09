@@ -37,7 +37,7 @@ stop_local_services() {
     print_status "$YELLOW" "🛑 Stopping any local services on conflicting ports..."
     
     # Kill processes on common ports
-    for port in 5173 8000 5432 27017 6379 3567; do
+    for port in 5173 8000 5432 27017 3567; do
         PID=$(lsof -ti :$port 2>/dev/null)
         if [ ! -z "$PID" ]; then
             kill $PID 2>/dev/null
@@ -77,7 +77,7 @@ start_services() {
     echo ""
     
     # Check each service
-    for service in postgres mongodb redis supertokens backend frontend; do
+    for service in postgres mongodb supertokens backend frontend; do
         if docker-compose ps | grep -q "${service}.*Up"; then
             print_status "$GREEN" "  ✅ $service is running"
         else
@@ -147,8 +147,7 @@ status_services() {
     echo "  Backend: http://localhost:8000"
     echo "  PostgreSQL: localhost:5432"
     echo "  MongoDB: localhost:27017"
-    echo "  Redis: localhost:6379"
-    echo "  SuperTokens: localhost:3567"
+      echo "  SuperTokens: localhost:3567"
 }
 
 # Function to show logs

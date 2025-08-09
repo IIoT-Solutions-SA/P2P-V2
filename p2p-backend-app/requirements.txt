@@ -14,8 +14,6 @@ alembic==1.12.1
 motor==3.3.2
 pymongo==4.6.0
 
-# Redis
-redis[hiredis]==5.0.1
 
 # Authentication
 supertokens-python[fastapi]==0.30.1

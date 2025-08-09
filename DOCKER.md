@@ -1,5 +1,46 @@
 # Docker Setup for P2P Sandbox
 
+## Docker Files Reference
+
+### 📁 Configuration Files
+| File | Purpose | Location |
+|------|---------|----------|
+| **docker-compose.yml** | Main orchestration file | `/docker-compose.yml` |
+| **docker-compose.prod.yml** | Production overrides | `/docker-compose.prod.yml` |
+| **docker-control.sh** | Management script with all commands | `/docker-control.sh` |
+| **.env.docker** | Docker environment variables | `/.env.docker` |
+| **.env.example** | Environment template for developers | `/.env.example` |
+
+### 🐳 Container Definitions
+| Service | Development | Production | Purpose |
+|---------|-------------|------------|---------|
+| **Backend** | `p2p-backend-app/Dockerfile.dev` | `p2p-backend-app/Dockerfile` | FastAPI server |
+| **Frontend** | `p2p-frontend-app/Dockerfile.dev` | `p2p-frontend-app/Dockerfile` | React app + Nginx |
+
+### ⚙️ Configuration & Support Files
+| File | Purpose | Location |
+|------|---------|----------|
+| **nginx.conf** | Production frontend web server config | `p2p-frontend-app/nginx.conf` |
+| **.dockerignore** | Frontend Docker ignore rules | `p2p-frontend-app/.dockerignore` |
+| **init-postgres.sql** | PostgreSQL database initialization | `docker/scripts/init-postgres.sql` |
+| **init-mongo.js** | MongoDB database initialization | `docker/scripts/init-mongo.js` |
+| **vite.config.ts** | Frontend dev server (Docker-compatible) | `p2p-frontend-app/vite.config.ts` |
+
+### 📚 Documentation Files
+| File | Purpose | Location |
+|------|---------|----------|
+| **DOCKER.md** | This file - comprehensive Docker guide | `/DOCKER.md` |
+| **README.md** | Main developer guide (includes Docker quick start) | `/README.md` |
+| **CONTRIBUTING.md** | Development workflow (includes Docker workflow) | `/CONTRIBUTING.md` |
+| **application-startup-guide.md** | Updated startup guide with Docker-first approach | `docs/aadil_docs/application-startup-guide.md` |
+
+### 🗄️ Legacy Files (Reference Only)
+| File | Status | Purpose |
+|------|--------|---------|
+| `p2p-backend-app/start-docker-with-claude.sh` | 🔴 Legacy | Old startup script |
+| `p2p-frontend-app/frontend-control.sh` | 🔴 Legacy | Old frontend control script |
+| `docs/stories/epic-01/story-06-docker-containerization.md` | 📚 Archive | Original Docker epic story |
+
 ## Quick Start
 
 Start the entire application stack with a single command:

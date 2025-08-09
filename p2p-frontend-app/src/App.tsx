@@ -27,7 +27,7 @@ function Layout() {
   
   return (
     <div className="min-h-screen">
-      {!isLandingPage && !isAuthPage && <Navigation />}
+      <Navigation />
       <main className={!isLandingPage ? 'pt-0' : ''}>
         <Routes>
           {/* Public Routes */}

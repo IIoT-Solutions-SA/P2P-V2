@@ -66,19 +66,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
-              <Factory className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-slate-900">P2P Sandbox</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-6">
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-6 pt-24">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           
           {/* Left Side - Login Form */}

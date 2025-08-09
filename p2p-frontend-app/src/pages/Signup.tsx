@@ -108,29 +108,7 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <Factory className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-slate-900">P2P Sandbox</span>
-            </div>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/login')}
-              className="flex items-center space-x-2"
-            >
-              <span>Already have an account?</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12 pt-24">
         <div className="max-w-2xl mx-auto">
           
           {/* Progress Steps */}

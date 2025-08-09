@@ -73,7 +73,7 @@ class Conversation(ConversationBase, table=True):
 
 class MessageBase(SQLModel):
     """Base message model."""
-    conversation_id: UUID
+    conversation_id: UUID = Field(foreign_key="conversations.id")
     sender_id: UUID
     recipient_id: UUID
     organization_id: UUID
@@ -104,7 +104,7 @@ class Message(MessageBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Thread support
-    parent_message_id: Optional[UUID] = None
+    parent_message_id: Optional[UUID] = Field(default=None, foreign_key="messages.id")
     thread_count: int = 0
     
     # Delivery status
@@ -143,7 +143,7 @@ class Message(MessageBase, table=True):
 
 class MessageAttachmentBase(SQLModel):
     """Base message attachment model."""
-    message_id: UUID
+    message_id: UUID = Field(foreign_key="messages.id")
     filename: str
     file_path: str
     file_url: Optional[str] = None

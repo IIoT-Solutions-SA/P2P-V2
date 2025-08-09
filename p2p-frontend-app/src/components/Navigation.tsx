@@ -64,7 +64,7 @@ export default function Navigation() {
               <Bell className="h-5 w-5" />
             </Button>
             
-            {isAuthenticated && (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => navigate('/profile')}
@@ -86,6 +86,22 @@ export default function Navigation() {
                   className="text-slate-600 hover:text-red-600"
                 >
                   <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate('/login')}
+                  className="text-slate-600 hover:text-blue-600"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  onClick={() => navigate('/signup')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Sign Up
                 </Button>
               </div>
             )}

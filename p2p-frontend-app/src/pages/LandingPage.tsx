@@ -248,11 +248,20 @@ export default function LandingPage() {
               Connect with factory owners across Saudi Arabia, browse proven use cases, and optimize your operations - completely free
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg font-semibold">
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg font-semibold"
+                onClick={() => navigate('/signup')}
+              >
                 Start Optimizing Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg"
+                onClick={() => navigate('/use-cases')}
+              >
                 Browse Use Cases
               </Button>
             </div>

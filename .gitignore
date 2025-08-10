@@ -38,3 +38,5 @@ docker/data/
 node_modules/
 dist/
 build/
+# Docker persistent volumes (local data)
+docker-volumes/

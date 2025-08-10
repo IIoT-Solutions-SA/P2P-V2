@@ -32,6 +32,12 @@ SEEDING_ORDER = [
         "database": "postgresql"
     },
     {
+        "name": "SuperTokens Users",
+        "script": "seed_supertokens_users.py",
+        "description": "Create actual SuperTokens users and link with database users",
+        "database": "supertokens"
+    },
+    {
         "name": "Use Cases",
         "script": "seed_use_cases.py",
         "description": "Seed MongoDB use cases from frontend data",
@@ -190,6 +196,12 @@ async def run_seed_directly(seed_name: str) -> tuple[bool, str]:
             from seed_users import seed_users_main
             success = await seed_users_main()
             output_lines = [f"Users seeded: {success}"]
+            
+        elif seed_name == "SuperTokens Users":
+            # Import and run SuperTokens users linking
+            from link_supertokens_users import main as link_users_main
+            success = await link_users_main()
+            output_lines = [f"SuperTokens users linked: {success}"]
             
         elif seed_name == "Use Cases":
             # Import and run use cases seeding

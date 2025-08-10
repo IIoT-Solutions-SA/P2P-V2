@@ -89,27 +89,58 @@ All backend code should use async/await patterns for:
 
 ### Docker-First Development Environment
 
-The entire application stack now runs in Docker containers for consistent development across all environments. Claude MUST:
+The entire application stack runs in Docker containers for consistent development across all environments. Claude MUST:
 
-- **Always use Docker for startup/shutdown**: Reference `/DOCKER.md` for comprehensive Docker setup guide
-- **Use the unified docker-control.sh script**: Located at project root for all container management
+- **Always use Docker for startup/shutdown**: Reference `/DOCKER.md` for comprehensive Docker setup guide and data persistence solution
+- **CRITICAL: Follow the data persistence workflow**: Use backup/restore scripts to prevent data loss
+- **Use the unified docker-control.sh script**: Located at project root for all container management  
 - **Never use legacy startup methods**: All non-Docker startup methods have been deprecated
 - **Verify services are healthy after startup**: Check all containers are running and accessible
 
-### Quick Start Commands
+### Critical Data Persistence Workflow
 
+**🚨 IMPORTANT**: Docker Desktop on Windows/WSL can lose all data on restart. Follow this workflow:
+
+#### When Starting Work:
 ```bash
-# Start entire application stack
+# 1. Start containers
 ./docker-control.sh start
 
-# Stop entire application stack  
-./docker-control.sh stop
+# 2. Restore data from backup (if exists)
+./restore-databases.sh
 
-# Check status of all services
+# 3. CRITICAL: Create SuperTokens users for seeded accounts
+docker exec p2p-backend python scripts/seed_supertokens_users.py
+
+# 4. Verify services and user authentication
 ./docker-control.sh status
 ```
 
-**Primary Documentation**: `/DOCKER.md` - Contains complete Docker setup, commands, and troubleshooting
+#### When Stopping Work:
+```bash
+# 1. ALWAYS backup data first (NEVER SKIP!)
+./backup-databases.sh
+
+# 2. Then stop containers
+./docker-control.sh stop
+```
+
+#### First Time Setup:
+```bash
+# 1. Start containers
+./docker-control.sh start
+
+# 2. Initialize and seed databases
+./init-databases.sh
+
+# 3. CRITICAL: Create SuperTokens users for all seeded accounts
+docker exec p2p-backend python scripts/seed_supertokens_users.py
+
+# 4. Create initial backup
+./backup-databases.sh
+```
+
+**Complete Documentation**: `/DOCKER.md` - Contains comprehensive Docker setup, data persistence solution, troubleshooting, and all commands
 
 ## Code Writing Requirements
 
@@ -211,15 +242,19 @@ curl http://localhost:8000/health && curl http://localhost:5173
 
 ## Development Workflow
 
-1. **Start Development Environment**: `./docker-control.sh start`
+1. **Start Development Environment**: 
+   - `./docker-control.sh start`
+   - `./restore-databases.sh` (restore previous data if exists)
 2. **Always work on the `aadil-backend` branch**
 3. **Test API endpoints with frontend before committing**
 4. **Run tests**: Use Docker commands from Testing section above
 5. **Update documentation when adding major features**
 6. **Follow async best practices for all I/O operations**
-7. **Stop cleanly**: `./docker-control.sh stop`
+7. **Stop cleanly**: 
+   - `./backup-databases.sh` (CRITICAL: backup data first)
+   - `./docker-control.sh stop`
 
-**See `/DOCKER.md` and `/CONTRIBUTING.md` for detailed development workflows.**
+**See `/DOCKER.md` for complete development workflows and data persistence solution.**
 
 ## Version Control Requirements for Claude
 
@@ -320,8 +355,9 @@ When completing tasks, Claude MUST update the following documents:
 - Development Workflow: `/docs/aadil_docs/development-workflow-guide.md`
 
 ### Container Management
-- **Docker Setup Guide**: `/DOCKER.md` - Primary method for all application management
-- **Legacy Startup Guide**: `/docs/aadil_docs/application-startup-guide.md` - Contains deprecated methods for reference
+- **Docker Setup Guide**: `/DOCKER.md` - Primary method for all application management and data persistence solution
+- **Complete Shutdown & Restart Guide**: `/docs/aadil_docs/complete-shutdown-restart-guide.md` - Comprehensive workflow for safely shutting down entire development environment (Docker Desktop, WSL, PC restart) while preserving ALL data including dynamic content created during development sessions
+- **Data Persistence Documentation**: `/DOCKER_DATA_PERSISTENCE.md` - Detailed explanation of backup/restore solution
 
 ### Architecture & Testing
 - Architecture: `/docs/architecture/`

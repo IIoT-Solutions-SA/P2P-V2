@@ -21,37 +21,65 @@ import {
   UserCog,
   Settings,
   HardDrive,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/services/api'
+import { dashboardApi, DashboardStats, ActivityItem } from '@/services/dashboardApi'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user, organization } = useAuth()
-  const [stats, setStats] = useState<any>(null)
+  const [orgStats, setOrgStats] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null)
+  const [activities, setActivities] = useState<ActivityItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [activitiesLoading, setActivitiesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchOrganizationStats()
-    } else {
-      setIsLoading(false)
     }
+    fetchDashboardData()
   }, [user?.role])
 
   const fetchOrganizationStats = async () => {
     try {
-      setIsLoading(true)
       setError(null)
       const response = await api.get('/api/v1/organizations/stats')
-      setStats(response.data)
+      setOrgStats(response.data)
     } catch (err: any) {
       console.error('Failed to fetch organization stats:', err)
       setError('Failed to load organization statistics')
+    }
+  }
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const data = await dashboardApi.getUserDashboard()
+      setDashboardData(data)
+      setActivities(data.recent_activities.slice(0, 3)) // Show first 3 activities
+    } catch (err: any) {
+      console.error('Failed to fetch dashboard data:', err)
+      setError('Failed to load dashboard data')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadMoreActivities = async () => {
+    try {
+      setActivitiesLoading(true)
+      const response = await dashboardApi.getRecentActivities({ limit: 10 })
+      setActivities(response.activities)
+    } catch (err) {
+      console.error('Failed to load more activities:', err)
+    } finally {
+      setActivitiesLoading(false)
     }
   }
   return (
@@ -139,37 +167,37 @@ export default function Dashboard() {
               <h2 className="text-xl font-bold text-gray-900 mb-6">
                 {user?.role === 'admin' ? 'Organization Overview' : 'Your Progress'}
               </h2>
-              {user?.role === 'admin' && stats ? (
+              {user?.role === 'admin' && orgStats ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="bg-blue-600 p-6 rounded-xl text-white">
                     <div className="flex items-center justify-between mb-4">
                       <Users className="h-8 w-8 text-blue-200" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">{stats.user_stats?.total_users || 0}</div>
+                        <div className="text-2xl font-bold">{orgStats.user_stats?.total_users || 0}</div>
                         <div className="text-blue-200 text-sm">Total Users</div>
                       </div>
                     </div>
                     <div className="text-sm text-blue-200">
-                      {stats.user_stats?.active_users || 0} active
+                      {orgStats.user_stats?.active_users || 0} active
                     </div>
                   </div>
                   <div className="bg-slate-600 p-6 rounded-xl text-white">
                     <div className="flex items-center justify-between mb-4">
                       <Award className="h-8 w-8 text-slate-200" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">{stats.user_stats?.admin_count || 0}</div>
+                        <div className="text-2xl font-bold">{orgStats.user_stats?.admin_count || 0}</div>
                         <div className="text-slate-200 text-sm">Admins</div>
                       </div>
                     </div>
                     <div className="text-sm text-slate-200">
-                      {stats.user_stats?.member_count || 0} members
+                      {orgStats.user_stats?.member_count || 0} members
                     </div>
                   </div>
                   <div className="bg-amber-600 p-6 rounded-xl text-white">
                     <div className="flex items-center justify-between mb-4">
                       <Bell className="h-8 w-8 text-amber-200" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">{stats.user_stats?.pending_invitations || 0}</div>
+                        <div className="text-2xl font-bold">{orgStats.user_stats?.pending_invitations || 0}</div>
                         <div className="text-amber-200 text-sm">Pending</div>
                       </div>
                     </div>
@@ -179,13 +207,56 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between mb-4">
                       <HardDrive className="h-8 w-8 text-slate-300" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">{stats.storage?.used_mb?.toFixed(1) || '0.0'}</div>
+                        <div className="text-2xl font-bold">{orgStats.storage?.used_mb?.toFixed(1) || '0.0'}</div>
                         <div className="text-slate-300 text-sm">MB Used</div>
                       </div>
                     </div>
                     <div className="text-sm text-slate-300">
-                      {stats.storage?.percentage?.toFixed(0) || 0}% of limit
+                      {orgStats.storage?.percentage?.toFixed(0) || 0}% of limit
                     </div>
+                  </div>
+                </div>
+              ) : user?.role !== 'admin' && dashboardData ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-blue-600 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <MessageSquare className="h-8 w-8 text-blue-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{dashboardData.user_stats.questions_asked}</div>
+                        <div className="text-blue-200 text-sm">Questions</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-blue-200">Asked this month</div>
+                  </div>
+                  <div className="bg-slate-600 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <Award className="h-8 w-8 text-slate-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{dashboardData.user_stats.answers_given}</div>
+                        <div className="text-slate-200 text-sm">Answers</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-200">Provided this month</div>
+                  </div>
+                  <div className="bg-blue-500 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <BookmarkCheck className="h-8 w-8 text-blue-200" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{dashboardData.user_stats.saved_items}</div>
+                        <div className="text-blue-200 text-sm">Saved</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-blue-200">Bookmarked items</div>
+                  </div>
+                  <div className="bg-slate-700 p-6 rounded-xl text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <Star className="h-8 w-8 text-slate-300" />
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{dashboardData.user_stats.reputation_score}</div>
+                        <div className="text-slate-300 text-sm">Reputation</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-300">Community points</div>
                   </div>
                 </div>
               ) : (
@@ -194,41 +265,49 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between mb-4">
                       <MessageSquare className="h-8 w-8 text-blue-200" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-2xl font-bold">
+                          {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : '0'}
+                        </div>
                         <div className="text-blue-200 text-sm">Questions</div>
                       </div>
                     </div>
-                    <div className="text-sm text-blue-200">Forum coming soon</div>
+                    <div className="text-sm text-blue-200">Loading data...</div>
                   </div>
                   <div className="bg-slate-600 p-6 rounded-xl text-white">
                     <div className="flex items-center justify-between mb-4">
                       <Award className="h-8 w-8 text-slate-200" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-2xl font-bold">
+                          {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : '0'}
+                        </div>
                         <div className="text-slate-200 text-sm">Answers</div>
                       </div>
                     </div>
-                    <div className="text-sm text-slate-200">Forum coming soon</div>
+                    <div className="text-sm text-slate-200">Loading data...</div>
                   </div>
                   <div className="bg-blue-500 p-6 rounded-xl text-white">
                     <div className="flex items-center justify-between mb-4">
                       <BookmarkCheck className="h-8 w-8 text-blue-200" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-2xl font-bold">
+                          {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : '0'}
+                        </div>
                         <div className="text-blue-200 text-sm">Saved</div>
                       </div>
                     </div>
-                    <div className="text-sm text-blue-200">Feature coming soon</div>
+                    <div className="text-sm text-blue-200">Loading data...</div>
                   </div>
                   <div className="bg-slate-700 p-6 rounded-xl text-white">
                     <div className="flex items-center justify-between mb-4">
                       <Star className="h-8 w-8 text-slate-300" />
                       <div className="text-right">
-                        <div className="text-2xl font-bold">0</div>
+                        <div className="text-2xl font-bold">
+                          {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : '0'}
+                        </div>
                         <div className="text-slate-300 text-sm">Reputation</div>
                       </div>
                     </div>
-                    <div className="text-sm text-slate-300">Coming soon</div>
+                    <div className="text-sm text-slate-300">Loading data...</div>
                   </div>
                 </div>
               )}
@@ -240,12 +319,21 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Recent Activities</h2>
                   <p className="text-gray-600">
-                    {user?.role === 'admin' && stats 
-                      ? `${stats.activity?.recent_activities || 0} activities this week`
+                    {user?.role === 'admin' && orgStats 
+                      ? `${orgStats.activity?.recent_activities || 0} activities this week`
                       : 'Stay updated with community happenings'}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-blue-600 hover:text-blue-700"
+                  onClick={loadMoreActivities}
+                  disabled={activitiesLoading}
+                >
+                  {activitiesLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
                   View All
                 </Button>
               </div>
@@ -257,52 +345,52 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                {[
-                  {
-                    type: "user",
-                    user: "System",
-                    action: "New features coming soon",
-                    content: "Forum discussions and use case submissions will be available in the next update",
-                    time: "Just now",
-                    category: "System Update"
-                  },
-                  {
-                    type: "user",
-                    user: organization?.name || "Organization",
-                    action: "Welcome to the platform",
-                    content: "Start by updating your profile and inviting team members",
-                    time: "Today",
-                    category: "Getting Started"
-                  }
-                ].map((activity, i) => (
-                  <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-3 rounded-lg ${
-                        activity.type === "question" ? "bg-blue-600" :
-                        activity.type === "answer" ? "bg-slate-600" :
-                        activity.type === "case" ? "bg-blue-500" :
-                        "bg-green-600"
-                      }`}>
-                        {activity.type === "question" && <MessageSquare className="h-5 w-5 text-white" />}
-                        {activity.type === "answer" && <Award className="h-5 w-5 text-white" />}
-                        {activity.type === "case" && <FileText className="h-5 w-5 text-white" />}
-                        {activity.type === "user" && <Users className="h-5 w-5 text-white" />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-slate-900 font-medium mb-1">
-                          <span className="font-semibold">{activity.user}</span> {activity.action}
-                        </p>
-                        <p className="text-slate-600 mb-3">{activity.content}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-500">{activity.time}</span>
-                          <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium">{activity.category}</span>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+                  <p className="text-slate-600">Loading activities...</p>
+                </div>
+              ) : activities.length > 0 ? (
+                <div className="space-y-4">
+                  {activities.map((activity) => (
+                    <div key={activity.id} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-start space-x-4">
+                        <div className={`p-3 rounded-lg ${
+                          activity.type === "question" ? "bg-blue-600" :
+                          activity.type === "answer" ? "bg-slate-600" :
+                          activity.type === "use_case" ? "bg-blue-500" :
+                          "bg-green-600"
+                        }`}>
+                          {activity.type === "question" && <MessageSquare className="h-5 w-5 text-white" />}
+                          {activity.type === "answer" && <Award className="h-5 w-5 text-white" />}
+                          {activity.type === "use_case" && <FileText className="h-5 w-5 text-white" />}
+                          {activity.type === "user_action" && <Users className="h-5 w-5 text-white" />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-slate-900 font-medium mb-1">
+                            <span className="font-semibold">{activity.user_name}</span> {activity.action}
+                          </p>
+                          <p className="text-slate-600 mb-3">{activity.content}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500">
+                              {new Date(activity.timestamp).toLocaleDateString()}
+                            </span>
+                            <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium">
+                              {activity.category}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">No recent activities</h3>
+                  <p className="text-slate-600">Start by asking questions or sharing use cases</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -391,7 +479,7 @@ export default function Dashboard() {
             </div>
 
             {/* Organization Insights (Admin Only) */}
-            {user?.role === 'admin' && stats && (
+            {user?.role === 'admin' && orgStats && (
               <div>
                 <h3 className="font-bold text-gray-900 mb-4">Organization Health</h3>
                 <div className="bg-white rounded-xl p-6 border border-slate-200">
@@ -400,7 +488,7 @@ export default function Dashboard() {
                       <div>
                         <p className="text-sm text-slate-600">Storage Usage</p>
                         <p className="text-2xl font-bold text-blue-600">
-                          {stats.storage?.percentage?.toFixed(0) || 0}%
+                          {orgStats.storage?.percentage?.toFixed(0) || 0}%
                         </p>
                       </div>
                       <div className="p-2 bg-blue-600 rounded-lg">
@@ -410,21 +498,21 @@ export default function Dashboard() {
                     <div className="w-full bg-slate-200 rounded-full h-3">
                       <div 
                         className="bg-blue-600 h-3 rounded-full" 
-                        style={{ width: `${Math.min(stats.storage?.percentage || 0, 100)}%` }}
+                        style={{ width: `${Math.min(orgStats.storage?.percentage || 0, 100)}%` }}
                       ></div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs">
                         <span className="text-slate-600">Used</span>
-                        <span className="font-medium">{stats.storage?.used_mb?.toFixed(1) || '0.0'} MB</span>
+                        <span className="font-medium">{orgStats.storage?.used_mb?.toFixed(1) || '0.0'} MB</span>
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-slate-600">Limit</span>
-                        <span className="font-medium">{(stats.storage?.limit_bytes / (1024 * 1024))?.toFixed(0) || '10240'} MB</span>
+                        <span className="font-medium">{(orgStats.storage?.limit_bytes / (1024 * 1024))?.toFixed(0) || '10240'} MB</span>
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-slate-600">Subscription</span>
-                        <span className="font-medium capitalize">{stats.subscription?.tier || 'Free'}</span>
+                        <span className="font-medium capitalize">{orgStats.subscription?.tier || 'Free'}</span>
                       </div>
                     </div>
                   </div>

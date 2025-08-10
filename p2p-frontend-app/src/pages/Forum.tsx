@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { CreatePostModal } from "@/components/ui/CreatePostModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { 
@@ -23,7 +24,9 @@ import {
   Share2,
   Bookmark,
   MoreVertical,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -56,6 +59,7 @@ interface ForumPost {
   replies: number
   views: number
   likes: number
+  isLikedByUser?: boolean
   timeAgo: string
   isPinned: boolean
   hasBestAnswer: boolean
@@ -70,8 +74,12 @@ export default function Forum() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null)
   const [newComment, setNewComment] = useState("")
+  const [replyingToId, setReplyingToId] = useState<number | null>(null)
+  const [replyText, setReplyText] = useState("")
   const [likedPosts, setLikedPosts] = useState<number[]>([])
   const [likedComments, setLikedComments] = useState<number[]>([])
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [expandedComments, setExpandedComments] = useState<Record<number, boolean>>({})
   
   // Real data state
   const [categories, setCategories] = useState<Category[]>([])
@@ -177,25 +185,7 @@ export default function Forum() {
 
       if (response.ok) {
         const fullPost = await response.json();
-
-        if (fullPost.comments && Array.isArray(fullPost.comments)) {
-          const commentsById = new Map<number, Comment>();
-          const topLevelComments: Comment[] = [];
-
-          fullPost.comments.forEach((comment: any) => {
-            commentsById.set(comment.id, { ...comment, replies: [] });
-          });
-
-          fullPost.comments.forEach((comment: any) => {
-            if (comment.parent_reply_id && commentsById.has(comment.parent_reply_id)) {
-              commentsById.get(comment.parent_reply_id)!.replies!.push(commentsById.get(comment.id)!);
-            } else {
-              topLevelComments.push(commentsById.get(comment.id)!);
-            }
-          });
-          
-          fullPost.comments = topLevelComments;
-        }
+        // Server already returns nested comments; use as-is
         setSelectedPost(fullPost);
       } else {
         console.error('Failed to fetch post details');
@@ -211,39 +201,85 @@ export default function Forum() {
         method: 'POST',
         credentials: 'include'
       })
-      
       if (response.ok) {
-        const data = await response.json()
-        setForumPosts(posts => posts.map(post => 
-          post.id === postId 
-            ? { ...post, likes: data.likes }
-            : post
-        ))
-        
-        if (likedPosts.includes(postId)) {
-          setLikedPosts(likedPosts.filter(id => id !== postId))
-        } else {
-          setLikedPosts([...likedPosts, postId])
+        const data = await response.json() // { success, liked, likes }
+        setForumPosts(posts => posts.map(post => post.id === postId ? { ...post, likes: data.likes } : post))
+        if (selectedPost && selectedPost.id === postId) {
+          setSelectedPost({ ...selectedPost, likes: data.likes })
         }
+        setLikedPosts(prev => data.liked ? [...prev, postId] : prev.filter(id => id !== postId))
       }
     } catch (error) {
       console.error('Error liking post:', error)
     }
   }
 
-  const handleLikeComment = (commentId: number) => {
-    if (likedComments.includes(commentId)) {
-      setLikedComments(likedComments.filter(id => id !== commentId))
-    } else {
-      setLikedComments([...likedComments, commentId])
+  const handleLikeComment = async (commentId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/forum/replies/${commentId}/like`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const data = await response.json() // { success, liked, likes }
+        if (!selectedPost?.comments) return
+        // update likes in nested structure
+        const updateLikes = (nodes: Comment[]): Comment[] =>
+          nodes.map(n => {
+            if (n.id === commentId) return { ...n, likes: data.likes }
+            if (n.replies && n.replies.length) return { ...n, replies: updateLikes(n.replies) }
+            return n
+          })
+        setSelectedPost({ ...selectedPost, comments: updateLikes(selectedPost.comments) })
+        setLikedComments(prev => data.liked ? [...prev, commentId] : prev.filter(id => id !== commentId))
+      }
+    } catch (e) {
+      console.error('Error liking reply:', e)
     }
   }
 
-  const handlePostComment = () => {
-    if (newComment.trim()) {
-      console.log('Posting comment:', newComment)
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !selectedPost) return
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${selectedPost.id}/replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content: newComment })
+      })
+      if (!response.ok) throw new Error('Failed to post comment')
       setNewComment('')
+      await handlePostClick(selectedPost.id)
+    } catch (error) {
+      console.error('Error posting comment:', error)
     }
+  }
+
+  const handleOpenReply = (commentId: number) => {
+    setReplyingToId(prev => (prev === commentId ? null : commentId))
+    setReplyText("")
+  }
+
+  const handleSubmitReply = async (parentReplyId: number) => {
+    if (!replyText.trim() || !selectedPost) return
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${selectedPost.id}/replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content: replyText, parent_reply_id: String(parentReplyId) })
+      })
+      if (!response.ok) throw new Error('Failed to post reply')
+      setReplyText("")
+      setReplyingToId(null)
+      await handlePostClick(selectedPost.id)
+    } catch (e) {
+      console.error('Error posting nested reply:', e)
+    }
+  }
+
+  const toggleReplies = (commentId: number) => {
+    setExpandedComments(prev => ({ ...prev, [commentId]: !prev[commentId] }))
   }
 
   if (selectedPost) {
@@ -263,7 +299,7 @@ export default function Forum() {
               <div className="flex items-center space-x-2 mb-4">
                 {selectedPost.isPinned && <Pin className="h-4 w-4 text-blue-600" />}
                 {selectedPost.hasBestAnswer && <CheckCircle className="h-4 w-4 text-green-600" />}
-                <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                <span className={`text-xs px-3 py-1 rounded-full font-medium capitalize ${
                   selectedPost.category === "Automation" ? "bg-blue-100 text-blue-700" :
                   selectedPost.category === "Maintenance" ? "bg-yellow-100 text-yellow-700" :
                   selectedPost.category === "Quality Management" ? "bg-green-100 text-green-700" :
@@ -302,7 +338,7 @@ export default function Forum() {
               <div className="flex items-center space-x-4">
                 <Button variant="ghost" size="sm" onClick={() => handleLikePost(selectedPost.id)} className={likedPosts.includes(selectedPost.id) ? "text-blue-600" : ""}>
                   <ThumbsUp className={`h-4 w-4 mr-2 ${likedPosts.includes(selectedPost.id) ? "fill-current" : ""}`} />
-                  {selectedPost.likes + (likedPosts.includes(selectedPost.id) ? 1 : 0)}
+                  {selectedPost.likes}
                 </Button>
                 <Button variant="ghost" size="sm"><Share2 className="h-4 w-4 mr-2" />Share</Button>
                 <Button variant="ghost" size="sm"><Bookmark className="h-4 w-4 mr-2" />Save</Button>
@@ -351,11 +387,29 @@ export default function Forum() {
                       <div className="flex items-center space-x-4">
                         <Button variant="ghost" size="sm" onClick={() => handleLikeComment(comment.id)} className={`text-sm ${likedComments.includes(comment.id) ? "text-blue-600" : ""}`}>
                           <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(comment.id) ? "fill-current" : ""}`} />
-                          {comment.likes + (likedComments.includes(comment.id) ? 1 : 0)}
+                          {comment.likes}
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-sm">Reply</Button>
+                        <Button variant="ghost" size="sm" className="text-sm" onClick={() => handleOpenReply(comment.id)}>Reply</Button>
+                        {comment.replies && comment.replies.length > 0 && (
+                          <button
+                            onClick={() => toggleReplies(comment.id)}
+                            className="text-xs text-slate-600 hover:text-slate-800 inline-flex items-center gap-1"
+                          >
+                            {expandedComments[comment.id] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                            {expandedComments[comment.id] ? "Hide replies" : `Show replies (${comment.replies.length})`}
+                          </button>
+                        )}
                       </div>
-                      {comment.replies && comment.replies.length > 0 && (
+                      {replyingToId === comment.id && (
+                        <div className="mt-4 ml-8">
+                          <Textarea placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="min-h-[80px] mb-2" />
+                          <div className="flex gap-2">
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleSubmitReply(comment.id)} disabled={!replyText.trim()}>Post Reply</Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setReplyingToId(null); setReplyText("") }}>Cancel</Button>
+                          </div>
+                        </div>
+                      )}
+                      {comment.replies && comment.replies.length > 0 && expandedComments[comment.id] && (
                         <div className="mt-4 ml-8 space-y-4">
                           {comment.replies.map((reply) => (
                             <div key={reply.id} className="flex space-x-3">
@@ -373,9 +427,19 @@ export default function Forum() {
                                 <p className="text-sm text-slate-700 mb-2">{reply.content}</p>
                                 <Button variant="ghost" size="sm" onClick={() => handleLikeComment(reply.id)} className={`text-xs ${likedComments.includes(reply.id) ? "text-blue-600" : ""}`}>
                                   <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(reply.id) ? "fill-current" : ""}`} />
-                                  {reply.likes + (likedComments.includes(reply.id) ? 1 : 0)}
+                                  {reply.likes}
                                 </Button>
+                                <Button variant="ghost" size="sm" className="text-xs" onClick={() => handleOpenReply(reply.id)}>Reply</Button>
                               </div>
+                              {replyingToId === reply.id && (
+                                <div className="mt-3 ml-8">
+                                  <Textarea placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="min-h-[70px] mb-2" />
+                                  <div className="flex gap-2">
+                                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleSubmitReply(reply.id)} disabled={!replyText.trim()}>Post Reply</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => { setReplyingToId(null); setReplyText("") }}>Cancel</Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -499,6 +563,21 @@ export default function Forum() {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
+            {/* START: Create Post Trigger Section */}
+            <Card className="bg-white rounded-2xl p-6 border border-slate-200">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex-1 text-left text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-6 py-4 hover:bg-slate-100 transition-colors text-base"
+                >
+                  Start a post...
+                </button>
+                <Button onClick={() => setIsModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-5 text-base">
+                  <Plus className="h-5 w-5 mr-2" /> New Post
+                </Button>
+              </div>
+            </Card>
+            {/* END: Create Post Trigger Section */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <div className="flex items-center space-x-4">
                 <div className="flex-1 relative">
@@ -530,7 +609,7 @@ export default function Forum() {
                           <div className="flex items-center space-x-2">
                             {post.isPinned && <Pin className="h-4 w-4 text-blue-600" />}
                             {post.hasBestAnswer && <CheckCircle className="h-4 w-4 text-blue-600" />}
-                            <span className="text-xs px-3 py-1 rounded-full font-medium bg-blue-600 text-white">
+                            <span className="text-xs px-3 py-1 rounded-full font-medium bg-blue-600 text-white capitalize">
                               <Tag className="h-3 w-3 mr-1 inline" />
                               {post.category}
                             </span>
@@ -550,10 +629,10 @@ export default function Forum() {
                           <div className="flex items-center space-x-1 text-sm text-slate-500"><Eye className="h-4 w-4" /><span>{post.views}</span></div>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleLikePost(post.id); }}
-                            className={`flex items-center space-x-1 text-sm transition-colors ${likedPosts.includes(post.id) ? "text-blue-600" : "text-slate-500 hover:text-blue-600"}`}
+                            className={`flex items-center space-x-1 text-sm transition-colors ${likedPosts.includes(post.id) || post.isLikedByUser ? "text-blue-600" : "text-slate-500 hover:text-blue-600"}`}
                           >
-                            <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(post.id) ? "fill-current" : ""}`} />
-                            <span>{post.likes + (likedPosts.includes(post.id) ? 1 : 0)}</span>
+                            <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(post.id) || post.isLikedByUser ? "fill-current" : ""}`} />
+                            <span>{post.likes}</span>
                           </button>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -593,7 +672,30 @@ export default function Forum() {
             </div>
           </div>
         </div>
-      </div>
+      {/* START: Add the Modal Dialog */}
+      <CreatePostModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        categories={categories.filter(c => c.id !== 'all')}
+        onPostSuccess={async () => {
+          setIsModalOpen(false)
+          // Refresh posts after successful creation
+          try {
+            const categoryQueryParam = selectedCategoryId === 'all' ? 'all' : categories.find(c => c.id === selectedCategoryId)?.name
+            if (categoryQueryParam) {
+              const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, { credentials: 'include' })
+              if (response.ok) {
+                const data = await response.json()
+                setForumPosts(data.posts || [])
+              }
+            }
+          } catch (e) {
+            // noop
+          }
+        }}
+      />
+      {/* END: Add the Modal Dialog */}
     </div>
+  </div>
   )
 }

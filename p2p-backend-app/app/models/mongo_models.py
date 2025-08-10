@@ -38,6 +38,7 @@ class ForumPost(Document):
     views: int = 0
     reply_count: int = 0
     upvotes: int = 0
+    liked_by: List[str] = Field(default_factory=list)
     is_pinned: bool = False
     has_best_answer: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -54,8 +55,10 @@ class ForumReply(Document):
     post_id: str
     author_id: str
     content: str
+    parent_reply_id: Optional[str] = None
     attachments: List[Dict[str, str]] = Field(default_factory=list)
     upvotes: int = 0
+    liked_by: List[str] = Field(default_factory=list)
     is_best_answer: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -63,6 +66,7 @@ class ForumReply(Document):
         name = "forum_replies"
         indexes = [
             [("post_id", pymongo.ASCENDING)],
+            [("parent_reply_id", pymongo.ASCENDING)],
             [("created_at", pymongo.ASCENDING)]
         ]
 

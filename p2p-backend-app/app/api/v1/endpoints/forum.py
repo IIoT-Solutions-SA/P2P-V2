@@ -11,25 +11,107 @@ from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.mongo_models import ForumPost, ForumReply, User as MongoUser
 from typing import List, Optional
+from app.schemas.forum import ForumPostCreate
+from app.services.user_activity_service import UserActivityService
+from app.services.forum_service import ForumService
+from pydantic import BaseModel
 import logging
 from datetime import datetime
+import re
 from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
+class ReplyCreate(BaseModel):
+    content: str
+    parent_reply_id: Optional[str] = None
+
+
+def _normalize_category_name(raw: str) -> str:
+    try:
+        if not raw:
+            return raw
+        s = str(raw).replace("-", " ").strip().lower()
+        return " ".join(w.capitalize() for w in s.split())
+    except Exception:
+        return raw
+@router.post("/posts", status_code=201)
+async def create_forum_post(
+    post_data: ForumPostCreate,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new forum post"""
+    try:
+        supertokens_user_id = session.get_user_id()
+
+        # Map category_id (from frontend) to name. For now, assume it's a name already.
+        category_name = post_data.category_id
+
+        # Resolve author from PG->Mongo using session user
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        post = ForumPost(
+            author_id=str(mongo_user.id),
+            title=post_data.title,
+            content=post_data.content,
+            category=_normalize_category_name(category_name),
+            tags=post_data.tags or []
+        )
+        await post.insert()
+
+        # Log activity
+        await UserActivityService.log_activity(
+            user_id=str(mongo_user.id),
+            activity_type="question",
+            target_id=str(post.id),
+            target_title=post.title,
+            target_category=post.category
+        )
+
+        return {"id": str(post.id)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating forum post: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create post")
+
 @router.get("/posts")
 async def get_forum_posts(
     category: Optional[str] = Query(None, description="Filter by category"),
     limit: int = Query(20, description="Number of posts to return"),
-    session: SessionContainer = Depends(verify_session())
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
 ):
     """Get forum posts with optional category filter"""
     try:
-        # Build query
+        # Resolve current user's Mongo ID (for isLikedByUser flag)
+        supertokens_user_id = session.get_user_id()
+        current_user_mongo_id = None
+        try:
+            pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+            if pg_user:
+                mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+                if mongo_user:
+                    current_user_mongo_id = str(mongo_user.id)
+        except Exception:
+            current_user_mongo_id = None
+
+        # Build query (case-insensitive category filter)
         query = {}
         if category and category != "all":
-            query["category"] = category
+            try:
+                query["category"] = {"$regex": f"^{re.escape(category)}$", "$options": "i"}
+            except Exception:
+                query["category"] = category
         
         # Get posts from database
         posts = await ForumPost.find(query).sort(-ForumPost.created_at).limit(limit).to_list()
@@ -66,11 +148,12 @@ async def get_forum_posts(
                 "title": post.title,
                 "author": user_names.get(post.author_id, "Unknown User"),
                 "authorTitle": "Community Member",  # Can be enhanced later
-                "category": post.category,
+                "category": _normalize_category_name(post.category),
                 "content": post.content,
                 "replies": reply_count,
                 "views": post.views,
                 "likes": post.upvotes,
+                "isLikedByUser": bool(current_user_mongo_id and current_user_mongo_id in getattr(post, 'liked_by', [])),
                 "timeAgo": time_ago,
                 "isPinned": post.is_pinned,
                 "hasBestAnswer": post.has_best_answer,
@@ -98,19 +181,28 @@ async def get_forum_categories(session: SessionContainer = Depends(verify_sessio
             {"$sort": {"_id": 1}}
         ]
         category_cursor = ForumPost.aggregate(pipeline)
-        categories_from_db = await category_cursor.to_list()
-        
-        total_posts = await ForumPost.find_all().count()
+        raw_categories = await category_cursor.to_list()
+
+        # Merge categories by normalized display name to avoid duplicates like
+        # "automation" vs "Automation"
+        merged: dict[str, int] = {}
+        for cat in raw_categories:
+            raw_name = cat.get("_id")
+            if not raw_name:
+                continue
+            norm_name = _normalize_category_name(raw_name)
+            merged[norm_name] = merged.get(norm_name, 0) + int(cat.get("count", 0))
+
+        total_posts = sum(merged.values()) if merged else await ForumPost.find_all().count()
 
         # Format for frontend
         formatted_categories = [{"id": "all", "name": "All Topics", "count": total_posts}]
-        for cat in categories_from_db:
-            if cat["_id"]: # Ensure category is not null
-                formatted_categories.append({
-                    "id": cat["_id"].lower().replace(" ", "-"),
-                    "name": cat["_id"],
-                    "count": cat["count"]
-                })
+        for name, count in sorted(merged.items()):
+            formatted_categories.append({
+                "id": name.lower().replace(" ", "-"),
+                "name": name,
+                "count": count,
+            })
         
         return {"categories": formatted_categories}
         
@@ -150,6 +242,9 @@ async def get_forum_post(
         
         # Get reply authors
         reply_data = []
+        # Build a map for nesting
+        reply_map = {}
+        children_map = {}
         for reply in replies:
             try:
                 reply_author = await MongoUser.find_one(MongoUser.id == ObjectId(reply.author_id))
@@ -167,8 +262,7 @@ async def get_forum_post(
             else:
                 minutes = max(1, time_diff.seconds // 60)
                 reply_time_ago = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
-            
-            reply_data.append({
+            node = {
                 "id": str(reply.id),
                 "author": reply_author_name,
                 "authorTitle": "Community Member",
@@ -177,8 +271,21 @@ async def get_forum_post(
                 "likes": reply.upvotes,
                 "isVerified": True,
                 "isBestAnswer": reply.is_best_answer,
-                "replies": []  # Nested replies can be added later
-            })
+                "replies": [],
+                "parent_reply_id": getattr(reply, 'parent_reply_id', None),
+            }
+            reply_map[str(reply.id)] = node
+            parent_id = getattr(reply, 'parent_reply_id', None)
+            if parent_id:
+                children_map.setdefault(parent_id, []).append(node)
+            else:
+                reply_data.append(node)
+
+        # Attach children to their parents
+        for parent_id, kids in children_map.items():
+            parent_node = reply_map.get(parent_id)
+            if parent_node:
+                parent_node["replies"].extend(kids)
         
         # Calculate post time ago
         time_diff = datetime.utcnow() - post.created_at
@@ -216,27 +323,21 @@ async def get_forum_post(
 @router.post("/posts/{post_id}/like")
 async def like_forum_post(
     post_id: str,
-    session: SessionContainer = Depends(verify_session())
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Like/unlike a forum post"""
+    """Like/unlike a forum post (user-specific)."""
     try:
-        try:
-            post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
-        except Exception:
-            post = None
-        
-        if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
-        
-        # For now, just increment likes - can add user tracking later
-        post.upvotes += 1
-        await post.save()
-        
-        return {
-            "success": True,
-            "likes": post.upvotes
-        }
-        
+        supertokens_user_id = session.get_user_id()
+        result = await ForumService.toggle_like(
+            user_supertokens_id=supertokens_user_id,
+            document_id=post_id,
+            doc_type='post',
+            db=db,
+        )
+        return {"success": True, **result}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error liking post {post_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to like post")
@@ -244,54 +345,48 @@ async def like_forum_post(
 @router.post("/posts/{post_id}/replies")
 async def create_reply(
     post_id: str,
-    reply_data: dict,
+    reply_data: ReplyCreate,
     session: SessionContainer = Depends(verify_session()),
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new reply to a forum post"""
     try:
         supertokens_user_id = session.get_user_id()
-        
-        # Get user info
-        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
-        if not pg_user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
-        if not mongo_user:
-            raise HTTPException(status_code=404, detail="User profile not found")
-        
-        # Verify post exists
-        try:
-            post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
-        except Exception:
-            post = None
-        
-        if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
-        
-        # Create reply
-        reply = ForumReply(
+        reply = await ForumService.create_reply(
+            user_supertokens_id=supertokens_user_id,
             post_id=post_id,
-            author_id=str(mongo_user.id),
-            content=reply_data.get("content", ""),
-            upvotes=0,
-            is_best_answer=False
+            content=reply_data.content,
+            parent_reply_id=reply_data.parent_reply_id,
+            db=db,
         )
-        await reply.insert()
-        
-        # Update post reply count
-        post.reply_count += 1
-        await post.save()
-        
-        return {
-            "success": True,
-            "reply_id": str(reply.id)
-        }
-        
+        return {"success": True, "reply_id": str(reply.id)}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating reply: {e}")
         raise HTTPException(status_code=500, detail="Failed to create reply")
+
+@router.post("/replies/{reply_id}/like")
+async def like_forum_reply(
+    reply_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Like/unlike a forum reply (user-specific)."""
+    try:
+        supertokens_user_id = session.get_user_id()
+        result = await ForumService.toggle_like(
+            user_supertokens_id=supertokens_user_id,
+            document_id=reply_id,
+            doc_type='reply',
+            db=db,
+        )
+        return {"success": True, **result}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error liking reply {reply_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to like reply")
 
 @router.get("/stats")
 async def get_forum_stats(

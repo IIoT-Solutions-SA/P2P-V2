@@ -15,6 +15,8 @@ This guide details the complete authentication flow for the P2P Sandbox platform
 9. [Security Considerations](#security-considerations)
 10. [Troubleshooting](#troubleshooting)
 
+> **📚 For detailed database architecture and dual-table system explanation, see:** [Authentication Database Architecture Guide](./authentication-database-architecture.md)
+
 ## Authentication Architecture
 
 ### System Components

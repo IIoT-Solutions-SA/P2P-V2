@@ -26,14 +26,14 @@ import {
   Loader2
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
-import { 
-  forumApi, 
+import { forumApi } from '../services/forumApi'
+import type { 
   ForumTopic, 
   ForumPost, 
   ForumCategory, 
   ForumStatsResponse,
   ForumTopicListResponse 
-} from '@/services/forumApi'
+} from '../services/forumApi'
 
 // Categories will be loaded from API
 
@@ -59,38 +59,208 @@ export default function Forum() {
   const [postsLoading, setPostsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const filteredPosts = forumPosts.filter(post => {
-    const matchesCategory = selectedCategory === "all" || post.category === selectedCategory
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesCategory && matchesSearch
-  })
+  // Load forum data on component mount
+  useEffect(() => {
+    const loadForumData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Load categories, topics, and stats in parallel
+        const [categoriesData, topicsData, statsData] = await Promise.all([
+          forumApi.getCategories(),
+          forumApi.getTopics({ page_size: 50 }),
+          forumApi.getForumStats()
+        ])
+        
+        setCategories(categoriesData)
+        setTopics(topicsData.topics)
+        setForumStats(statsData)
+      } catch (error) {
+        console.error('Error loading forum data:', error)
+        setError('Failed to load forum data. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadForumData()
+  }, [])
+  
+  // Load topics when category or search changes
+  useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        setError(null)
+        const params: any = { page_size: 50 }
+        
+        if (selectedCategory !== "all") {
+          // selectedCategory is now the category ID
+          params.category_id = selectedCategory
+        }
+        
+        if (searchQuery.trim()) {
+          params.search = searchQuery.trim()
+        }
+        
+        const topicsData = await forumApi.getTopics(params)
+        setTopics(topicsData.topics)
+      } catch (error) {
+        console.error('Error loading topics:', error)
+        setError('Failed to load topics. Please try again.')
+      }
+    }
+    
+    if (categories.length > 0) {
+      loadTopics()
+    }
+  }, [selectedCategory, searchQuery, categories])
+  
+  // Load topic posts when a topic is selected
+  useEffect(() => {
+    const loadTopicPosts = async () => {
+      if (!selectedTopic) {
+        setTopicPosts([])
+        return
+      }
+      
+      try {
+        setPostsLoading(true)
+        const posts = await forumApi.getTopicPosts(selectedTopic.id)
+        setTopicPosts(posts)
+      } catch (error) {
+        console.error('Error loading topic posts:', error)
+        setError('Failed to load topic posts.')
+      } finally {
+        setPostsLoading(false)
+      }
+    }
+    
+    loadTopicPosts()
+  }, [selectedTopic])
 
-  const handleLikePost = (postId: number) => {
-    if (likedPosts.includes(postId)) {
-      setLikedPosts(likedPosts.filter(id => id !== postId))
-    } else {
-      setLikedPosts([...likedPosts, postId])
+  // Topics are now filtered by API calls in useEffect
+  const filteredTopics = topics
+
+  const handleLikeTopic = async (topicId: string) => {
+    try {
+      const result = await forumApi.toggleTopicLike(topicId)
+      
+      // Update topic in local state
+      setTopics(prevTopics => 
+        prevTopics.map(topic => 
+          topic.id === topicId 
+            ? { ...topic, likes_count: result.likes_count }
+            : topic
+        )
+      )
+      
+      // Update liked state
+      if (result.liked) {
+        setLikedPosts([...likedPosts, topicId])
+      } else {
+        setLikedPosts(likedPosts.filter(id => id !== topicId))
+      }
+    } catch (error) {
+      console.error('Error toggling topic like:', error)
     }
   }
 
-  const handleLikeComment = (commentId: number) => {
-    if (likedComments.includes(commentId)) {
-      setLikedComments(likedComments.filter(id => id !== commentId))
-    } else {
-      setLikedComments([...likedComments, commentId])
+  const handleLikeComment = async (postId: string) => {
+    try {
+      const result = await forumApi.togglePostLike(postId)
+      
+      // Update post in local state
+      setTopicPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, likes_count: result.likes_count }
+            : post
+        )
+      )
+      
+      // Update liked state
+      if (result.liked) {
+        setLikedComments([...likedComments, postId])
+      } else {
+        setLikedComments(likedComments.filter(id => id !== postId))
+      }
+    } catch (error) {
+      console.error('Error toggling post like:', error)
+    }
+  }
+  
+  // Helper function to format time ago
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+    
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+    return 'Just now'
+  }
+  
+  // Helper function to get category colors
+  const getCategoryColor = (categoryName: string | undefined) => {
+    switch (categoryName) {
+      case "Automation":
+        return "bg-blue-100 text-blue-700"
+      case "Maintenance":
+        return "bg-yellow-100 text-yellow-700"
+      case "Quality Management":
+        return "bg-green-100 text-green-700"
+      case "Artificial Intelligence":
+        return "bg-purple-100 text-purple-700"
+      case "Operations":
+        return "bg-orange-100 text-orange-700"
+      case "Safety":
+        return "bg-red-100 text-red-700"
+      default:
+        return "bg-gray-100 text-gray-700"
+    }
+  }
+  
+  // Handler for topic click
+  const handleTopicClick = async (topic: ForumTopic) => {
+    setSelectedTopic(topic)
+    
+    // Note: View count increment will be handled by the backend
+    // when the topic is loaded for details
+  }
+
+  const handlePostComment = async () => {
+    if (newComment.trim() && selectedTopic) {
+      try {
+        const postData = {
+          content: newComment.trim(),
+          topic_id: selectedTopic.id
+        }
+        
+        const newPost = await forumApi.createPost(postData)
+        setTopicPosts([...topicPosts, newPost])
+        setNewComment('')
+        
+        // Update topic post count
+        setTopics(prevTopics => 
+          prevTopics.map(topic => 
+            topic.id === selectedTopic.id 
+              ? { ...topic, posts_count: topic.posts_count + 1 }
+              : topic
+          )
+        )
+      } catch (error) {
+        console.error('Error posting comment:', error)
+        setError('Failed to post comment. Please try again.')
+      }
     }
   }
 
-  const handlePostComment = () => {
-    if (newComment.trim()) {
-      // In a real app, this would submit to backend
-      console.log('Posting comment:', newComment)
-      setNewComment('')
-    }
-  }
-
-  if (selectedPost) {
+  if (selectedTopic) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -98,7 +268,7 @@ export default function Forum() {
           <Button 
             variant="ghost" 
             className="mb-6"
-            onClick={() => setSelectedPost(null)}
+            onClick={() => setSelectedTopic(null)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Forum
@@ -109,51 +279,55 @@ export default function Forum() {
             {/* Post Header */}
             <div className="mb-6">
               <div className="flex items-center space-x-2 mb-4">
-                {selectedPost.isPinned && (
+                {selectedTopic.is_pinned && (
                   <Pin className="h-4 w-4 text-blue-600" />
                 )}
-                {selectedPost.hasBestAnswer && (
+                {selectedTopic.has_best_answer && (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 )}
                 <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                  selectedPost.category === "Automation" ? "bg-blue-100 text-blue-700" :
-                  selectedPost.category === "Maintenance" ? "bg-yellow-100 text-yellow-700" :
-                  selectedPost.category === "Quality Management" ? "bg-green-100 text-green-700" :
-                  selectedPost.category === "Artificial Intelligence" ? "bg-purple-100 text-purple-700" :
+                  selectedTopic.category?.name === "Automation" ? "bg-blue-100 text-blue-700" :
+                  selectedTopic.category?.name === "Maintenance" ? "bg-yellow-100 text-yellow-700" :
+                  selectedTopic.category?.name === "Quality Management" ? "bg-green-100 text-green-700" :
+                  selectedTopic.category?.name === "Artificial Intelligence" ? "bg-purple-100 text-purple-700" :
                   "bg-gray-100 text-gray-700"
                 }`}>
                   <Tag className="h-3 w-3 mr-1 inline" />
-                  {selectedPost.category}
+                  {selectedTopic.category?.name || 'General'}
                 </span>
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-4">{selectedPost.title}</h1>
+              <h1 className="text-2xl font-bold text-slate-900 mb-4">{selectedTopic.title}</h1>
               
               {/* Author Info */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-sm font-bold text-white">
-                      {selectedPost.author.charAt(0)}
+                      {selectedTopic.author?.first_name?.charAt(0) || 'U'}
                     </span>
                   </div>
                   <div>
                     <div className="flex items-center space-x-1">
-                      <span className="font-semibold text-slate-900">{selectedPost.author}</span>
-                      {selectedPost.isVerified && (
+                      <span className="font-semibold text-slate-900">
+                        {selectedTopic.author ? `${selectedTopic.author.first_name} ${selectedTopic.author.last_name}` : 'Anonymous'}
+                      </span>
+                      {selectedTopic.author?.is_verified && (
                         <CheckCircle className="h-4 w-4 text-blue-600" />
                       )}
                     </div>
-                    <span className="text-sm text-slate-500">{selectedPost.authorTitle}</span>
+                    <span className="text-sm text-slate-500">{selectedTopic.author?.job_title || 'Member'}</span>
                   </div>
                 </div>
-                <span className="text-sm text-slate-500">{selectedPost.timeAgo}</span>
+                <span className="text-sm text-slate-500">
+                  {new Date(selectedTopic.created_at).toLocaleDateString()}
+                </span>
               </div>
             </div>
 
             {/* Post Content */}
             <div className="prose prose-slate max-w-none mb-6">
               <div className="whitespace-pre-line text-slate-700">
-                {selectedPost.content || selectedPost.excerpt}
+                {selectedTopic.content || selectedTopic.excerpt}
               </div>
             </div>
 
@@ -163,11 +337,11 @@ export default function Forum() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleLikePost(selectedPost.id)}
-                  className={likedPosts.includes(selectedPost.id) ? "text-blue-600" : ""}
+                  onClick={() => handleLikeTopic(selectedTopic.id)}
+                  className={likedPosts.includes(selectedTopic.id) ? "text-blue-600" : ""}
                 >
-                  <ThumbsUp className={`h-4 w-4 mr-2 ${likedPosts.includes(selectedPost.id) ? "fill-current" : ""}`} />
-                  {selectedPost.likes + (likedPosts.includes(selectedPost.id) ? 1 : 0)}
+                  <ThumbsUp className={`h-4 w-4 mr-2 ${likedPosts.includes(selectedTopic.id) ? "fill-current" : ""}`} />
+                  {selectedTopic.likes_count + (likedPosts.includes(selectedTopic.id) ? 1 : 0)}
                 </Button>
                 <Button variant="ghost" size="sm">
                   <Share2 className="h-4 w-4 mr-2" />
@@ -179,8 +353,8 @@ export default function Forum() {
                 </Button>
               </div>
               <div className="flex items-center space-x-4 text-sm text-slate-500">
-                <span>{selectedPost.views} views</span>
-                <span>{selectedPost.comments?.length || selectedPost.replies} comments</span>
+                <span>{selectedTopic.views_count} views</span>
+                <span>{selectedTopic.posts_count} comments</span>
               </div>
             </div>
           </div>
@@ -188,7 +362,7 @@ export default function Forum() {
           {/* Comments Section */}
           <div className="bg-white rounded-2xl p-8 border border-slate-200">
             <h2 className="text-xl font-bold text-slate-900 mb-6">
-              Comments ({selectedPost.comments?.length || selectedPost.replies})
+              Comments ({selectedTopic.posts_count})
             </h2>
 
             {/* Add Comment */}
@@ -254,7 +428,7 @@ export default function Forum() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleLikePost(comment.id)}
+                            onClick={() => handleLikeComment(comment.id)}
                             className={`text-sm ${likedComments.includes(comment.id) ? "text-blue-600" : ""}`}
                           >
                             <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(comment.id) ? "fill-current" : ""}`} />
@@ -291,7 +465,7 @@ export default function Forum() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleLikePost(reply.id)}
+                                    onClick={() => handleLikeComment(reply.id)}
                                     className={`text-xs ${likedComments.includes(reply.id) ? "text-blue-600" : ""}`}
                                   >
                                     <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(reply.id) ? "fill-current" : ""}`} />
@@ -325,6 +499,26 @@ export default function Forum() {
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <h3 className="font-bold text-slate-900 text-lg mb-4">Categories</h3>
               <div className="space-y-2">
+                <button
+                  key="all"
+                  onClick={() => setSelectedCategory("all")}
+                  className={`w-full p-3 rounded-lg transition-colors ${
+                    selectedCategory === "all"
+                      ? "bg-blue-600 text-white"
+                      : "hover:bg-slate-50 text-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">All Topics</span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      selectedCategory === "all" 
+                        ? "bg-white/20 text-white" 
+                        : "bg-slate-600 text-white"
+                    }`}>
+                      {topics.length}
+                    </span>
+                  </div>
+                </button>
                 {categories.map((category) => (
                   <button
                     key={category.id}
@@ -436,7 +630,58 @@ export default function Forum() {
 
             {/* Forum Topics */}
             <div className="space-y-4">
-              {filteredTopics.map((topic) => (
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                  <div className="text-red-800 text-center">
+                    <p className="font-semibold mb-2">Error Loading Forum</p>
+                    <p className="text-sm mb-4">{error}</p>
+                    <Button 
+                      onClick={() => window.location.reload()} 
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white rounded-2xl p-6 border border-slate-200 animate-pulse">
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                            </div>
+                            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredTopics.length === 0 ? (
+                <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center">
+                  <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No topics found</h3>
+                  <p className="text-gray-500 mb-6">
+                    {searchQuery 
+                      ? `No topics found matching "${searchQuery}"`
+                      : selectedCategory === "all" 
+                        ? "Be the first to start a discussion!"
+                        : "No topics in this category yet."
+                    }
+                  </p>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start a New Topic
+                  </Button>
+                </div>
+              ) : (
+                filteredTopics.map((topic) => (
                 <div key={topic.id} className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
                     <div className="space-y-4">
                       {/* Post Header */}
@@ -513,7 +758,8 @@ export default function Forum() {
                       </div>
                     </div>
                   </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Load More */}

@@ -70,13 +70,15 @@ class DatabaseManager:
             # Initialize Beanie with document models
             from app.models.mongo_models import (
                 User, ForumPost, UseCase, ForumReply,
-                UserActivity, UserStats, UserBookmark, DraftPost
+                UserActivity, UserStats, UserBookmark, DraftPost,
+                Organization
             )
             await init_beanie(
                 database=self.mongo_db,
                 document_models=[
                     User, ForumPost, ForumReply, UseCase,
-                    UserActivity, UserStats, UserBookmark, DraftPost
+                    UserActivity, UserStats, UserBookmark, DraftPost,
+                    Organization
                 ]
             )
             

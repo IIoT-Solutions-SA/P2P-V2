@@ -5,6 +5,7 @@ from supertokens_python.recipe.session.framework.fastapi import verify_session
 
 from app.core.database import get_db
 from app.services.database_service import UserService
+from app.models.mongo_models import Organization, User as MongoUser
 from app.models.pg_models import User as PGUser
 
 router = APIRouter()
@@ -31,23 +32,39 @@ async def get_current_user(
                 detail="User profile not found. Please contact support."
             )
         
-        # Generate organization data from email domain
-        domain = user.email.split('@')[1]
-        # Convert domain to company name (e.g., "advanced-electronics.com" → "Advanced Electronics")
-        company_name = domain.replace('.com', '').replace('-', ' ').title()
-        
-        organization = {
-            "id": f"org-{user.id}",
-            "name": company_name,
-            "domain": domain,
-            "industry": "Technology",
-            "size": "medium",
-            "country": "Saudi Arabia",
-            "city": "Riyadh",
-            "isActive": True,
-            "createdAt": user.created_at,
-            "adminUserId": str(user.id)
-        }
+        # Resolve organization from Mongo profile if available; fallback to domain inference
+        mongo_profile = await MongoUser.find_one(MongoUser.email == user.email)
+        organization = None
+        if mongo_profile and mongo_profile.organization_id:
+            org = await Organization.find_one(Organization.id == mongo_profile.organization_id)
+            if org:
+                organization = {
+                    "id": str(org.id),
+                    "name": org.name,
+                    "domain": org.domain,
+                    "industry": org.industry_sector,
+                    "size": org.size,
+                    "country": org.country,
+                    "city": org.city,
+                    "isActive": org.is_active,
+                    "createdAt": org.created_at,
+                    "adminUserId": str(user.id)
+                }
+        if organization is None:
+            domain = user.email.split('@')[1]
+            company_name = domain.split('.')[0].replace('-', ' ').title()
+            organization = {
+                "id": f"org-{user.id}",
+                "name": company_name,
+                "domain": domain,
+                "industry": "Technology",
+                "size": "medium",
+                "country": "Saudi Arabia",
+                "city": "Riyadh",
+                "isActive": True,
+                "createdAt": user.created_at,
+                "adminUserId": str(user.id)
+            }
         
         # Format user response
         user_response = {

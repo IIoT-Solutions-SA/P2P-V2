@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.pg_models import User as PGUser
-from app.models.mongo_models import User as MongoUser, ForumPost, UseCase, ForumReply
+from app.models.mongo_models import User as MongoUser, ForumPost, UseCase, ForumReply, Organization
 from typing import Optional, List, Dict
 from uuid import UUID
 
@@ -33,9 +33,33 @@ class UserService:
         await db.refresh(pg_user)
         
         # --- 2. Create Extended Profile in MongoDB ---
+        # Create or link Organization by domain inferred from email
+        organization_id = None
+        try:
+            domain = email.split("@")[1]
+            org_name = domain.split(".")[0].replace("-", " ").title()
+            existing_org = await Organization.find_one(Organization.domain == domain)
+            if existing_org:
+                organization_id = str(existing_org.id)
+            else:
+                new_org = Organization(
+                    name=org_name,
+                    domain=domain,
+                    industry_sector=profile_data.get("industry_sector"),
+                    size=profile_data.get("company_size"),
+                    country="Saudi Arabia",
+                    city=profile_data.get("location"),
+                    is_active=True,
+                )
+                await new_org.insert()
+                organization_id = str(new_org.id)
+        except Exception:
+            organization_id = None
+
         mongo_user = MongoUser(
             email=email,
             name=profile_data.get("name"),
+            organization_id=organization_id,
             company=profile_data.get("company"),
             industry_sector=profile_data.get("industry_sector"),
             # The mongo_models.py file expects company_size, but your prompt mentioned it.

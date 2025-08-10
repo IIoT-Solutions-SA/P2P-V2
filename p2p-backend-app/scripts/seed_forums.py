@@ -40,10 +40,10 @@ async def seed_forums():
         # The detailed forum post data
         forum_posts_data = [
             {
-                "title": "How to improve production line efficiency using sensors?",
+                "title": "How to improve production line efficiency using sensors? Practical roadmap",
                 "author": "Sarah Ahmed",
                 "category": "Automation",
-                "content": """We're currently operating a medium-scale electronics manufacturing facility and facing several challenges in real-time monitoring of our production lines.""",
+                "content": """We're currently operating a medium-scale electronics manufacturing facility and facing several challenges in real-time monitoring of our production lines. Looking for a practical roadmap: sensor selection (vibration/temperature/current), network (LoRa vs Wi-Fi), and dashboards. Budget is mid-range; need to start on 5 critical machines and expand.""",
                 "tags": ["automation", "sensors", "iot", "quality-control", "sme"],
                 "comments": [
                     {
@@ -63,10 +63,10 @@ async def seed_forums():
                 ]
             },
             {
-                "title": "My experience implementing predictive maintenance in a plastic factory",
+                "title": "My experience implementing predictive maintenance in a plastic factory (what worked / what didn't)",
                 "author": "Mohammed Al-Shahri",
                 "category": "Maintenance",
-                "content": """Sharing my experience implementing a predictive maintenance system and how it saved 30% of maintenance costs.""",
+                "content": """Sharing a detailed experience implementing a predictive maintenance system (vibration + thermal) across 200+ assets. We saved 30% in maintenance costs. Biggest lessons: start with failure modes, ensure clean labeling, and get technician buy-in early. Also, budget more time for CMMS integration.""",
                 "tags": ["predictive-maintenance", "plastic-manufacturing", "cost-reduction", "ml"],
                 "comments": []
             },
@@ -74,15 +74,15 @@ async def seed_forums():
                 "title": "Best smart inventory management systems for small factories?",
                 "author": "Fatima Al-Otaibi",
                 "category": "Quality Management",
-                "content": """Looking for a suitable inventory management system for a small factory that produces electrical equipment.""",
+                "content": """Looking for a suitable inventory management system for a small factory that produces electrical equipment. Prefer RFID with shelf-level tracking, batch/lot traceability, and easy API to ERP. If you have a vendor recommendation with local support, please share total cost of ownership.""",
                 "tags": ["inventory-management", "small-factory", "electrical-equipment", "erp"],
                 "comments": []
             },
             {
-                "title": "Challenges of implementing AI in quality inspection",
+                "title": "Challenges of implementing AI in quality inspection (model drift, lighting, labeling)",
                 "author": "Khalid Abdul",
                 "category": "Artificial Intelligence",
-                "content": """We're facing difficulties in training AI models to inspect product defects in our manufacturing process.""",
+                "content": """We're facing difficulties in training AI models to inspect product defects in our manufacturing process. Issues include model drift, lighting variability, and lack of labeled data. Looking for best practices and any open-source labeling tools that worked for you.""",
                 "tags": ["artificial-intelligence", "quality-inspection", "computer-vision", "tensorflow"],
                 "comments": []
             }
@@ -113,11 +113,13 @@ async def seed_forums():
             comments_data = post_data.get("comments", [])
             for comment_data in comments_data:
                 comment_author_user = forum_authors.get(comment_data["author"], random.choice(existing_users))
-                comment = await ForumService.create_reply(
+                # Create a top-level reply using direct model to set author_id
+                comment = ForumReply(
                     post_id=str(post.id),
                     author_id=str(comment_author_user.id),
                     content=comment_data["content"]
                 )
+                await comment.insert()
 
                 for reply_data in comment_data.get("replies", []):
                     reply_author_user = forum_authors.get(reply_data["author"], random.choice(existing_users))
@@ -125,11 +127,11 @@ async def seed_forums():
                     # Create the nested reply directly to set the parent_id
                     nested_reply = ForumReply(
                         post_id=str(post.id),
-                        parent_id=str(comment.id),
+                        parent_reply_id=str(comment.id),
                         author_id=str(reply_author_user.id),
                         content=reply_data["content"]
                     )
-                    await nested_reply.save()
+                    await nested_reply.insert()
             
             # If no specific comments, create random ones
             if not comments_data:
@@ -140,11 +142,12 @@ async def seed_forums():
                     possible_authors = [u for u in existing_users if u.id != author_user.id]
                     reply_author = random.choice(possible_authors if possible_authors else existing_users)
 
-                    await ForumService.create_reply(
+                    rand_reply = ForumReply(
                         post_id=str(post.id),
                         author_id=str(reply_author.id),
                         content=random.choice(reply_pool)
                     )
+                    await rand_reply.insert()
 
             created_posts_count += 1
         

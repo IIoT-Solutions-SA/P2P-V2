@@ -147,6 +147,62 @@ CREATE TABLE users (
 - Location data for networking features
 - Role-based access control foundation
 
+### Organization ID Linking (Enhancement)
+
+To make organizations first‑class entities and support team features, we introduced an explicit Organization ID and automatic linkage during signup.
+
+#### New Mongo Models
+```python
+# app/models/mongo_models.py
+class Organization(Document):
+    name: str
+    domain: Optional[str]
+    industry_sector: Optional[str] = None
+    size: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class User(Document):
+    email: EmailStr
+    name: str
+    organization_id: Optional[str] = None   # NEW
+    # … other profile fields …
+```
+
+Beanie initialization updated to include `Organization`.
+
+#### Signup Flow Update
+```python
+# app/services/database_service.py:create_user_with_profile
+domain = email.split("@")[1]
+org_name = domain.split(".")[0].replace("-", " ").title()
+existing_org = await Organization.find_one(Organization.domain == domain)
+org = existing_org or await Organization(name=org_name, domain=domain, ...).insert()
+
+# Link user profile to organization
+MongoUser(organization_id=str(org.id), ...)
+```
+
+#### Current User API Update
+```python
+# app/api/v1/endpoints/auth.py GET /api/v1/auth/me
+mongo_profile = await MongoUser.find_one(MongoUser.email == user.email)
+if mongo_profile and mongo_profile.organization_id:
+    org = await Organization.find_one(Organization.id == mongo_profile.organization_id)
+    organization = { "id": str(org.id), "name": org.name, "domain": org.domain, ... }
+else:
+    # fallback to domain-derived org structure
+```
+
+Result: Frontend receives a stable `organization.id` in `/auth/me` and can use it for future org dashboards, invitations, and RBAC.
+
+#### Seeding Alignment
+- Users seeding now calls the custom signup endpoint for each admin, which auto‑creates/links organizations by email domain.
+- Forum/use case seeds map content to the seeded companies to keep authorship consistent.
+
 ### API Endpoints Implemented
 
 #### POST `/api/v1/auth/custom-signup`

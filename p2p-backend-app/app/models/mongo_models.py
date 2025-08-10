@@ -9,6 +9,7 @@ import pymongo
 class User(Document):
     email: EmailStr
     name: str
+    organization_id: Optional[str] = None
     industry_sector: Optional[str] = None
     location: Optional[str] = None
     expertise_tags: List[str] = Field(default_factory=list)
@@ -23,6 +24,23 @@ class User(Document):
         name = "users"
         indexes = [
             [("email", pymongo.ASCENDING)],
+        ]
+
+class Organization(Document):
+    name: str
+    domain: Optional[str] = None
+    industry_sector: Optional[str] = None
+    size: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    class Settings:
+        name = "organizations"
+        indexes = [
+            [("domain", pymongo.ASCENDING)],
+            [("name", pymongo.ASCENDING)],
         ]
 
 class ForumPost(Document):

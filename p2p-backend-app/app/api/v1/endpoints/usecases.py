@@ -12,6 +12,10 @@ import logging
 from bson import ObjectId
 from beanie.odm.enums import SortDirection
 from beanie.operators import In
+from app.schemas.usecase import UseCaseCreate
+from app.services.usecase_service import UseCaseSubmissionService
+from app.core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -111,6 +115,23 @@ async def get_use_cases(
     except Exception as e:
         logger.error(f"Error getting use cases: {e}")
         raise HTTPException(status_code=500, detail="Failed to get use cases")
+
+
+@router.post("/", status_code=201)
+async def submit_new_use_case(
+    use_case_data: UseCaseCreate,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        user_supertokens_id = session.get_user_id()
+        new_use_case = await UseCaseSubmissionService.create_use_case(db, user_supertokens_id, use_case_data)
+        return {"status": "success", "id": str(new_use_case.id)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting use case: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit use case")
 
 @router.get("/{company_slug}/{title_slug}")
 async def get_use_case_by_slug(

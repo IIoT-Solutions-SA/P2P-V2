@@ -200,7 +200,7 @@ export default function UseCases() {
                                     <span className="flex items-center"><Building2 className="h-4 w-4 mr-1.5 text-slate-400" />{useCase.company}</span>
                                     <span className="flex items-center"><Clock className="h-4 w-4 mr-1.5 text-slate-400" />{useCase.timeframe}</span>
                                 </div>
-                                <p className="text-slate-600 leading-relaxed pt-1">{useCase.description}</p>
+                                <p className="text-slate-600 leading-relaxed pt-1" style={{wordBreak:'break-word', overflowWrap:'anywhere'}}>{useCase.description}</p>
                             </div>
                         </div>
                     </div>

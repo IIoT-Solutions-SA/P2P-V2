@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -26,8 +26,6 @@ import {
   MapPin, 
   Upload, 
   CheckCircle, 
-  TrendingUp, 
-  Calendar,
   Plus,
   X,
   Save,
@@ -36,7 +34,6 @@ import {
   Wrench,
   Shield,
   BarChart3,
-  Lightbulb,
   Users
 } from "lucide-react"
 import LocationPicker from '@/components/LocationPicker'
@@ -131,6 +128,7 @@ const categories = [
   { value: "Quality Control", label: "Quality Control" },
   { value: "Predictive Maintenance", label: "Predictive Maintenance" },
   { value: "Factory Automation", label: "Factory Automation" },
+  { value: "Artificial Intelligence", label: "Artificial Intelligence" },
   { value: "Sustainability", label: "Sustainability" },
   { value: "Process Optimization", label: "Process Optimization" },
   { value: "Supply Chain", label: "Supply Chain" },
@@ -149,6 +147,28 @@ export default function SubmitUseCase() {
   const [specificProblems, setSpecificProblems] = useState<string[]>(["", ""])
   const [selectionCriteria, setSelectionCriteria] = useState<string[]>(["", ""])
   const [technologyComponents, setTechnologyComponents] = useState<string[]>([""])
+  // Vendor evaluation (optional)
+  const [vendorProcess, setVendorProcess] = useState<string>("")
+  const [vendorSelectionReasons, setVendorSelectionReasons] = useState<string[]>([])
+  // Project team (optional)
+  const [projectTeamInternal, setProjectTeamInternal] = useState<Array<{ role: string; name: string; title: string }>>([
+    { role: "", name: "", title: "" }
+  ])
+  const [projectTeamVendor, setProjectTeamVendor] = useState<Array<{ role: string; name: string; title: string }>>([
+    { role: "", name: "", title: "" }
+  ])
+  // Phases (optional)
+  const [phases, setPhases] = useState<Array<{ phase: string; duration: string; objectives: string[]; keyActivities: string[]; budget: string }>>([
+    { phase: "", duration: "", objectives: [""], keyActivities: [""], budget: "" }
+  ])
+  // Qualitative impacts (optional)
+  const [qualitativeImpacts, setQualitativeImpacts] = useState<string[]>([])
+  // Tags (optional)
+  const [industryTags, setIndustryTags] = useState<string[]>([])
+  const [technologyTags, setTechnologyTags] = useState<string[]>([])
+  // ROI extras (optional)
+  const [roiTotalInvestment, setRoiTotalInvestment] = useState<string>("")
+  const [roiThreeYearRoi, setRoiThreeYearRoi] = useState<string>("")
   const [quantitativeResults, setQuantitativeResults] = useState<Array<{
     metric: string
     baseline: string
@@ -227,17 +247,7 @@ export default function SubmitUseCase() {
   ]
 
   // Helper functions for dynamic arrays
-  const addBenefit = () => {
-    // Legacy function - kept for compatibility
-  }
-
-  const removeBenefit = (index: number) => {
-    // Legacy function - kept for compatibility
-  }
-
-  const updateBenefit = (index: number, value: string) => {
-    // Legacy function - kept for compatibility
-  }
+  // legacy benefit helpers removed
 
   // Helper functions for dynamic arrays
   const addSpecificProblem = () => {
@@ -322,18 +332,74 @@ export default function SubmitUseCase() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      console.log('Submitted use case:', {
-        ...data,
-        images: data.images.map(file => ({
-          name: file.name,
-          size: file.size,
-          type: file.type
-        }))
+      // TODO: upload images and get URLs. For now, fake URLs using filenames
+      const imageUrls = uploadedImages.map(file => `https://cdn.example.com/${encodeURIComponent(file.name)}`)
+
+      const payload = {
+        // Basic Information
+        title: data.title,
+        subtitle: data.subtitle,
+        description: data.description,
+        category: data.category,
+        factoryName: data.factoryName,
+
+        // Location
+        city: data.city,
+        latitude: form.getValues('latitude'),
+        longitude: form.getValues('longitude'),
+
+        // Business Challenge
+        industryContext: data.industryContext,
+        specificProblems: specificProblems,
+        financialLoss: data.financialLoss,
+
+        // Solution Overview
+        selectionCriteria: selectionCriteria,
+        selectedVendor: data.selectedVendor,
+        technologyComponents: technologyComponents,
+        // Vendor evaluation (optional)
+        vendorProcess,
+        vendorSelectionReasons,
+
+        // Implementation
+        implementationTime: data.implementationTime,
+        totalBudget: data.totalBudget,
+        methodology: data.methodology,
+        // Project team & phases (optional)
+        projectTeamInternal,
+        projectTeamVendor,
+        phases,
+
+        // Results
+        quantitativeResults: quantitativeResults,
+        roiPercentage: data.roiPercentage || undefined,
+        annualSavings: data.annualSavings || undefined,
+        qualitativeImpacts,
+        roiTotalInvestment: roiTotalInvestment || undefined,
+        roiThreeYearRoi: roiThreeYearRoi || undefined,
+
+        // Challenges & Solutions
+        challengesSolutions: challengesSolutions,
+
+        // Contact & Media
+        contactPerson: data.contactPerson || undefined,
+        contactTitle: data.contactTitle || undefined,
+        images: imageUrls,
+        // Tags
+        industryTags,
+        technologyTags,
+      }
+
+      const res = await fetch('http://localhost:8000/api/v1/use-cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
       })
-      
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || 'Submission failed')
+      }
       setIsSubmitted(true)
     } catch (error) {
       console.error('Error submitting use case:', error)
@@ -342,7 +408,23 @@ export default function SubmitUseCase() {
     }
   }
 
-  const nextStep = () => {
+  // Step gating: fields to validate per step
+  const stepFields: Record<number, (keyof FormData | string)[]> = {
+    1: ['title', 'subtitle', 'description', 'category', 'factoryName'],
+    2: ['industryContext', 'specificProblems', 'financialLoss'],
+    3: ['selectionCriteria', 'selectedVendor', 'technologyComponents', 'implementationTime', 'totalBudget', 'methodology'],
+    4: ['quantitativeResults', 'challengesSolutions'],
+    5: ['city', 'latitude', 'longitude', 'images'],
+    6: []
+  }
+
+  const handleNext = async () => {
+    const fields = stepFields[currentStep] || []
+    const valid = await form.trigger(fields as any, { shouldFocus: true })
+    if (!valid) {
+      alert('Please complete the required fields on this step before continuing.')
+      return
+    }
     if (currentStep < 6) setCurrentStep(currentStep + 1)
   }
 
@@ -425,7 +507,7 @@ export default function SubmitUseCase() {
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit, () => { alert('Some required fields are missing or invalid. Please review highlighted fields.') })} className="space-y-8">
               
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
@@ -707,6 +789,40 @@ export default function SubmitUseCase() {
                         )}
                       />
 
+                      {/* Vendor Evaluation (Optional) */}
+                      <div className="space-y-3">
+                        <FormLabel className="text-base font-semibold">Vendor Evaluation Process (Optional)</FormLabel>
+                        <Textarea
+                          placeholder="Describe your evaluation/PoC process..."
+                          value={vendorProcess}
+                          onChange={(e) => setVendorProcess(e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                        <FormLabel className="text-sm font-medium">Vendor Selection Reasons (Optional)</FormLabel>
+                        <div className="space-y-2">
+                          {vendorSelectionReasons.map((reason, idx) => (
+                            <div key={idx} className="flex items-center space-x-3">
+                              <Input
+                                placeholder={`Reason ${idx + 1}`}
+                                value={reason}
+                                onChange={(e) => {
+                                  const arr = [...vendorSelectionReasons]
+                                  arr[idx] = e.target.value
+                                  setVendorSelectionReasons(arr)
+                                }}
+                              />
+                              <Button type="button" variant="outline" size="sm" onClick={() => setVendorSelectionReasons(vendorSelectionReasons.filter((_, i) => i !== idx))} className="text-red-600 hover:text-red-700">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button type="button" variant="outline" onClick={() => setVendorSelectionReasons([...vendorSelectionReasons, ""]) } className="flex items-center space-x-2">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Selection Reason</span>
+                          </Button>
+                        </div>
+                      </div>
+
                       <div>
                         <FormLabel className="text-base font-semibold">Technology Components</FormLabel>
                         <FormDescription className="mb-4">
@@ -810,6 +926,81 @@ export default function SubmitUseCase() {
                           </FormItem>
                         )}
                       />
+                    </div>
+
+                    {/* Project Team (Optional) */}
+                    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="font-semibold text-slate-900 mb-2 flex items-center"><Users className="h-4 w-4 mr-2" />Internal Team</h3>
+                        <div className="space-y-3">
+                          {projectTeamInternal.map((m, idx) => (
+                            <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                              <Input placeholder="Role" value={m.role} onChange={(e) => { const arr = [...projectTeamInternal]; arr[idx].role = e.target.value; setProjectTeamInternal(arr) }} />
+                              <Input placeholder="Name" value={m.name} onChange={(e) => { const arr = [...projectTeamInternal]; arr[idx].name = e.target.value; setProjectTeamInternal(arr) }} />
+                              <div className="flex items-center space-x-2">
+                                <Input placeholder="Title" value={m.title} onChange={(e) => { const arr = [...projectTeamInternal]; arr[idx].title = e.target.value; setProjectTeamInternal(arr) }} />
+                                <Button type="button" variant="outline" size="sm" onClick={() => setProjectTeamInternal(projectTeamInternal.filter((_, i) => i !== idx))} className="text-red-600 hover:text-red-700">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          <Button type="button" variant="outline" onClick={() => setProjectTeamInternal([...projectTeamInternal, { role: "", name: "", title: "" }])} className="flex items-center space-x-2">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Internal Member</span>
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900 mb-2 flex items-center"><Users className="h-4 w-4 mr-2" />Vendor Team</h3>
+                        <div className="space-y-3">
+                          {projectTeamVendor.map((m, idx) => (
+                            <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                              <Input placeholder="Role" value={m.role} onChange={(e) => { const arr = [...projectTeamVendor]; arr[idx].role = e.target.value; setProjectTeamVendor(arr) }} />
+                              <Input placeholder="Name" value={m.name} onChange={(e) => { const arr = [...projectTeamVendor]; arr[idx].name = e.target.value; setProjectTeamVendor(arr) }} />
+                              <div className="flex items-center space-x-2">
+                                <Input placeholder="Title" value={m.title} onChange={(e) => { const arr = [...projectTeamVendor]; arr[idx].title = e.target.value; setProjectTeamVendor(arr) }} />
+                                <Button type="button" variant="outline" size="sm" onClick={() => setProjectTeamVendor(projectTeamVendor.filter((_, i) => i !== idx))} className="text-red-600 hover:text-red-700">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          <Button type="button" variant="outline" onClick={() => setProjectTeamVendor([...projectTeamVendor, { role: "", name: "", title: "" }])} className="flex items-center space-x-2">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Vendor Member</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Implementation Phases (Optional) */}
+                    <div className="mt-8">
+                      <h3 className="font-semibold text-slate-900 mb-3">Implementation Phases</h3>
+                      <div className="space-y-4">
+                        {phases.map((p, idx) => (
+                          <div key={idx} className="border border-gray-200 rounded-lg p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                              <Input placeholder="Phase Name" value={p.phase} onChange={(e) => { const arr = [...phases]; arr[idx].phase = e.target.value; setPhases(arr) }} />
+                              <Input placeholder="Duration (e.g., 4 weeks)" value={p.duration} onChange={(e) => { const arr = [...phases]; arr[idx].duration = e.target.value; setPhases(arr) }} />
+                              <div className="flex items-center space-x-2">
+                                <Input placeholder="Budget (e.g., 25,000)" value={p.budget} onChange={(e) => { const arr = [...phases]; arr[idx].budget = e.target.value; setPhases(arr) }} />
+                                <Button type="button" variant="outline" size="sm" onClick={() => setPhases(phases.filter((_, i) => i !== idx))} className="text-red-600 hover:text-red-700">
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <Textarea placeholder="Objectives (comma-separated)" value={p.objectives.join(", ")} onChange={(e) => { const arr = [...phases]; arr[idx].objectives = e.target.value.split(",").map(s => s.trim()).filter(Boolean); setPhases(arr) }} />
+                              <Textarea placeholder="Key Activities (comma-separated)" value={p.keyActivities.join(", ")} onChange={(e) => { const arr = [...phases]; arr[idx].keyActivities = e.target.value.split(",").map(s => s.trim()).filter(Boolean); setPhases(arr) }} />
+                            </div>
+                          </div>
+                        ))}
+                        <Button type="button" variant="outline" onClick={() => setPhases([...phases, { phase: "", duration: "", objectives: [""], keyActivities: [""], budget: "" }])} className="flex items-center space-x-2">
+                          <Plus className="h-4 w-4" />
+                          <span>Add Phase</span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -944,6 +1135,36 @@ export default function SubmitUseCase() {
                           )}
                         />
                       </div>
+
+                      {/* ROI extras & Qualitative impacts */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <FormLabel className="text-sm font-medium">Total Investment (Optional)</FormLabel>
+                          <Input placeholder="e.g., 285,000" value={roiTotalInvestment} onChange={(e) => setRoiTotalInvestment(e.target.value)} />
+                        </div>
+                        <div>
+                          <FormLabel className="text-sm font-medium">3-Year ROI (Optional)</FormLabel>
+                          <Input placeholder="e.g., 2,315%" value={roiThreeYearRoi} onChange={(e) => setRoiThreeYearRoi(e.target.value)} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <FormLabel className="text-base font-semibold">Qualitative Impacts (Optional)</FormLabel>
+                        <div className="space-y-2 mt-2">
+                          {qualitativeImpacts.map((imp, idx) => (
+                            <div key={idx} className="flex items-center space-x-3">
+                              <Input placeholder={`Impact ${idx + 1}`} value={imp} onChange={(e) => { const arr = [...qualitativeImpacts]; arr[idx] = e.target.value; setQualitativeImpacts(arr) }} />
+                              <Button type="button" variant="outline" size="sm" onClick={() => setQualitativeImpacts(qualitativeImpacts.filter((_, i) => i !== idx))} className="text-red-600 hover:text-red-700">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button type="button" variant="outline" onClick={() => setQualitativeImpacts([...qualitativeImpacts, ""]) } className="flex items-center space-x-2">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Impact</span>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1013,9 +1234,9 @@ export default function SubmitUseCase() {
                                 />
                               </div>
                               <div>
-                                <FormLabel className="text-sm font-medium">Solution & Outcome</FormLabel>
+                                <FormLabel className="text-sm font-medium">Solution</FormLabel>
                                 <Textarea
-                                  placeholder="How was it solved and what was the result..."
+                                  placeholder="How was it solved..."
                                   value={item.solution}
                                   onChange={(e) => {
                                     const updated = [...challengesSolutions]
@@ -1026,6 +1247,20 @@ export default function SubmitUseCase() {
                                   className="mt-1 min-h-[80px]"
                                 />
                               </div>
+                            </div>
+                            <div className="mt-3">
+                              <FormLabel className="text-sm font-medium">Outcome</FormLabel>
+                              <Textarea
+                                placeholder="What was the result..."
+                                value={item.outcome}
+                                onChange={(e) => {
+                                  const updated = [...challengesSolutions]
+                                  updated[index].outcome = e.target.value
+                                  setChallengesSolutions(updated)
+                                  form.setValue('challengesSolutions', updated)
+                                }}
+                                className="mt-1 min-h-[80px]"
+                              />
                             </div>
                           </div>
                         ))}
@@ -1147,6 +1382,47 @@ export default function SubmitUseCase() {
                       />
                     </div>
                   </div>
+
+                  {/* Tags (Optional) */}
+                  <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">Tags (Optional)</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <FormLabel className="text-sm font-medium">Industry Tags</FormLabel>
+                        <div className="space-y-2 mt-2">
+                          {industryTags.map((tag, idx) => (
+                            <div key={idx} className="flex items-center space-x-3">
+                              <Input value={tag} placeholder="e.g., Electronics" onChange={(e) => { const arr = [...industryTags]; arr[idx] = e.target.value; setIndustryTags(arr) }} />
+                              <Button type="button" variant="outline" size="sm" onClick={() => setIndustryTags(industryTags.filter((_, i) => i !== idx))} className="text-red-600 hover:text-red-700">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button type="button" variant="outline" onClick={() => setIndustryTags([...industryTags, ""]) } className="flex items-center space-x-2">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Industry Tag</span>
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <FormLabel className="text-sm font-medium">Technology Tags</FormLabel>
+                        <div className="space-y-2 mt-2">
+                          {technologyTags.map((tag, idx) => (
+                            <div key={idx} className="flex items-center space-x-3">
+                              <Input value={tag} placeholder="e.g., Computer Vision" onChange={(e) => { const arr = [...technologyTags]; arr[idx] = e.target.value; setTechnologyTags(arr) }} />
+                              <Button type="button" variant="outline" size="sm" onClick={() => setTechnologyTags(technologyTags.filter((_, i) => i !== idx))} className="text-red-600 hover:text-red-700">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button type="button" variant="outline" onClick={() => setTechnologyTags([...technologyTags, ""]) } className="flex items-center space-x-2">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Technology Tag</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1223,7 +1499,7 @@ export default function SubmitUseCase() {
                   {currentStep < 6 ? (
                     <Button
                       type="button"
-                      onClick={nextStep}
+                      onClick={handleNext}
                       className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
                     >
                       <span>Next</span>

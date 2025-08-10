@@ -48,16 +48,47 @@ async def get_use_cases(
         response_data = []
         for case in use_cases:
             submitter = user_map.get(case.submitted_by)
+
+            # Derive optional image and benefits list for map/frontend usage
+            image_url = None
+            try:
+                images_field = getattr(case, 'images', None)
+                if isinstance(images_field, list) and len(images_field) > 0:
+                    image_url = images_field[0]
+            except Exception:
+                image_url = None
+            if not image_url:
+                # Safe placeholder
+                image_url = "https://images.unsplash.com/photo-1581090700227-1e37b190418e?w=1200&auto=format&fit=crop&q=60"
+
+            impact_metrics = getattr(case, 'impact_metrics', {}) or {}
+            benefits_raw = impact_metrics.get('benefits')
+            benefits_list = []
+            if isinstance(benefits_raw, str):
+                benefits_list = [b.strip() for b in benefits_raw.split(';') if b.strip()]
+
+            # Extract coordinates if available
+            lat = None
+            lng = None
+            try:
+                location = getattr(case, 'location', None)
+                if isinstance(location, dict):
+                    lat = location.get('lat')
+                    lng = location.get('lng')
+            except Exception:
+                lat = None
+                lng = None
+
             response_data.append({
                 "id": str(case.id),
                 "title": case.title,
-                "title_slug": case.title_slug, # The missing field
+                "title_slug": case.title_slug,
                 "company_slug": case.company_slug,
                 "company": getattr(case, 'factory_name', "Unknown"),
                 "industry": getattr(submitter, 'industry_sector', "Manufacturing") if submitter else "Manufacturing",
                 "category": getattr(case, 'category', "General"),
                 "description": getattr(case, 'problem_statement', ""),
-                "results": getattr(case, 'impact_metrics', {}),
+                "results": impact_metrics,
                 "timeframe": getattr(case, 'implementation_time', "N/A"),
                 "views": getattr(case, 'view_count', 0),
                 "likes": getattr(case, 'like_count', 0),
@@ -67,7 +98,13 @@ async def get_use_cases(
                 "tags": getattr(case, 'industry_tags', []),
                 "publishedBy": getattr(submitter, 'name', "Anonymous") if submitter else "Anonymous",
                 "publisherTitle": getattr(submitter, 'title', "Contributor") if submitter else "Contributor",
-                "publishedDate": "2 weeks ago"
+                "publishedDate": "2 weeks ago",
+                # Extra fields helpful for the map
+                "region": getattr(case, 'region', None),
+                "latitude": lat,
+                "longitude": lng,
+                "image": image_url,
+                "benefits_list": benefits_list,
             })
         return response_data
 

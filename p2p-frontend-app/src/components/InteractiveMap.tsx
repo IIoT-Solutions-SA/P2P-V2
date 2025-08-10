@@ -4,8 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import 'leaflet.markercluster'
-import useCasesData from '../data/use-cases.json'
-import { generateUseCasePopupHTML, type UseCase } from './UseCasePopup'
+import { generateUseCasePopupHTML, type UseCase as PopupUseCase } from './UseCasePopup'
 
 // Fix for default markers in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -23,6 +22,21 @@ interface InteractiveMapProps {
   className?: string
 }
 
+type BackendUseCase = {
+  id: string
+  title: string
+  title_slug?: string
+  company_slug?: string
+  company?: string
+  category?: string
+  description?: string
+  region?: string
+  latitude?: number
+  longitude?: number
+  image?: string
+  benefits_list?: string[]
+}
+
 export default function InteractiveMap({ 
   height = "500px", 
   showTitle = true, 
@@ -33,9 +47,27 @@ export default function InteractiveMap({
   const mapInstanceRef = useRef<L.Map | null>(null)
   const currentPopupRef = useRef<L.Popup | null>(null)
   const [currentZoom, setCurrentZoom] = useState(6)
+  const [backendUseCases, setBackendUseCases] = useState<BackendUseCase[] | null>(null)
+
+  useEffect(() => {
+    // Fetch use-cases from backend for map markers
+    const fetchUseCases = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/use-cases?limit=200', { credentials: 'include' })
+        if (!res.ok) throw new Error('Failed to load use cases')
+        const data = await res.json()
+        setBackendUseCases(data)
+      } catch (err) {
+        console.error('Failed to fetch use cases for map', err)
+        setBackendUseCases([])
+      }
+    }
+    fetchUseCases()
+  }, [])
 
   useEffect(() => {
     if (!mapRef.current) return
+    if (backendUseCases === null) return // wait for data
     
     // Clean up existing map instance
     if (mapInstanceRef.current) {
@@ -103,7 +135,7 @@ export default function InteractiveMap({
     })
 
     // Create popup content using the dynamic generator
-    const createPopupContent = (useCase: UseCase) => {
+    const createPopupContent = (useCase: PopupUseCase) => {
       return generateUseCasePopupHTML(useCase)
     }
 
@@ -349,7 +381,56 @@ export default function InteractiveMap({
     }
 
     // Add markers for each use case
-    useCasesData.forEach((useCase: UseCase) => {
+    const rawMapped = (backendUseCases || []).filter(uc => typeof uc.latitude === 'number' && typeof uc.longitude === 'number')
+      .map<PopupUseCase>(uc => ({
+        id: uc.id as unknown as any, // popup accepts number|string for navigation usage
+        title: uc.title,
+        description: uc.description || '',
+        factoryName: uc.company || 'Unknown',
+        city: uc.region || '',
+        latitude: uc.latitude as number,
+        longitude: uc.longitude as number,
+        image: uc.image || 'https://images.unsplash.com/photo-1581090700227-1e37b190418e?w=1200&auto=format&fit=crop&q=60',
+        benefits: (uc.benefits_list && uc.benefits_list.length > 0) ? uc.benefits_list : [],
+        implementationTime: undefined,
+        category: uc.category,
+        roiPercentage: undefined,
+        contactPerson: undefined,
+        contactTitle: undefined,
+        companySlug: uc.company_slug,
+        titleSlug: uc.title_slug,
+      }))
+
+    // Spread overlapping markers slightly so they are easier to click
+    const keyFor = (lat: number, lng: number) => `${lat.toFixed(5)},${lng.toFixed(5)}`
+    const groups = new Map<string, PopupUseCase[]>()
+    rawMapped.forEach(uc => {
+      const k = keyFor(uc.latitude, uc.longitude)
+      const arr = groups.get(k) || []
+      arr.push(uc)
+      groups.set(k, arr)
+    })
+
+    const adjusted: PopupUseCase[] = []
+    groups.forEach((arr, k) => {
+      if (arr.length === 1) {
+        adjusted.push(arr[0])
+      } else {
+        const [baseLat, baseLng] = k.split(',').map(parseFloat)
+        const metersPerDegLat = 111320
+        const metersPerDegLng = 111320 * Math.cos((baseLat * Math.PI) / 180)
+        const n = arr.length
+        arr.forEach((uc, i) => {
+          const angle = (2 * Math.PI * i) / n
+          const radiusMeters = 35 + i * 5 // radial spread
+          const dLat = (radiusMeters * Math.cos(angle)) / metersPerDegLat
+          const dLng = (radiusMeters * Math.sin(angle)) / metersPerDegLng
+          adjusted.push({ ...uc, latitude: baseLat + dLat, longitude: baseLng + dLng })
+        })
+      }
+    })
+
+    adjusted.forEach((useCase: PopupUseCase) => {
       const marker = L.marker([useCase.latitude, useCase.longitude], {
         icon: createCustomIcon(),
         useCase: useCase // Store use case data in marker options
@@ -361,22 +442,24 @@ export default function InteractiveMap({
         if (currentPopupRef.current) {
           map.closePopup(currentPopupRef.current)
         }
-        
-        // Always show popup for individual markers (no zooming)
-        const popup = L.popup({
-          closeButton: true,
-          autoClose: false,
-          closeOnClick: false,
-          className: 'use-case-click-popup',
-          maxWidth: 540, // Wider to accommodate horizontal layout
-          maxHeight: 260  // Shorter height for horizontal design
-        })
-        .setContent(createPopupContent(useCase))
-        .setLatLng(e.latlng)
-        .openOn(map)
-        
-        currentPopupRef.current = popup
-        
+
+        // Zoom straight to the marker before opening popup
+        map.setView(e.latlng, 17, { animate: true, duration: 0.5 })
+        setTimeout(() => {
+          const popup = L.popup({
+            closeButton: true,
+            autoClose: false,
+            closeOnClick: false,
+            className: 'use-case-click-popup',
+            maxWidth: 540, // Wider to accommodate horizontal layout
+            maxHeight: 260  // Shorter height for horizontal design
+          })
+          .setContent(createPopupContent(useCase))
+          .setLatLng(e.latlng)
+          .openOn(map)
+          currentPopupRef.current = popup
+        }, 350)
+
         // Prevent event from bubbling to map and other clusters
         L.DomEvent.stopPropagation(e.originalEvent)
         e.originalEvent?.preventDefault()
@@ -481,7 +564,7 @@ export default function InteractiveMap({
         mapInstanceRef.current = null
       }
     }
-  }, [])
+  }, [backendUseCases])
 
   return (
     <div className={`interactive-map-container ${className}`}>

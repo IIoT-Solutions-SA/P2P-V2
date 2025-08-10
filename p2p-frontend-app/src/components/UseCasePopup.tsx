@@ -2,7 +2,7 @@ import React from 'react'
 import { MapPin, CheckCircle, Factory, TrendingUp, Calendar, User } from 'lucide-react'
 
 export interface UseCase {
-  id: number
+  id: number | string
   title: string
   description: string
   factoryName: string
@@ -16,6 +16,8 @@ export interface UseCase {
   roiPercentage?: string
   contactPerson?: string
   contactTitle?: string
+  companySlug?: string
+  titleSlug?: string
 }
 
 interface UseCasePopupProps {
@@ -30,7 +32,11 @@ export default function UseCasePopup({ useCase, onTitleClick }: UseCasePopupProp
       onTitleClick()
     } else {
       // Default navigation to use case detail page
-      window.location.href = `/usecases/${useCase.id}`
+      if (useCase.companySlug && useCase.titleSlug) {
+        window.location.href = `/usecases/${useCase.companySlug}/${useCase.titleSlug}`
+      } else {
+        window.location.href = `/usecases/${useCase.id}`
+      }
     }
   }
 
@@ -50,7 +56,7 @@ export default function UseCasePopup({ useCase, onTitleClick }: UseCasePopupProp
       <div className="popup-body">
         <h3 className="popup-title">
           <a 
-            href={`/usecases/${useCase.id}`}
+            href={useCase.companySlug && useCase.titleSlug ? `/usecases/${useCase.companySlug}/${useCase.titleSlug}` : `/usecases/${useCase.id}`}
             onClick={handleTitleClick}
             className="title-link"
           >
@@ -110,7 +116,13 @@ export default function UseCasePopup({ useCase, onTitleClick }: UseCasePopupProp
         <div className="popup-footer">
           <button 
             className="view-details-btn"
-            onClick={() => window.location.href = `/usecases/${useCase.id}`}
+            onClick={() => {
+              if (useCase.companySlug && useCase.titleSlug) {
+                window.location.href = `/usecases/${useCase.companySlug}/${useCase.titleSlug}`
+              } else {
+                window.location.href = `/usecases/${useCase.id}`
+              }
+            }}
           >
             View Full Case Study
           </button>
@@ -344,7 +356,7 @@ export function generateUseCasePopupHTML(useCase: UseCase): string {
         <!-- Header -->
         <div>
           <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; line-height: 1.3; margin-top: 0;">
-            <a href="/usecases/${useCase.id}" style="color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#1e293b'">${useCase.title}</a>
+            <a href="${useCase.companySlug && useCase.titleSlug ? `/usecases/${useCase.companySlug}/${useCase.titleSlug}` : `/usecases/${useCase.id}` }" style="color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#1e293b'">${useCase.title}</a>
           </h3>
           
           <p style="color: #64748b; margin-bottom: 12px; line-height: 1.4; font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${useCase.description}</p>
@@ -389,7 +401,7 @@ export function generateUseCasePopupHTML(useCase: UseCase): string {
             </div>
           ` : '<div></div>'}
           
-          <button onclick="window.location.href='/usecases/${useCase.id}'" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+          <button onclick="window.location.href='${useCase.companySlug && useCase.titleSlug ? `/usecases/${useCase.companySlug}/${useCase.titleSlug}` : `/usecases/${useCase.id}` }'" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
             View Details
           </button>
         </div>

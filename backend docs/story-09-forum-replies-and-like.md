@@ -69,6 +69,34 @@ This story implements full forum interaction capabilities: creating replies, nes
   - Like buttons for replies call `/replies/{id}/like` and update counts in place
   - Collapsible replies per comment with a toggle ("Show replies (N)" / "Hide replies")
 
+### Use Cases Map (Interactive Map) – Backend + Frontend Integration
+
+This story also includes improvements to the Use Cases Map to source data from the backend and improve usability when multiple use cases share the same city/coordinates.
+
+- Backend (`app/api/v1/endpoints/usecases.py`)
+  - The list endpoint `GET /api/v1/use-cases` now includes additional fields required by the map:
+    - `region`, `latitude`, `longitude` extracted from `UseCase.location { lat, lng }`
+    - `image` — first image from `images[]` when available, else a safe placeholder (Unsplash)
+    - `benefits_list` — parsed array derived from `impact_metrics.benefits` (semicolon-delimited)
+    - Preserves `title_slug` and `company_slug` so popups can deep-link to "/usecases/:company_slug/:title_slug"
+  - No change to route contracts for existing use-cases pages; these are additive fields.
+
+- Frontend (`p2p-frontend-app/src/components/InteractiveMap.tsx`)
+  - Replaced static `src/data/use-cases.json` import with a fetch to `GET /api/v1/use-cases?limit=200` (with credentials) and mapped the response to the popup shape.
+  - Added overlap handling for markers that share the same coordinates (e.g., same city):
+    - Groups identical lat/lngs and applies a small radial offset (≈35–X meters) in a circle around the base point so pins are individually clickable.
+  - Improved click behavior on markers:
+    - Clicking a marker now immediately zooms to the marker (zoom=17) and then opens the popup, making “View Details” easy to access.
+  - Cluster behavior retained; clicking cluster cards still zooms to bounds and then opens an individual marker popup.
+
+- Frontend (`p2p-frontend-app/src/components/UseCasePopup.tsx`)
+  - `id` now supports `string | number` to match backend ids.
+  - When `companySlug` and `titleSlug` are present, links route to "/usecases/:company_slug/:title_slug"; otherwise they fall back to "/usecases/:id".
+
+Notes
+- `UseCase` already has a spatial index on `location` (GEO2D) for future geospatial queries.
+- The map continues to use MarkerCluster with clustering disabled at high zoom (≥16) for street-level clarity.
+
 ## Data Validation & Security
 - All endpoints require a valid SuperTokens session
 - IDs validated and converted appropriately (ObjectId/string)

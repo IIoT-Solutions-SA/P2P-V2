@@ -23,7 +23,8 @@ import {
   AlertCircle,
   Loader2
 } from "lucide-react"
-import { useCasesApi, UseCase, UseCaseCategory, UseCaseStats } from '@/services/useCasesApi'
+import { useCasesApi } from '@/services/useCasesApi'
+import type { UseCase, UseCaseCategory, UseCaseStats } from '@/services/useCasesApi'
 
 // Icon mapping for categories
 const categoryIcons: { [key: string]: any } = {

@@ -26,7 +26,8 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/services/api'
-import { dashboardApi, DashboardStats, ActivityItem } from '@/services/dashboardApi'
+import { dashboardApi } from '@/services/dashboardApi'
+import type { DashboardStats, ActivityItem } from '@/services/dashboardApi'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -418,7 +419,7 @@ export default function Dashboard() {
                 </div>
                 <Button 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => onPageChange?.('profile')}
+                  onClick={() => navigate('/profile')}
                 >
                   Edit Profile
                 </Button>
@@ -431,7 +432,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {user?.role === 'admin' && (
                   <button 
-                    onClick={() => onPageChange?.('organization-settings')}
+                    onClick={() => navigate('/organization-settings')}
                     className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
                   >
                     <div className="flex items-center justify-between">

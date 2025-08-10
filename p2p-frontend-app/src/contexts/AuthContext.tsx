@@ -44,10 +44,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await api.get('/api/v1/auth/me')
       
       // Handle the response format from our backend
-      if (response.data.status === 'OK') {
+      const data = response.data as any
+      if (data.status === 'OK') {
         return {
-          user: response.data.user,
-          organization: response.data.organization
+          user: data.user,
+          organization: data.organization
         }
       } else {
         throw new Error('Failed to fetch profile')
@@ -167,7 +168,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             firstName: '',
             lastName: '',
             role: 'member',
-            isActive: true
+            isActive: true,
+            organizationId: '',
+            createdAt: new Date().toISOString()
           },
           organization: null,
           isAuthenticated: true,
@@ -215,11 +218,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           firstName: data.firstName,
           lastName: data.lastName,
           role: 'admin',
-          isActive: true
+          isActive: true,
+          organizationId: '',
+          createdAt: new Date().toISOString()
         },
         organization: {
           name: data.organizationName,
-          size: data.organizationSize,
+          size: data.organizationSize as 'small' | 'startup' | 'medium' | 'large' | 'enterprise',
           industry: data.industry,
           country: data.country,
           city: data.city

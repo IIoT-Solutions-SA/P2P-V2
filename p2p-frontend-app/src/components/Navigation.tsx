@@ -71,7 +71,7 @@ export default function Navigation() {
                   className="flex items-center space-x-2 text-slate-600 hover:text-blue-600"
                 >
                   <div className="text-right">
-                    <p className="text-sm font-medium">{user?.first_name} {user?.last_name}</p>
+                    <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
                     <p className="text-xs text-slate-500">{organization?.name}</p>
                   </div>
                   <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">

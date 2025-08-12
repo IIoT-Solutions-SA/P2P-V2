@@ -80,38 +80,47 @@ Key validated fields (subset):
 - Ensure SuperTokens and session middleware are running; the route requires a valid session
 - If running seed data, drafts can be published via a small script (`scripts/publish_last_draft.py`)
 
-## Production Readiness – Follow‑ups (Planned)
+## Production Readiness – Follow‑ups (Implemented in this sprint)
 
-### 1) Search & Filters (List UX)
-- Backend: extend `GET /api/v1/use-cases` with robust search across `title`, `factory_name`, `industry_tags`, `technology_tags`, and category; add pagination
-- Frontend: search box debounced, filter chips (category, tags), sort (newest/most viewed/most liked), and client URL state (query params)
+### A) Likes, Bookmarks and Views for Use Cases — DONE
 
-### 2) Likes & Bookmarks for Use Cases
-- Backend: `POST /api/v1/use-cases/{id}/like` and `POST /api/v1/use-cases/{id}/bookmark` with user‑specific toggles; track `liked_by[]`, `bookmark_count`
-- Frontend: buttons on list and detail that reflect current state; optimistic UI followed by server reconciliation
+Backend
+- Model: extended `UseCase` (Mongo) with `liked_by: List[str]` and existing counters (`view_count`, `like_count`, `bookmark_count`).
+- Endpoints (FastAPI, `app/api/v1/endpoints/usecases.py`):
+  - `GET /api/v1/use-cases/{company_slug}/{title_slug}` increments `view_count` with a 30‑minute per‑user dedupe using `UserActivity` entries of type `view` (prevents dev StrictMode double bumps).
+  - `POST /api/v1/use-cases/{company_slug}/{title_slug}/like` toggles like for the session user, maintains `liked_by`, and updates `like_count`. Activity logged via `UserActivityService`.
+  - `POST /api/v1/use-cases/{company_slug}/{title_slug}/bookmark` toggles bookmark for the session user, persists a `UserBookmark`, and updates `bookmark_count`. Activity + stats handled via `UserActivityService.add_bookmark`.
+  - `GET /api/v1/use-cases/bookmarks` returns a list of saved use cases (id, title, slugs, counts, created_at) for the current user.
 
-### 3) View Count & Engagement
-- Backend: increment `view_count` on `GET /api/v1/use-cases/{company_slug}/{title_slug}` (middleware or service hook)
-- Frontend: ensure duplicate increments are minimized (simple debounce or server‑side IP/session window)
+Frontend
+- List page `p2p-frontend-app/src/pages/UseCases.tsx`:
+  - Card is only clickable on the header/content area; the bottom action row no longer navigates.
+  - Left cluster shows solid black counters (views, like, save). Like/Save are buttons that call the new endpoints, update counts in place, and visually highlight when active (blue with filled icon). Buttons use `stopPropagation()`.
+  - Bookmarked/liked state is hydrated once on mount using `GET /api/v1/use-cases/bookmarks`.
 
-### 3.1) Dashboard Activity Integration
-- Backend: emit a `UserActivity` entry on successful submission (type: `use_case_submitted`, `target_id`, `target_title`, `target_category`) and recalc user stats; reuse `UserActivityService` pattern from forum posts
-- Frontend (Dashboard): fetch recent activities and include “Submitted use case: {title}” with link to the detail route; ensure counters (use_cases_submitted) reflect the latest value
+### B) Forum Saved Posts — DONE
 
-### 4) Media Uploads
-- Add `/api/v1/uploads` (pre‑signed URL or direct store) so image `File`s are uploaded and `images[]` in submissions are real URLs
+Backend
+- Endpoints (FastAPI, `app/api/v1/endpoints/forum.py`):
+  - `GET /api/v1/forum/bookmarks` returns bookmarked forum posts for the current user.
+  - `POST /api/v1/forum/posts/{post_id}/bookmark` toggles bookmark via `UserActivityService.add_bookmark(...)` and recalculates `UserStats` (also on unbookmark) so dashboard totals stay in sync.
 
-### 5) Authoring Lifecycle
-- Draft vs. Publish toggle on submit; default publish ON (current behavior)
-- Edit & Delete endpoints (author/admin), with audit and soft delete
-- Admin moderation queue (optional) for verifying high‑visibility stories
+Frontend
+- `p2p-frontend-app/src/pages/Forum.tsx`:
+  - Moved replies/views/likes to the left in solid black; like button fills blue when active.
+  - Added Save button beside author on list cards and in detail header; button highlights when saved and toggles via the new bookmark endpoint.
 
-### 6) Redirect UX after Submit
-- After success, return `company_slug` & `title_slug` and auto‑navigate to the detail page with a toast (“Published successfully”)
+### C) Dashboard Saved Items Separation — DONE
 
-### 7) Rate Limiting & Abuse Controls
-- Basic rate limits on `POST /api/v1/use-cases` and likes/bookmarks endpoints; server‐side validation for field sizes and arrays
+- Sidebar quick‑access now shows two distinct counters:
+  - “Saved Posts” → `GET /api/v1/forum/bookmarks`
+  - “Saved Use Cases” → `GET /api/v1/use-cases/bookmarks`
+- Clicking either opens the bookmarks modal filtered to that type with a matching title. Counts are preloaded on mount and refreshed after opening each modal.
+- Refactored `Dashboard.tsx` to use stable loader functions (`loadDashboard`, `preloadBookmarkCounts`) to avoid HMR edge cases and to fix a duplicate state bug.
 
-These items will be tracked in the next story to complete the submission feature set and platform engagement loop.
+---
+
+## Notes
+The above changes finalize Story 10 and the associated engagement features delivered in this sprint.
 
 

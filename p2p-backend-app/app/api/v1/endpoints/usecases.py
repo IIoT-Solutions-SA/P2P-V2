@@ -6,7 +6,7 @@ Provides use cases, categories, stats, and contributors
 from fastapi import APIRouter, Depends, HTTPException, Query
 from supertokens_python.recipe.session.framework.fastapi import verify_session
 from supertokens_python.recipe.session import SessionContainer
-from app.models.mongo_models import UseCase, User as MongoUser
+from app.models.mongo_models import UseCase, User as MongoUser, UserActivity, UserBookmark
 from typing import List, Optional
 import logging
 from bson import ObjectId
@@ -16,6 +16,9 @@ from app.schemas.usecase import UseCaseCreate
 from app.services.usecase_service import UseCaseSubmissionService
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.database_service import UserService
+from app.services.user_activity_service import UserActivityService
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -137,7 +140,8 @@ async def submit_new_use_case(
 async def get_use_case_by_slug(
     company_slug: str,
     title_slug: str,
-    session: SessionContainer = Depends(verify_session())
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         use_case = await UseCase.find_one(
@@ -146,6 +150,43 @@ async def get_use_case_by_slug(
         )
         if not use_case:
             raise HTTPException(status_code=404, detail="Use case not found")
+        # Increment view count once per user per time window (prevents React StrictMode double fetch bumps)
+        try:
+            supertokens_user_id = session.get_user_id()
+            pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+            mongo_user = None
+            if pg_user and pg_user.email:
+                mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+
+            should_increment = True
+            if mongo_user:
+                user_id_str = str(mongo_user.id)
+                time_window_start = datetime.utcnow() - timedelta(minutes=30)
+                recent_view = await UserActivity.find_one(
+                    UserActivity.user_id == user_id_str,
+                    UserActivity.activity_type == "view",
+                    UserActivity.target_id == str(use_case.id),
+                    UserActivity.created_at >= time_window_start,
+                )
+                if recent_view:
+                    should_increment = False
+
+            if should_increment:
+                use_case.view_count = (getattr(use_case, 'view_count', 0) or 0) + 1
+                await use_case.save()
+                # Log the view activity (lightweight)
+                if mongo_user:
+                    await UserActivityService.log_activity(
+                        user_id=str(mongo_user.id),
+                        activity_type="view",
+                        target_id=str(use_case.id),
+                        target_title=use_case.title,
+                        target_category=use_case.category,
+                        description=f"Viewed use case: {use_case.title}",
+                    )
+        except Exception:
+            # Non-fatal
+            pass
         if use_case.has_detailed_view and use_case.detailed_version_id:
             detailed_use_case = await UseCase.get(use_case.detailed_version_id)
             if detailed_use_case:
@@ -155,6 +196,218 @@ async def get_use_case_by_slug(
     except Exception as e:
         logger.error(f"Error getting use case by slug '{slug}': {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve use case")
+
+
+@router.post("/{company_slug}/{title_slug}/like")
+async def like_use_case(
+    company_slug: str,
+    title_slug: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        use_case = await UseCase.find_one(
+            UseCase.company_slug == company_slug,
+            UseCase.title_slug == title_slug
+        )
+        if not use_case:
+            raise HTTPException(status_code=404, detail="Use case not found")
+
+        # Resolve user (session -> PG -> Mongo)
+        supertokens_user_id = session.get_user_id()
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+
+        # Toggle like using UserActivity collection (no liked_by field on UseCase)
+        existing_like = await UserActivity.find_one(
+            UserActivity.user_id == user_id_str,
+            UserActivity.activity_type == "like",
+            UserActivity.target_id == str(use_case.id),
+        )
+        if existing_like:
+            # Unlike: delete activity and decrement like_count
+            await existing_like.delete()
+            try:
+                use_case.like_count = max(0, (getattr(use_case, 'like_count', 0) or 0) - 1)
+                # Maintain liked_by set as well
+                try:
+                    if user_id_str in getattr(use_case, 'liked_by', []):
+                        use_case.liked_by.remove(user_id_str)
+                except Exception:
+                    pass
+                await use_case.save()
+            except Exception:
+                pass
+            return {"liked": False, "likes": getattr(use_case, 'like_count', 0)}
+
+        # Like: log activity and increment like_count
+        await UserActivityService.log_activity(
+            user_id=user_id_str,
+            activity_type="like",
+            target_id=str(use_case.id),
+            target_title=use_case.title,
+            target_category=use_case.category,
+            description=f"Liked use case: {use_case.title}",
+        )
+        try:
+            use_case.like_count = (getattr(use_case, 'like_count', 0) or 0) + 1
+            # Maintain liked_by set as well
+            try:
+                if gettatr := getattr:  # guard to avoid syntax error in accidental code
+                    pass
+            except Exception:
+                pass
+            if getattr(use_case, 'liked_by', None) is None:
+                use_case.liked_by = []
+            if user_id_str not in use_case.liked_by:
+                use_case.liked_by.append(user_id_str)
+            await use_case.save()
+        except Exception:
+            pass
+        return {"liked": True, "likes": getattr(use_case, 'like_count', 0)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling like for use case {company_slug}/{title_slug}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update like")
+
+
+@router.post("/{company_slug}/{title_slug}/bookmark")
+async def bookmark_use_case(
+    company_slug: str,
+    title_slug: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        use_case = await UseCase.find_one(
+            UseCase.company_slug == company_slug,
+            UseCase.title_slug == title_slug
+        )
+        if not use_case:
+            raise HTTPException(status_code=404, detail="Use case not found")
+
+        # Resolve user
+        supertokens_user_id = session.get_user_id()
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+
+        existing = await UserBookmark.find_one(
+            UserBookmark.user_id == user_id_str,
+            UserBookmark.target_id == str(use_case.id),
+        )
+        if existing:
+            # Unbookmark: delete doc and decrement counter
+            await existing.delete()
+            try:
+                use_case.bookmark_count = max(0, (getattr(use_case, 'bookmark_count', 0) or 0) - 1)
+                await use_case.save()
+            except Exception:
+                pass
+            return {"bookmarked": False, "bookmarks": getattr(use_case, 'bookmark_count', 0)}
+
+        # Bookmark and log activity via service
+        await UserActivityService.add_bookmark(
+            user_id=user_id_str,
+            target_type="use_case",
+            target_id=str(use_case.id),
+            target_title=use_case.title,
+            target_category=use_case.category,
+        )
+        try:
+            use_case.bookmark_count = (getattr(use_case, 'bookmark_count', 0) or 0) + 1
+            await use_case.save()
+        except Exception:
+            pass
+        return {"bookmarked": True, "bookmarks": getattr(use_case, 'bookmark_count', 0)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling bookmark for use case {company_slug}/{title_slug}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update bookmark")
+
+
+@router.get("/bookmarks")
+async def get_use_case_bookmarks(
+    limit: int = Query(20, description="Max bookmarks to return"),
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # Resolve user
+        supertokens_user_id = session.get_user_id()
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+        bookmarks = await UserBookmark.find(
+            UserBookmark.user_id == user_id_str,
+            UserBookmark.target_type == "use_case",
+        ).sort(-UserBookmark.created_at).limit(limit).to_list()
+
+        if not bookmarks:
+            return []
+
+        from bson import ObjectId
+        target_ids = []
+        for b in bookmarks:
+            try:
+                target_ids.append(ObjectId(b.target_id))
+            except Exception:
+                continue
+
+        if not target_ids:
+            return []
+
+        cases = await UseCase.find(In(UseCase.id, target_ids)).to_list()
+        case_map = {str(c.id): c for c in cases}
+        response = []
+        for b in bookmarks:
+            uc = case_map.get(b.target_id)
+            if not uc:
+                # Fallback: return bookmark meta only
+                response.append({
+                    "id": b.target_id,
+                    "title": b.target_title,
+                    "category": b.target_category,
+                    "created_at": getattr(b, 'created_at', None),
+                })
+                continue
+            response.append({
+                "id": str(uc.id),
+                "title": uc.title,
+                "company": getattr(uc, 'factory_name', None),
+                "category": getattr(uc, 'category', None),
+                "views": getattr(uc, 'view_count', 0),
+                "likes": getattr(uc, 'like_count', 0),
+                "saves": getattr(uc, 'bookmark_count', 0),
+                "title_slug": uc.title_slug,
+                "company_slug": uc.company_slug,
+                "created_at": getattr(b, 'created_at', None),
+            })
+
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting bookmarks: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get bookmarks")
 
 
 @router.get("/categories")

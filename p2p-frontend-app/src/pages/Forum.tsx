@@ -98,6 +98,7 @@ export default function Forum() {
     rank: number
   }>>([])
   const [loadingContributors, setLoadingContributors] = useState(true)
+  const [bookmarkedPosts, setBookmarkedPosts] = useState<number[]>([])
 
   // Fetch initial data (categories, stats, contributors)
   useEffect(() => {
@@ -122,6 +123,16 @@ export default function Forum() {
             setTopContributors(data.contributors || []);
         }
 
+        // Prefetch bookmarks to highlight icon
+        try {
+          const bmRes = await fetch('http://localhost:8000/api/v1/forum/bookmarks', { credentials: 'include' })
+          if (bmRes.ok) {
+            const list = await bmRes.json()
+            const ids = Array.isArray(list) ? list.map((b: any) => Number(b.target_id) || b.target_id) : []
+            setBookmarkedPosts(ids)
+          }
+        } catch {}
+
       } catch (error) {
         console.error('Error fetching initial forum data:', error)
       } finally {
@@ -132,6 +143,20 @@ export default function Forum() {
     
     fetchInitialData();
   }, [user])
+
+  const handleBookmarkPost = async (postId: number) => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}/bookmark`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      setBookmarkedPosts(prev => data.bookmarked ? [...prev, postId] : prev.filter(id => id !== postId))
+    } catch (e) {
+      console.error('Error bookmarking post:', e)
+    }
+  }
 
   // Fetch posts when category changes
   useEffect(() => {
@@ -326,7 +351,12 @@ export default function Forum() {
                     <span className="text-sm text-slate-500">{selectedPost.authorTitle}</span>
                   </div>
                 </div>
-                <span className="text-sm text-slate-500">{selectedPost.timeAgo}</span>
+                <div className="flex items-center space-x-3">
+                  <Button variant="ghost" size="sm" onClick={() => handleBookmarkPost(selectedPost.id)} className={`${bookmarkedPosts.includes(selectedPost.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}>
+                    <Bookmark className={`h-4 w-4 mr-1.5 ${bookmarkedPosts.includes(selectedPost.id) ? 'fill-current text-blue-600' : ''}`} /> Save
+                  </Button>
+                  <span className="text-sm text-slate-500">{selectedPost.timeAgo}</span>
+                </div>
               </div>
             </div>
             <div className="prose prose-slate max-w-none mb-6">
@@ -335,18 +365,20 @@ export default function Forum() {
               </div>
             </div>
             <div className="flex items-center justify-between pt-6 border-t border-slate-200">
-              <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="sm" onClick={() => handleLikePost(selectedPost.id)} className={likedPosts.includes(selectedPost.id) ? "text-blue-600" : ""}>
-                  <ThumbsUp className={`h-4 w-4 mr-2 ${likedPosts.includes(selectedPost.id) ? "fill-current" : ""}`} />
-                  {selectedPost.likes}
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-1 text-slate-900 text-sm">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>{selectedPost.comments?.length || selectedPost.replies}</span>
+                </div>
+                <div className="flex items-center space-x-1 text-slate-900 text-sm">
+                  <Eye className="h-4 w-4" />
+                  <span>{selectedPost.views}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => handleLikePost(selectedPost.id)} className={`${likedPosts.includes(selectedPost.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}>
+                  <ThumbsUp className={`h-4 w-4 mr-1.5 ${likedPosts.includes(selectedPost.id) ? 'fill-current text-blue-600' : ''}`} /> {selectedPost.likes}
                 </Button>
-                <Button variant="ghost" size="sm"><Share2 className="h-4 w-4 mr-2" />Share</Button>
-                <Button variant="ghost" size="sm"><Bookmark className="h-4 w-4 mr-2" />Save</Button>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-slate-500">
-                <span>{selectedPost.views} views</span>
-                <span>{selectedPost.comments?.length || selectedPost.replies} comments</span>
-              </div>
+              <div className="flex items-center space-x-4 text-sm text-slate-500" />
             </div>
           </div>
           <div className="bg-white rounded-2xl p-8 border border-slate-200">
@@ -625,13 +657,13 @@ export default function Forum() {
                       </div>
                       <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                         <div className="flex items-center space-x-6">
-                          <div className="flex items-center space-x-1 text-sm text-slate-500"><MessageSquare className="h-4 w-4" /><span>{post.replies}</span></div>
-                          <div className="flex items-center space-x-1 text-sm text-slate-500"><Eye className="h-4 w-4" /><span>{post.views}</span></div>
+                          <div className="flex items-center space-x-1 text-sm text-slate-900"><MessageSquare className="h-4 w-4" /><span>{post.replies}</span></div>
+                          <div className="flex items-center space-x-1 text-sm text-slate-900"><Eye className="h-4 w-4" /><span>{post.views}</span></div>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleLikePost(post.id); }}
-                            className={`flex items-center space-x-1 text-sm transition-colors ${likedPosts.includes(post.id) || post.isLikedByUser ? "text-blue-600" : "text-slate-500 hover:text-blue-600"}`}
+                            className={`flex items-center space-x-1 text-sm transition-colors ${likedPosts.includes(post.id) || post.isLikedByUser ? 'text-blue-600' : 'text-slate-900 hover:text-blue-600'}`}
                           >
-                            <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(post.id) || post.isLikedByUser ? "fill-current" : ""}`} />
+                            <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(post.id) || post.isLikedByUser ? 'fill-current' : ''}`} />
                             <span>{post.likes}</span>
                           </button>
                         </div>
@@ -648,6 +680,9 @@ export default function Forum() {
                               <span className="text-xs text-slate-500">{post.authorTitle}</span>
                             </div>
                           </div>
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleBookmarkPost(post.id); }} className={`${bookmarkedPosts.includes(post.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}>
+                            <Bookmark className={`h-4 w-4 mr-1.5 ${bookmarkedPosts.includes(post.id) ? 'fill-current text-blue-600' : ''}`} /> Save
+                          </Button>
                           <div className="flex items-center space-x-1 text-xs text-slate-500">
                             <Clock className="h-3 w-3" />
                             <span>{post.timeAgo}</span>

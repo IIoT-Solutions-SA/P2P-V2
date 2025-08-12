@@ -9,7 +9,7 @@ from supertokens_python.recipe.session import SessionContainer
 from app.services.database_service import UserService
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.mongo_models import ForumPost, ForumReply, User as MongoUser
+from app.models.mongo_models import ForumPost, ForumReply, User as MongoUser, UserBookmark
 from typing import List, Optional
 from app.schemas.forum import ForumPostCreate
 from app.services.user_activity_service import UserActivityService
@@ -500,3 +500,86 @@ async def get_top_contributors(
     except Exception as e:
         logger.error(f"Error getting top contributors: {e}")
         raise HTTPException(status_code=500, detail="Failed to get top contributors")
+
+
+@router.get("/bookmarks")
+async def get_forum_bookmarks(
+    limit: int = Query(20, description="Max bookmarks to return"),
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db),
+):
+    """List current user's bookmarked forum posts (for Saved Posts page)."""
+    try:
+        supertokens_user_id = session.get_user_id()
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+        bookmarks = await UserBookmark.find(
+            UserBookmark.user_id == user_id_str,
+            UserBookmark.target_type == "forum_post",
+        ).sort(-UserBookmark.created_at).limit(limit).to_list()
+        return bookmarks
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting forum bookmarks: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get forum bookmarks")
+
+
+@router.post("/posts/{post_id}/bookmark")
+async def bookmark_forum_post(
+    post_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Toggle bookmark on a forum post for the current user."""
+    try:
+        supertokens_user_id = session.get_user_id()
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        # Validate post exists
+        try:
+            post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+        except Exception:
+            post = None
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        user_id_str = str(mongo_user.id)
+        existing = await UserBookmark.find_one(
+            UserBookmark.user_id == user_id_str,
+            UserBookmark.target_id == str(post.id),
+        )
+        if existing:
+            await existing.delete()
+            # Recalculate stats so dashboard reflects updated bookmark count
+            try:
+                await UserActivityService.recalculate_user_stats(user_id_str)
+            except Exception:
+                pass
+            return {"bookmarked": False}
+
+        # Use centralized service to log activity and recalc stats
+        await UserActivityService.add_bookmark(
+            user_id=user_id_str,
+            target_type="forum_post",
+            target_id=str(post.id),
+            target_title=post.title,
+            target_category=post.category,
+        )
+        return {"bookmarked": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling bookmark for forum post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update bookmark")

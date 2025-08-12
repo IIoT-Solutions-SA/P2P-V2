@@ -218,6 +218,7 @@ class UseCase(Document):
     view_count: int = 0
     like_count: int = 0
     bookmark_count: int = 0
+    liked_by: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     

@@ -44,14 +44,17 @@ export default function Dashboard() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [showBookmarks, setShowBookmarks] = useState(false)
+  const [forumBookmarkCount, setForumBookmarkCount] = useState(0)
+  const [useCaseBookmarkCount, setUseCaseBookmarkCount] = useState(0)
+  const [bookmarkModalTitle, setBookmarkModalTitle] = useState<string>('Saved Items')
   const [showDrafts, setShowDrafts] = useState(false)
   const [bookmarks, setBookmarks] = useState<any[]>([])
   const [drafts, setDrafts] = useState<any[]>([])
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
   const [loadingDrafts, setLoadingDrafts] = useState(false)
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+  // Dedicated loaders to avoid HMR/effect return confusion
+  const loadDashboard = async () => {
       try {
         setLoading(true)
         
@@ -91,22 +94,57 @@ export default function Dashboard() {
       } finally {
         setLoading(false)
       }
+  }
+
+  const preloadBookmarkCounts = async () => {
+    try {
+      const [forumRes, ucRes] = await Promise.all([
+        fetch('http://localhost:8000/api/v1/forum/bookmarks', { credentials: 'include' }),
+        fetch('http://localhost:8000/api/v1/use-cases/bookmarks', { credentials: 'include' })
+      ])
+      const forumData = forumRes.ok ? await forumRes.json() : []
+      const ucData = ucRes.ok ? await ucRes.json() : []
+      setForumBookmarkCount(Array.isArray(forumData) ? forumData.length : 0)
+      setUseCaseBookmarkCount(Array.isArray(ucData) ? ucData.length : 0)
+    } catch {
+      setForumBookmarkCount(0)
+      setUseCaseBookmarkCount(0)
     }
+  }
+
+  useEffect(() => {
 
     if (user) {
-      fetchDashboardData()
+      loadDashboard()
+      preloadBookmarkCounts()
     }
   }, [user])
 
-  const fetchBookmarks = async () => {
+  const fetchBookmarks = async (type: 'posts' | 'use-cases') => {
     try {
       setLoadingBookmarks(true)
-      const response = await fetch('http://localhost:8000/api/v1/dashboard/bookmarks', {
-        credentials: 'include'
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setBookmarks(data.bookmarks || [])
+      if (type === 'posts') {
+        setBookmarkModalTitle('Saved Posts')
+        const res = await fetch('http://localhost:8000/api/v1/forum/bookmarks', { credentials: 'include' })
+        const list = res.ok ? await res.json() : []
+        setBookmarks(Array.isArray(list) ? list.map((b: any) => ({
+          title: b.target_title || b.title,
+          target_type: 'forum_post',
+          category: b.target_category,
+          saved_at: b.created_at || new Date().toISOString()
+        })) : [])
+        setForumBookmarkCount(Array.isArray(list) ? list.length : 0)
+      } else {
+        setBookmarkModalTitle('Saved Use Cases')
+        const res = await fetch('http://localhost:8000/api/v1/use-cases/bookmarks', { credentials: 'include' })
+        const list = res.ok ? await res.json() : []
+        setBookmarks(Array.isArray(list) ? list.map((b: any) => ({
+          title: b.title,
+          target_type: 'use_case',
+          category: b.category,
+          saved_at: b.created_at || new Date().toISOString()
+        })) : [])
+        setUseCaseBookmarkCount(Array.isArray(list) ? list.length : 0)
       }
     } catch (error) {
       console.error('Error fetching bookmarks:', error)
@@ -135,10 +173,7 @@ export default function Dashboard() {
   }
 
   const handleQuickAccessClick = async (type: string) => {
-    if (type === 'Saved Articles') {
-      await fetchBookmarks()
-      setShowBookmarks(true)
-    } else if (type === 'Draft Posts') {
+    if (type === 'Draft Posts') {
       await fetchDrafts()
       setShowDrafts(true)
     } else if (type === 'My Connections') {
@@ -356,26 +391,50 @@ export default function Dashboard() {
             <div>
               <h3 className="font-bold text-gray-900 mb-4">Quick Access</h3>
               <div className="space-y-3">
-                {[
-                  { title: "Saved Articles", count: String(stats?.bookmarks_saved || 0), color: "blue" },
-                  { title: "My Connections", count: String(stats?.connections_count || 0), color: "slate" },
-                  { title: "Draft Posts", count: String(stats?.draft_posts || 0), color: "blue" }
-                ].map((item, i) => (
-                  <button 
-                    key={i} 
-                    onClick={() => handleQuickAccessClick(item.title)}
-                    className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-900">{item.title}</span>
-                      <div className={`px-2 py-1 rounded-lg text-white text-xs font-bold ${
-                        item.color === 'blue' ? 'bg-blue-600' : 'bg-slate-600'
-                      }`}>
-                        {item.count}
-                      </div>
+                <button 
+                  onClick={async () => { await fetchBookmarks('posts'); setShowBookmarks(true); }}
+                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-900">Saved Posts</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {forumBookmarkCount}
                     </div>
-                  </button>
-                ))}
+                  </div>
+                </button>
+                <button 
+                  onClick={async () => { await fetchBookmarks('use-cases'); setShowBookmarks(true); }}
+                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-900">Saved Use Cases</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {useCaseBookmarkCount}
+                    </div>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => handleQuickAccessClick('My Connections')}
+                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-900">My Connections</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-slate-600">
+                      {String(stats?.connections_count || 0)}
+                    </div>
+                  </div>
+                </button>
+                <button 
+                  onClick={async () => { await fetchDrafts(); setShowDrafts(true); }}
+                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-900">Draft Posts</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {String(stats?.draft_posts || 0)}
+                    </div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -438,7 +497,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900">Saved Articles</h3>
+                <h3 className="text-xl font-bold text-slate-900">{bookmarkModalTitle}</h3>
                 <button 
                   onClick={() => setShowBookmarks(false)}
                   className="text-slate-400 hover:text-slate-600"

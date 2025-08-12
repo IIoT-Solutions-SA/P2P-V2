@@ -65,6 +65,8 @@ export default function UseCases() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchUseCasesData = async () => {
@@ -93,6 +95,66 @@ export default function UseCases() {
     };
     fetchUseCasesData();
   }, [selectedCategory, searchQuery, sortBy]);
+
+  // Fetch saved use cases once to highlight bookmarks
+  useEffect(() => {
+    const fetchBookmarks = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/use-cases/bookmarks', { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const ids = new Set<string>(Array.isArray(data) ? data.map((b: any) => String(b.id)) : []);
+        setBookmarkedIds(ids);
+      } catch (_) {
+        // ignore
+      }
+    };
+    fetchBookmarks();
+  }, []);
+
+  const handleLike = async (e: React.MouseEvent, uc: UseCase, idx: number) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/like`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (typeof data.likes === 'number') {
+        setUseCases(prev => prev.map((item, i) => i === idx ? { ...item, likes: data.likes } : item));
+        setLikedIds(prev => {
+          const next = new Set(prev);
+          if (data.liked) next.add(uc.id); else next.delete(uc.id);
+          return next;
+        });
+      }
+    } catch (_) {
+      // no-op
+    }
+  };
+
+  const handleBookmark = async (e: React.MouseEvent, uc: UseCase, idx: number) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/bookmark`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (typeof data.bookmarks === 'number') {
+        setUseCases(prev => prev.map((item, i) => i === idx ? { ...item, saves: data.bookmarks } : item));
+        setBookmarkedIds(prev => {
+          const next = new Set(prev);
+          if (data.bookmarked) next.add(uc.id); else next.delete(uc.id);
+          return next;
+        });
+      }
+    } catch (_) {
+      // no-op
+    }
+  };
 
   const sortOptions = [
     { id: "newest", name: "Newest", icon: Clock },
@@ -186,9 +248,10 @@ export default function UseCases() {
             </div>
             <div className="space-y-6">
               {loading && <div className="text-center p-10"><Loader2 className="h-8 w-8 mx-auto animate-spin text-blue-600" /></div>}
-              {!loading && useCases.map((useCase) => (
-                <div key={useCase.id} className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 overflow-hidden cursor-pointer" onClick={() => navigate(`/usecases/${useCase.company_slug}/${useCase.title_slug}`)}>
-                    <div className="p-6">
+              {!loading && useCases.map((useCase, idx) => (
+                <div key={useCase.id} className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 overflow-hidden">
+                    <div className="cursor-pointer" onClick={() => navigate(`/usecases/${useCase.company_slug}/${useCase.title_slug}`)}>
+                      <div className="p-6">
                         <div className="flex items-start justify-between">
                             <div className="flex-1 space-y-3">
                                 <div className="flex items-center space-x-3">
@@ -203,8 +266,8 @@ export default function UseCases() {
                                 <p className="text-slate-600 leading-relaxed pt-1" style={{wordBreak:'break-word', overflowWrap:'anywhere'}}>{useCase.description}</p>
                             </div>
                         </div>
-                    </div>
-                    <div className="bg-slate-50/70 px-6 py-4 border-t border-slate-100">
+                      </div>
+                      <div className="bg-slate-50/70 px-6 py-4 border-t border-slate-100">
                         <h4 className="font-semibold text-slate-700 mb-3 text-sm">Key Results</h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {parseBenefits(useCase.results.benefits).map((stat, i) => (
@@ -214,12 +277,29 @@ export default function UseCases() {
                                 </div>
                             ))}
                         </div>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-4 text-sm text-slate-500">
-                            <span className="flex items-center" title="Views"><Eye className="h-4 w-4 mr-1.5" />{useCase.views}</span>
-                            <span className="flex items-center" title="Likes"><ThumbsUp className="h-4 w-4 mr-1.5" />{useCase.likes}</span>
-                            <span className="flex items-center" title="Saves"><Bookmark className="h-4 w-4 mr-1.5" />{useCase.saves}</span>
+                        <div className="flex items-center space-x-4 text-sm">
+                            <span className="flex items-center text-slate-900" title="Views">
+                              <Eye className="h-4 w-4 mr-1.5" /> {useCase.views}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`${likedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}
+                              onClick={(e) => handleLike(e, useCase, idx)}
+                            >
+                              <ThumbsUp className={`h-4 w-4 mr-1.5 ${likedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.likes}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`${bookmarkedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}
+                              onClick={(e) => handleBookmark(e, useCase, idx)}
+                            >
+                              <Bookmark className={`h-4 w-4 mr-1.5 ${bookmarkedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.saves}
+                            </Button>
                         </div>
                         <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center"><span className="text-xs font-bold text-slate-600">{useCase.publishedBy.charAt(0)}</span></div>

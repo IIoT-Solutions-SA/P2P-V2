@@ -374,7 +374,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-lg">{user?.firstName} {user?.lastName}</h3>
-                  <p className="text-slate-600">{user?.role === 'admin' ? 'Organization Admin' : 'Team Member'}</p>
+                  <p className="text-slate-600">{user?.title} • {user?.role === 'admin' ? 'Admin' : 'Member'}</p>
                   <p className="text-sm text-slate-500">{organization?.name}</p>
                   <div className="inline-flex items-center space-x-1 bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full mt-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>

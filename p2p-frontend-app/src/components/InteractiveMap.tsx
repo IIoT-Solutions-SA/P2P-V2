@@ -384,21 +384,25 @@ export default function InteractiveMap({
     const rawMapped = (backendUseCases || []).filter(uc => typeof uc.latitude === 'number' && typeof uc.longitude === 'number')
       .map<PopupUseCase>(uc => ({
         id: uc.id as unknown as any, // popup accepts number|string for navigation usage
-        title: uc.title,
-        description: uc.description || '',
+        title: uc.title || 'Untitled',
+        description: (uc.description || '').trim(),
         factoryName: uc.company || 'Unknown',
         city: uc.region || '',
         latitude: uc.latitude as number,
         longitude: uc.longitude as number,
         image: uc.image || 'https://images.unsplash.com/photo-1581090700227-1e37b190418e?w=1200&auto=format&fit=crop&q=60',
-        benefits: (uc.benefits_list && uc.benefits_list.length > 0) ? uc.benefits_list : [],
+        benefits: (uc.benefits_list && uc.benefits_list.length > 0) ? uc.benefits_list : [
+          // Fallback badges so the CTA row always has content
+          'Verified implementation',
+          'Proven ROI'
+        ],
         implementationTime: undefined,
         category: uc.category,
         roiPercentage: undefined,
         contactPerson: undefined,
         contactTitle: undefined,
-        companySlug: uc.company_slug,
-        titleSlug: uc.title_slug,
+        companySlug: uc.company_slug || (uc.company && uc.company.length ? uc.company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : undefined),
+        titleSlug: uc.title_slug || (uc.title && uc.title.length ? uc.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/(^-|-$)/g, '') : undefined),
       }))
 
     // Spread overlapping markers slightly so they are easier to click
@@ -451,8 +455,7 @@ export default function InteractiveMap({
             autoClose: false,
             closeOnClick: false,
             className: 'use-case-click-popup',
-            maxWidth: 540, // Wider to accommodate horizontal layout
-            maxHeight: 260  // Shorter height for horizontal design
+            maxWidth: 560
           })
           .setContent(createPopupContent(useCase))
           .setLatLng(e.latlng)
@@ -544,6 +547,22 @@ export default function InteractiveMap({
             }, 600)
           })
         })
+
+        // Handle explicit "View Details" button clicks inside card view
+        if (isCardView) {
+          const buttons = document.querySelectorAll('.cluster-view-btn')
+          buttons.forEach((btn, index) => {
+            btn.addEventListener('click', (ev: any) => {
+              ev.stopPropagation()
+              const marker = markers[index]
+              const uc = (marker as any).options.useCase
+              const url = (uc.companySlug && uc.titleSlug)
+                ? `/usecases/${uc.companySlug}/${uc.titleSlug}`
+                : `/usecases/${uc.id}`
+              window.location.href = url
+            })
+          })
+        }
       }, 100)
       
       // Prevent default zoom behavior
@@ -1030,7 +1049,7 @@ export default function InteractiveMap({
         :global(.use-case-click-popup .leaflet-popup-content) {
           margin: 0;
           width: 520px !important;
-          height: 240px !important;
+          min-height: 240px !important;
         }
         
         :global(.leaflet-popup-close-button) {

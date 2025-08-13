@@ -73,6 +73,7 @@ async def get_current_user(
             "firstName": user.name.split(' ')[0] if user.name else "",
             "lastName": " ".join(user.name.split(' ')[1:]) if len(user.name.split(' ')) > 1 else "",
             "role": user.role,
+            "title": mongo_profile.title if mongo_profile and hasattr(mongo_profile, 'title') else "Team Member",
             "organizationId": organization["id"],  
             "isActive": user.is_active,
             "lastLogin": user.updated_at,  # Using updated_at as proxy for last login

@@ -40,6 +40,7 @@ export default function Signup() {
     lastName: '',
     email: '',
     password: '',
+    title: '',
     organizationName: '',
     industry: '',
     organizationSize: '',
@@ -250,6 +251,22 @@ export default function Signup() {
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Job Title
+                    </label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                      <Input
+                        type="text"
+                        placeholder="e.g., Operations Lead"
+                        value={formData.title}
+                        onChange={(e) => handleInputChange('title', e.target.value)}
+                        className="pl-10"
+                      />
                     </div>
                   </div>
                 </div>

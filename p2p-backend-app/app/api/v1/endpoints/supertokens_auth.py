@@ -32,12 +32,17 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
             "industry_sector": body.get("industrySector"),
             "company_size": body.get("companySize"),
             "location": body.get("city"),
+            "title": body.get("title"),
             "role": "admin"
         }
 
-        if not all(value for value in body.values()):
+        required_fields = [
+            "firstName", "lastName", "email", "password",
+            "companyName", "industrySector", "companySize", "city"
+        ]
+        if not all(body.get(f) for f in required_fields):
             logger.warning("Missing required fields in sign-up")
-            return JSONResponse(status_code=400, content={"status": "ERROR", "message": "All fields are required"})
+            return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Missing required fields"})
 
         logger.info("Calling SuperTokens sign_up")
         supertokens_result = await sign_up("public", email, password)

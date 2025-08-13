@@ -4,6 +4,7 @@ from app.models.pg_models import User as PGUser
 from app.models.mongo_models import User as MongoUser, ForumPost, UseCase, ForumReply, Organization
 from typing import Optional, List, Dict
 from uuid import UUID
+import re
 
 class UserService:
     @staticmethod
@@ -62,6 +63,7 @@ class UserService:
             organization_id=organization_id,
             company=profile_data.get("company"),
             industry_sector=profile_data.get("industry_sector"),
+            title=profile_data.get("title"),
             # The mongo_models.py file expects company_size, but your prompt mentioned it.
             # I'll add it here assuming you will add it to the MongoUser model.
             # company_size=profile_data.get("company_size"), 
@@ -189,30 +191,92 @@ class ForumService:
         ).sort(-ForumReply.created_at).to_list()
         return replies
 
+def _slugify(text: str) -> str:
+    """Convert text to URL-friendly slug"""
+    if not text:
+        return ""
+    text = text.lower()
+    text = re.sub(r"[\(\)]", "", text)
+    text = re.sub(r"[\s\W_]+", "-", text)
+    text = text.strip("-")
+    return text
+
 class UseCaseService:
     @staticmethod
     async def create_use_case(data: dict) -> UseCase:
         """Create a new use case from frontend JSON structure or direct data"""
         if 'factoryName' in data:
+            # Generate slugs for URL routing
+            title_slug = _slugify(data.get("title", ""))
+            company_slug = _slugify(data.get("factoryName", ""))
+            
             use_case_data = {
                 "submitted_by": data.get("submitted_by", "system-seed"),
                 "title": data["title"],
                 "problem_statement": data.get("description", "Problem statement not provided."),
                 "solution_description": data.get("benefits", ["Solution benefits not detailed."])[0] if data.get("benefits") else "Solution description not provided.",
-                "vendor_info": {
-                    "factory_name": data.get("factoryName", ""),
-                    "implementation_time": data.get("implementationTime", ""),
-                    "image": data.get("image", "")
-                },
+                # Slugs for URL routing
+                "title_slug": title_slug,
+                "company_slug": company_slug,
+                # Top-level summary fields used by listing and detail pages
+                "factory_name": data.get("factoryName", ""),
+                "category": data.get("category", "General"),
+                "implementation_time": data.get("implementationTime", ""),
+                # Optional direct image list for gallery; fall back to single image if provided
+                "images": [data.get("image")] if data.get("image") else [],
+                # Location and meta
                 "industry_tags": [data.get("category", "General")],
                 "region": data.get("city", "Saudi Arabia"),
                 "location": {"lat": data["latitude"], "lng": data["longitude"]},
+                # Impact/benefits
                 "impact_metrics": {
                     "benefits": "; ".join(data.get("benefits", ["No benefits listed"]))
                 },
+                # Optional contact (may be absent in JSON)
+                "contact_person": data.get("contactPerson"),
+                "contact_title": data.get("contactTitle"),
+                # Flags
                 "published": True,
                 "featured": True
             }
+
+            # Optional extended fields if present in JSON
+            if data.get("roiPercentage"):
+                use_case_data["roi_percentage"] = data.get("roiPercentage")
+            if isinstance(data.get("images"), list) and data.get("images"):
+                use_case_data["images"] = data.get("images")
+            if data.get("executive_summary"):
+                use_case_data["executive_summary"] = data.get("executive_summary")
+            if data.get("business_challenge"):
+                use_case_data["business_challenge"] = data.get("business_challenge")
+            if data.get("solution_details"):
+                use_case_data["solution_details"] = data.get("solution_details")
+            if data.get("implementation_details"):
+                use_case_data["implementation_details"] = data.get("implementation_details")
+            if data.get("results"):
+                use_case_data["results"] = data.get("results")
+            if data.get("technical_architecture"):
+                use_case_data["technical_architecture"] = data.get("technical_architecture")
+            if data.get("future_roadmap"):
+                use_case_data["future_roadmap"] = data.get("future_roadmap")
+            if data.get("lessons_learned"):
+                use_case_data["lessons_learned"] = data.get("lessons_learned")
+            if data.get("industryTags"):
+                use_case_data["industry_tags"] = data.get("industryTags")
+            if data.get("technologyTags"):
+                use_case_data["technology_tags"] = data.get("technologyTags")
+            if data.get("subtitle"):
+                use_case_data["subtitle"] = data.get("subtitle")
+            if data.get("status"):
+                use_case_data["status"] = data.get("status")
+            if data.get("verified_by"):
+                use_case_data["verified_by"] = data.get("verified_by")
+            if data.get("read_time"):
+                use_case_data["read_time"] = data.get("read_time")
+            if data.get("downloads"):
+                use_case_data["downloads"] = data.get("downloads")
+            if data.get("views"):
+                use_case_data["views"] = data.get("views")
         else:
             use_case_data = data
             

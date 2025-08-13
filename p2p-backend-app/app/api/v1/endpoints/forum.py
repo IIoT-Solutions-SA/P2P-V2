@@ -9,7 +9,7 @@ from supertokens_python.recipe.session import SessionContainer
 from app.services.database_service import UserService
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.mongo_models import ForumPost, ForumReply, User as MongoUser, UserBookmark
+from app.models.mongo_models import ForumPost, ForumReply, User as MongoUser, UserBookmark, UserActivity
 from typing import List, Optional
 from app.schemas.forum import ForumPostCreate
 from app.services.user_activity_service import UserActivityService
@@ -213,7 +213,8 @@ async def get_forum_categories(session: SessionContainer = Depends(verify_sessio
 @router.get("/posts/{post_id}")
 async def get_forum_post(
     post_id: str,
-    session: SessionContainer = Depends(verify_session())
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
 ):
     """Get a specific forum post with comments"""
     try:
@@ -226,9 +227,55 @@ async def get_forum_post(
         if not post:
             raise HTTPException(status_code=404, detail="Post not found")
         
-        # Increment view count
-        post.views += 1
-        await post.save()
+        # Increment view count with user deduplication (realistic view counting)
+        
+        supertokens_user_id = session.get_user_id()
+        should_increment = True
+        
+        # Check if this user has ever viewed this forum post before
+        if supertokens_user_id:
+            try:
+                # Get mongo user for activity tracking
+                pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id) 
+                mongo_user = None
+                if pg_user and pg_user.email:
+                    mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+                
+                if mongo_user:
+                    user_id_str = str(mongo_user.id)
+                    # Check if user has EVER viewed this forum post (realistic view counting)
+                    existing_view = await UserActivity.find_one(
+                        UserActivity.user_id == user_id_str,
+                        UserActivity.activity_type == "view",
+                        UserActivity.target_id == str(post.id),
+                    )
+                    if existing_view:
+                        should_increment = False
+                        logger.info(f"User {mongo_user.name} already viewed post {post.title} - not incrementing")
+                    else:
+                        logger.info(f"User {mongo_user.name} viewing post {post.title} for first time - incrementing")
+            except Exception as e:
+                logger.error(f"Error checking view history for user {supertokens_user_id}: {e}")
+                # Don't increment on error - better to undercount than overcount
+                should_increment = False
+        
+        if should_increment:
+            post.views += 1
+            await post.save()
+            
+            # Log the view activity
+            if supertokens_user_id and mongo_user:
+                try:
+                    await UserActivityService.log_activity(
+                        user_id=str(mongo_user.id),
+                        activity_type="view",
+                        target_id=str(post.id),
+                        target_title=post.title,
+                        target_category=post.category,
+                        description=f"Viewed forum post: {post.title}",
+                    )
+                except Exception as e:
+                    logger.error(f"Error logging view activity: {e}")
         
         # Get post author
         try:

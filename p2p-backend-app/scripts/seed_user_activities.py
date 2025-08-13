@@ -75,6 +75,18 @@ async def seed_user_activities():
                 # Find the post this reply belongs to
                 parent_post = next((p for p in forum_posts if str(p.id) == reply.post_id), None)
                 if parent_post:
+                    # If user replied to a post, they obviously viewed it first
+                    # Create a view activity for the forum post
+                    await UserActivityService.log_activity(
+                        user_id=str(user.id),
+                        activity_type="view",
+                        target_id=str(parent_post.id),
+                        target_title=parent_post.title,
+                        target_category=parent_post.category,
+                        description=f"Viewed forum post: {parent_post.title}"
+                    )
+                    
+                    # Then create the answer activity
                     await UserActivityService.log_activity(
                         user_id=str(user.id),
                         activity_type="answer",
@@ -96,31 +108,8 @@ async def seed_user_activities():
                     description=f"Submitted use case: {use_case.title}"
                 )
             
-            # Generate some random bookmarks (users bookmark other people's content)
-            other_users_posts = [post for post in forum_posts if post.author_id != str(user.id)]
-            other_users_use_cases = [uc for uc in use_cases if uc.submitted_by != str(user.id)]
-            
-            # Bookmark 2-5 random items
-            bookmark_count = random.randint(2, 5)
-            bookmark_targets = random.sample(other_users_posts + other_users_use_cases, min(bookmark_count, len(other_users_posts + other_users_use_cases)))
-            
-            for target in bookmark_targets:
-                if isinstance(target, ForumPost):
-                    await UserActivityService.add_bookmark(
-                        user_id=str(user.id),
-                        target_type="forum_post",
-                        target_id=str(target.id),
-                        target_title=target.title,
-                        target_category=target.category
-                    )
-                elif isinstance(target, UseCase):
-                    await UserActivityService.add_bookmark(
-                        user_id=str(user.id),
-                        target_type="use_case",
-                        target_id=str(target.id),
-                        target_title=target.title,
-                        target_category=target.industry_tags[0] if target.industry_tags else "General"
-                    )
+            # Skip random bookmarks - we want clean test data starting from 0
+            # Bookmarks will only be created when users actually bookmark content
             
             # Generate some draft posts
             draft_count = random.randint(1, 3)
@@ -151,27 +140,22 @@ async def seed_user_activities():
                     category=random.choice(["Automation", "Quality Management", "Artificial Intelligence", "Maintenance"])
                 )
             
-            # Add some additional random activities with timestamps spread over the last 30 days
-            additional_activities = random.randint(3, 8)
-            for _ in range(additional_activities):
-                activity_date = datetime.utcnow() - timedelta(days=random.randint(1, 30))
-                
-                # Create a UserActivity directly with custom timestamp
-                activity_types = ["like", "bookmark", "comment"]
-                target_item = random.choice(forum_posts + use_cases)
-                
-                activity = UserActivity(
-                    user_id=str(user.id),
-                    activity_type=random.choice(activity_types),
-                    target_id=str(target_item.id),
-                    target_title=target_item.title,
-                    target_category=getattr(target_item, 'category', target_item.industry_tags[0] if hasattr(target_item, 'industry_tags') and target_item.industry_tags else "General"),
-                    description=f"Interacted with: {target_item.title}",
-                    created_at=activity_date
-                )
-                await activity.insert()
+            # Skip random activities - we want clean test data
+            # Views are only created based on logical interactions (replies, etc.)
             
             logger.info(f"✅ Generated activities for {user.name}")
+        
+        # Update forum post view counts based on UserActivity entries
+        logger.info("📊 Updating forum post view counts based on logged activities...")
+        for post in forum_posts:
+            view_activities = await UserActivity.find(
+                UserActivity.activity_type == "view",
+                UserActivity.target_id == str(post.id)
+            ).to_list()
+            post.views = len(view_activities)
+            await post.save()
+            if view_activities:
+                logger.info(f"   📈 {post.title}: {len(view_activities)} views")
         
         # Recalculate stats for all users
         logger.info("📊 Calculating user statistics...")

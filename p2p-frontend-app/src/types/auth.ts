@@ -4,6 +4,7 @@ export interface User {
   firstName: string
   lastName: string
   role: 'admin' | 'member'
+  title: string
   organizationId: string
   avatar?: string
   isActive: boolean
@@ -42,6 +43,7 @@ export interface SignupData {
   lastName: string
   email: string
   password: string
+  title: string
   organizationName: string
   industry: string
   organizationSize: string

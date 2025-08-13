@@ -75,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastName: data.lastName,
         email: data.email,
         password: data.password,
+        title: data.title,
         companyName: data.organizationName,
         industrySector: data.industry,
         companySize: data.organizationSize,

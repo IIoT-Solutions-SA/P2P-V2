@@ -103,7 +103,7 @@ async def get_use_cases(
                 "verified": getattr(case, 'status', "") == "verified",
                 "featured": getattr(case, 'featured', False),
                 "tags": getattr(case, 'industry_tags', []),
-                "publishedBy": getattr(submitter, 'name', "Anonymous") if submitter else "Anonymous",
+                "publishedBy": getattr(submitter, 'name', case.factory_name or "Anonymous") if submitter else (getattr(case, 'factory_name', None) or "Anonymous"),
                 "publisherTitle": getattr(submitter, 'title', "Contributor") if submitter else "Contributor",
                 "publishedDate": "2 weeks ago",
                 # Extra fields helpful for the map
@@ -161,12 +161,11 @@ async def get_use_case_by_slug(
             should_increment = True
             if mongo_user:
                 user_id_str = str(mongo_user.id)
-                time_window_start = datetime.utcnow() - timedelta(minutes=30)
+                # Check if user has EVER viewed this use case (realistic view counting)
                 recent_view = await UserActivity.find_one(
                     UserActivity.user_id == user_id_str,
                     UserActivity.activity_type == "view",
                     UserActivity.target_id == str(use_case.id),
-                    UserActivity.created_at >= time_window_start,
                 )
                 if recent_view:
                     should_increment = False
@@ -194,7 +193,7 @@ async def get_use_case_by_slug(
             logger.warning(f"Detailed use case ID {use_case.detailed_version_id} not found for basic case {use_case.id}")
         return use_case
     except Exception as e:
-        logger.error(f"Error getting use case by slug '{slug}': {e}")
+        logger.error(f"Error getting use case by slug '{company_slug}/{title_slug}': {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve use case")
 
 

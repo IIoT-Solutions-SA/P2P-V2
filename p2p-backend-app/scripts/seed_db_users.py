@@ -15,6 +15,7 @@ from sqlalchemy import select, delete
 
 async def create_platform_user(email: str, password: str, first_name: str, last_name: str,
                                company_name: str, industry_sector: str, company_size: str, city: str,
+                               job_title: str,
                                logger=None) -> bool:
     """Create a full platform user (SuperTokens + our DBs) via custom signup."""
     try:
@@ -30,7 +31,8 @@ async def create_platform_user(email: str, password: str, first_name: str, last_
                     "companyName": company_name,
                     "industrySector": industry_sector,
                     "companySize": company_size,
-                    "city": city
+                    "city": city,
+                    "title": job_title
                 }
             )
             if response.status_code == 200 and response.json().get("status") == "OK":
@@ -63,7 +65,7 @@ async def seed_users():
         # --- User data with diverse industries and companies ---
         test_users = [
             # --- Existing 8 Users (Role updated to Admin) ---
-            {"email": "ahmed.faisal@advanced-electronics.com", "name": "Ahmed Al-Faisal", "first_name": "Ahmed", "last_name": "Al-Faisal", "password": "password123", "role": "admin", "company": "Advanced Electronics Co.", "title": "Organization Admin", "industry_sector": "Electronics", "company_size": "500+", "city": "Riyadh"},
+            {"email": "ahmed.faisal@advanced-electronics.com", "name": "Ahmed Al-Faisal", "first_name": "Ahmed", "last_name": "Al-Faisal", "password": "password123", "role": "admin", "company": "Advanced Electronics Co.", "title": "Operations Manager", "industry_sector": "Electronics", "company_size": "500+", "city": "Riyadh"},
             {"email": "sara.hassan@gulf-plastics.com", "name": "Sara Hassan", "first_name": "Sara", "last_name": "Hassan", "password": "password123", "role": "admin", "company": "Gulf Plastics Industries", "title": "Operations Lead", "industry_sector": "Plastics & Chemicals", "company_size": "200+", "city": "Dammam"},
             {"email": "mohammed.rashid@saudi-steel.com", "name": "Mohammed Rashid", "first_name": "Mohammed", "last_name": "Rashid", "password": "password123", "role": "admin", "company": "Saudi Steel Works", "title": "Factory Manager", "industry_sector": "Heavy Industry", "company_size": "1000+", "city": "Jubail"},
             {"email": "fatima.ali@arabian-food.com", "name": "Fatima Ali", "first_name": "Fatima", "last_name": "Ali", "password": "password123", "role": "admin", "company": "Arabian Food Processing", "title": "Supply Chain Director", "industry_sector": "Food & Beverage", "company_size": "300+", "city": "Jeddah"},
@@ -98,6 +100,7 @@ async def seed_users():
                 industry_sector=user_data.get("industry_sector", ""),
                 company_size=user_data.get("company_size", ""),
                 city=user_data.get("city", ""),
+                job_title=user_data.get("title", ""),
                 logger=logger
             )
             if ok:

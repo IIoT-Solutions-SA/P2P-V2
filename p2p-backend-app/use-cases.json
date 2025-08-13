@@ -7,13 +7,47 @@
     "city": "Riyadh",
     "latitude": 24.7136,
     "longitude": 46.6753,
-    "image": "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&h=400&fit=crop"
+    ],
     "category": "Quality Control",
     "implementationTime": "6 months implementation",
+    "roiPercentage": "250% ROI in first year",
+    "contactPerson": "Ahmed Al-Faisal",
+    "contactTitle": "Operations Manager",
     "benefits": [
       "85% reduction in defects",
       "$2.3M annual cost savings",
       "40% faster inspection process"
+    ],
+    "executive_summary": "Advanced Electronics Co. implemented an AI-powered computer vision system that achieved an 85% defect reduction and multi-million SAR annual savings.",
+    "business_challenge": {
+      "industry_context": "Electronics manufacturing quality demands",
+      "specific_problems": ["Manual inspection inconsistency", "Microscopic defects"],
+      "business_impact": {"financial_loss": "450K annual losses"}
+    },
+    "solution_details": {
+      "selection_criteria": ["99%+ accuracy", "Real-time"],
+      "vendor_evaluation": {"selected_vendor": "VisionTech Systems"},
+      "technology_components": [{"component": "AI/ML Engine", "details": "CNN models"}]
+    },
+    "implementation_details": {
+      "methodology": "Agile",
+      "total_budget": "285,000",
+      "total_duration": "26 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Defect Rate Reduction", "baseline": "15%", "current": "2.25%", "improvement": "85% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "2,300,000"}
+    },
+    "technical_architecture": {"system_overview": "Edge + Cloud"},
+    "future_roadmap": [
+      {"timeline": "Q2 2024", "initiative": "Assembly line expansion", "description": "Roll out to assembly"}
+    ],
+    "lessons_learned": [
+      {"category": "Technical", "lesson": "Data quality matters"}
     ]
   },
   {
@@ -24,13 +58,45 @@
     "city": "Dammam",
     "latitude": 26.4207,
     "longitude": 50.0888,
-    "image": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop"
+    ],
     "category": "Predictive Maintenance",
     "implementationTime": "4 months implementation",
+    "roiPercentage": "180% ROI in first year",
+    "contactPerson": "Sara Hassan",
+    "contactTitle": "Maintenance Supervisor",
     "benefits": [
       "60% downtime reduction",
       "$1.8M maintenance savings",
       "25% productivity increase"
+    ],
+    "executive_summary": "IoT-based predictive maintenance cut downtime by 60% and saved 1.8M annually.",
+    "business_challenge": {
+      "industry_context": "Plastics machinery reliability",
+      "specific_problems": ["Catastrophic failures"],
+      "business_impact": {"financial_loss": "2.8M"}
+    },
+    "solution_details": {
+      "selection_criteria": ["<5% false positives"],
+      "vendor_evaluation": {"selected_vendor": "IoT Solutions SA"}
+    },
+    "implementation_details": {
+      "methodology": "Phased rollout",
+      "total_budget": "450,000",
+      "total_duration": "16 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Unplanned Downtime", "baseline": "35%", "current": "14%", "improvement": "60% reduction"}
+      ]
+    },
+    "technical_architecture": {"system_overview": "Edge gateways + Cloud IoT"},
+    "future_roadmap": [
+      {"timeline": "Q3 2024", "initiative": "CMMS Integration"}
+    ],
+    "lessons_learned": [
+      {"category": "Integration", "lesson": "Pilot critical assets first"}
     ]
   },
   {
@@ -41,13 +107,51 @@
     "city": "Jubail",
     "latitude": 27.0174,
     "longitude": 49.6251,
-    "image": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&h=400&fit=crop"
+    ],
     "category": "Sustainability",
     "implementationTime": "3 months implementation",
+    "roiPercentage": "200% ROI in 18 months",
+    "contactPerson": "Omar Al-Rashid",
+    "contactTitle": "Energy Manager",
     "benefits": [
       "30% energy cost reduction",
       "$950K annual savings",
       "40% less carbon emissions"
+    ],
+    "executive_summary": "Saudi Steel Works deployed smart energy monitoring systems achieving 30% cost reduction and significant environmental benefits through optimized power consumption and renewable integration.",
+    "business_challenge": {
+      "industry_context": "Steel manufacturing energy intensity",
+      "specific_problems": ["High electricity costs", "Peak demand charges", "Carbon footprint"],
+      "business_impact": {"financial_loss": "3.2M annual energy costs"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Real-time monitoring", "Predictive analytics", "Renewable integration"],
+      "vendor_evaluation": {"selected_vendor": "Smart Energy Solutions KSA"},
+      "technology_components": [
+        {"component": "IoT Sensors", "details": "Real-time power monitoring"},
+        {"component": "Analytics Platform", "details": "Machine learning optimization"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Phased deployment",
+      "total_budget": "180,000",
+      "total_duration": "12 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Energy Cost Reduction", "baseline": "3.2M SAR", "current": "2.24M SAR", "improvement": "30% reduction"},
+        {"metric": "Carbon Emissions", "baseline": "850 tons CO2", "current": "510 tons CO2", "improvement": "40% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "950,000"}
+    },
+    "technical_architecture": {"system_overview": "Edge sensors + Cloud analytics + Mobile dashboards"},
+    "future_roadmap": [
+      {"timeline": "Q1 2025", "initiative": "Solar integration", "description": "Add 2MW solar capacity"}
+    ],
+    "lessons_learned": [
+      {"category": "Implementation", "lesson": "Start with high-consumption areas for maximum impact"}
     ]
   },
   {
@@ -58,13 +162,51 @@
     "city": "Jeddah",
     "latitude": 21.3891,
     "longitude": 39.8579,
-    "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=400&fit=crop"
+    ],
     "category": "Process Optimization",
     "implementationTime": "5 months implementation",
+    "roiPercentage": "160% ROI in first year",
+    "contactPerson": "Fatima Al-Zahra",
+    "contactTitle": "Supply Chain Director",
     "benefits": [
       "45% inventory optimization",
       "35% waste reduction",
       "90% reduction in stockouts"
+    ],
+    "executive_summary": "Arabian Food Processing transformed their supply chain with RFID technology, achieving 45% inventory optimization and eliminating stockouts while reducing food waste by 35%.",
+    "business_challenge": {
+      "industry_context": "Food processing inventory complexity",
+      "specific_problems": ["Manual tracking errors", "Food spoilage", "Stockout incidents"],
+      "business_impact": {"financial_loss": "1.8M annual waste and lost sales"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Food-grade RFID", "Real-time tracking", "ERP integration"],
+      "vendor_evaluation": {"selected_vendor": "RFID Food Solutions"},
+      "technology_components": [
+        {"component": "RFID Tags", "details": "Food-safe passive tags"},
+        {"component": "Reader Network", "details": "Warehouse and production readers"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Pilot then scale",
+      "total_budget": "320,000",
+      "total_duration": "20 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Inventory Accuracy", "baseline": "75%", "current": "99.5%", "improvement": "24.5% improvement"},
+        {"metric": "Waste Reduction", "baseline": "12%", "current": "7.8%", "improvement": "35% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "1,240,000"}
+    },
+    "technical_architecture": {"system_overview": "RFID infrastructure + WMS integration + Analytics dashboard"},
+    "future_roadmap": [
+      {"timeline": "Q2 2024", "initiative": "Supplier integration", "description": "Extend RFID to supplier network"}
+    ],
+    "lessons_learned": [
+      {"category": "Change Management", "lesson": "Staff training critical for adoption success"}
     ]
   },
   {
@@ -75,13 +217,51 @@
     "city": "Riyadh",
     "latitude": 24.7506,
     "longitude": 46.6444,
-    "image": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=400&fit=crop"
+    ],
     "category": "Factory Automation",
     "implementationTime": "8 months implementation",
+    "roiPercentage": "300% ROI in 2 years",
+    "contactPerson": "Khalid Al-Mansouri",
+    "contactTitle": "Production Director",
     "benefits": [
       "50% faster production",
       "95% accuracy improvement",
       "$3.2M productivity gains"
+    ],
+    "executive_summary": "Precision Manufacturing deployed collaborative robots achieving 50% production speed increase and 95% accuracy improvement, generating 3.2M SAR in productivity gains.",
+    "business_challenge": {
+      "industry_context": "Precision manufacturing quality demands",
+      "specific_problems": ["Manual assembly errors", "Production bottlenecks", "Labor shortages"],
+      "business_impact": {"financial_loss": "2.1M lost productivity annually"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Collaborative safety", "Flexible programming", "Quick ROI"],
+      "vendor_evaluation": {"selected_vendor": "Universal Robots Middle East"},
+      "technology_components": [
+        {"component": "Collaborative Robots", "details": "6-axis robotic arms"},
+        {"component": "Vision Systems", "details": "Quality inspection cameras"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Lean implementation",
+      "total_budget": "850,000",
+      "total_duration": "32 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Production Speed", "baseline": "100 units/hour", "current": "150 units/hour", "improvement": "50% increase"},
+        {"metric": "Defect Rate", "baseline": "5%", "current": "0.25%", "improvement": "95% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "3,200,000"}
+    },
+    "technical_architecture": {"system_overview": "Collaborative robots + Vision systems + MES integration"},
+    "future_roadmap": [
+      {"timeline": "Q4 2024", "initiative": "Line 2 automation", "description": "Expand to second production line"}
+    ],
+    "lessons_learned": [
+      {"category": "Safety", "lesson": "Comprehensive safety training essential for human-robot collaboration"}
     ]
   },
   {
@@ -92,13 +272,51 @@
     "city": "Al-Kharj",
     "latitude": 24.1486,
     "longitude": 47.3050,
-    "image": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=400&fit=crop"
+    ],
     "category": "Sustainability",
     "implementationTime": "4 months implementation",
+    "roiPercentage": "140% ROI in 2 years",
+    "contactPerson": "Nadia Al-Harbi",
+    "contactTitle": "Environmental Manager",
     "benefits": [
       "40% water usage reduction",
       "$650K cost savings",
       "Environmental compliance achieved"
+    ],
+    "executive_summary": "Agri-Tech Solutions implemented IoT-based water management reducing consumption by 40% while achieving full environmental compliance and significant cost savings.",
+    "business_challenge": {
+      "industry_context": "Water scarcity in agricultural processing",
+      "specific_problems": ["High water consumption", "Regulatory compliance", "Rising water costs"],
+      "business_impact": {"financial_loss": "1.6M annual water costs"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Real-time monitoring", "Leak detection", "Regulatory reporting"],
+      "vendor_evaluation": {"selected_vendor": "AquaTech IoT Solutions"},
+      "technology_components": [
+        {"component": "Smart Meters", "details": "Ultrasonic flow meters"},
+        {"component": "Leak Detection", "details": "Acoustic sensor network"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Zone-by-zone deployment",
+      "total_budget": "280,000",
+      "total_duration": "16 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Water Consumption", "baseline": "50,000 m³/month", "current": "30,000 m³/month", "improvement": "40% reduction"},
+        {"metric": "Water Costs", "baseline": "1.6M SAR", "current": "960K SAR", "improvement": "40% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "650,000"}
+    },
+    "technical_architecture": {"system_overview": "IoT sensors + Cloud analytics + Mobile monitoring"},
+    "future_roadmap": [
+      {"timeline": "Q3 2024", "initiative": "Recycling system", "description": "Add water recycling capabilities"}
+    ],
+    "lessons_learned": [
+      {"category": "Regulatory", "lesson": "Early engagement with authorities speeds approval process"}
     ]
   },
   {
@@ -109,13 +327,51 @@
     "city": "Al-Khobar",
     "latitude": 26.2172,
     "longitude": 50.1971,
-    "image": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop"
+    ],
     "category": "Innovation & R&D",
     "implementationTime": "6 months implementation",
+    "roiPercentage": "220% ROI in 18 months",
+    "contactPerson": "Dr. Rashid Al-Ghamdi",
+    "contactTitle": "R&D Director",
     "benefits": [
       "30% operational efficiency",
       "Real-time optimization",
       "$1.5M process improvements"
+    ],
+    "executive_summary": "Al-Khobar Advanced Manufacturing created comprehensive digital twins of their production systems, achieving 30% efficiency gains and 1.5M SAR in process improvements through predictive analytics.",
+    "business_challenge": {
+      "industry_context": "Complex manufacturing optimization",
+      "specific_problems": ["Process inefficiencies", "Unpredictable maintenance", "Limited visibility"],
+      "business_impact": {"financial_loss": "2.5M opportunity costs annually"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Real-time simulation", "Predictive capabilities", "Scalable architecture"],
+      "vendor_evaluation": {"selected_vendor": "Siemens Digital Industries"},
+      "technology_components": [
+        {"component": "Digital Twin Platform", "details": "MindSphere IoT operating system"},
+        {"component": "Simulation Engine", "details": "Real-time process modeling"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Agile digital transformation",
+      "total_budget": "650,000",
+      "total_duration": "24 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Overall Equipment Effectiveness", "baseline": "72%", "current": "94%", "improvement": "30% increase"},
+        {"metric": "Predictive Accuracy", "baseline": "N/A", "current": "92%", "improvement": "New capability"}
+      ],
+      "roi_analysis": {"annual_savings": "1,500,000"}
+    },
+    "technical_architecture": {"system_overview": "Digital twin platform + IoT integration + Analytics engine"},
+    "future_roadmap": [
+      {"timeline": "Q1 2025", "initiative": "Supply chain integration", "description": "Extend digital twin to supply network"}
+    ],
+    "lessons_learned": [
+      {"category": "Data Quality", "lesson": "High-quality sensor data is foundation for accurate digital twins"}
     ]
   },
   {
@@ -126,13 +382,51 @@
     "city": "Dammam",
     "latitude": 26.4207,
     "longitude": 50.0888,
-    "image": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800&h=400&fit=crop"
+    ],
     "category": "Supply Chain",
     "implementationTime": "7 months implementation",
+    "roiPercentage": "180% ROI in 2 years",
+    "contactPerson": "Mohammed Al-Qahtani",
+    "contactTitle": "Supply Chain Manager",
     "benefits": [
       "100% supply transparency",
       "Zero counterfeit products",
       "25% faster logistics"
+    ],
+    "executive_summary": "Secure Supply Co. implemented blockchain technology for complete supply chain transparency, eliminating counterfeit products and achieving 25% logistics speed improvement.",
+    "business_challenge": {
+      "industry_context": "Supply chain fraud and counterfeiting",
+      "specific_problems": ["Product authenticity", "Supply chain opacity", "Regulatory compliance"],
+      "business_impact": {"financial_loss": "3.8M annual fraud losses"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Immutable records", "Real-time tracking", "Partner integration"],
+      "vendor_evaluation": {"selected_vendor": "IBM Blockchain Platform"},
+      "technology_components": [
+        {"component": "Blockchain Network", "details": "Hyperledger Fabric"},
+        {"component": "Smart Contracts", "details": "Automated compliance checks"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Consortium approach",
+      "total_budget": "720,000",
+      "total_duration": "28 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Supply Chain Visibility", "baseline": "30%", "current": "100%", "improvement": "Complete transparency"},
+        {"metric": "Counterfeit Detection", "baseline": "60%", "current": "100%", "improvement": "Zero counterfeits"}
+      ],
+      "roi_analysis": {"annual_savings": "2,100,000"}
+    },
+    "technical_architecture": {"system_overview": "Blockchain network + Smart contracts + Partner integration APIs"},
+    "future_roadmap": [
+      {"timeline": "Q2 2024", "initiative": "Customer portal", "description": "Enable customer product verification"}
+    ],
+    "lessons_learned": [
+      {"category": "Partnership", "lesson": "Strong partner commitment essential for network success"}
     ]
   },
   {
@@ -143,13 +437,51 @@
     "city": "Riyadh",
     "latitude": 24.7180,
     "longitude": 46.6820,
-    "image": "https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=800&h=400&fit=crop"
+    ],
     "category": "Quality Control",
     "implementationTime": "5 months implementation",
+    "roiPercentage": "280% ROI in first year",
+    "contactPerson": "Dr. Layla Al-Sharif",
+    "contactTitle": "Quality Assurance Director",
     "benefits": [
       "99.9% defect detection",
       "FDA compliance achieved",
       "$2.8M quality improvements"
+    ],
+    "executive_summary": "Pharma Excellence deployed machine learning quality control achieving 99.9% defect detection accuracy, ensuring FDA compliance and generating 2.8M SAR in quality improvements.",
+    "business_challenge": {
+      "industry_context": "Pharmaceutical quality regulations",
+      "specific_problems": ["Microscopic defect detection", "Regulatory compliance", "Manual inspection limitations"],
+      "business_impact": {"financial_loss": "4.2M potential recall costs"}
+    },
+    "solution_details": {
+      "selection_criteria": ["FDA validation", "99%+ accuracy", "Real-time processing"],
+      "vendor_evaluation": {"selected_vendor": "Cognex Machine Vision"},
+      "technology_components": [
+        {"component": "AI Vision System", "details": "Deep learning algorithms"},
+        {"component": "High-resolution cameras", "details": "Microscopic defect detection"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Validated systems approach",
+      "total_budget": "580,000",
+      "total_duration": "20 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Defect Detection Rate", "baseline": "95%", "current": "99.9%", "improvement": "5.2% improvement"},
+        {"metric": "False Positive Rate", "baseline": "8%", "current": "0.1%", "improvement": "98.8% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "2,800,000"}
+    },
+    "technical_architecture": {"system_overview": "AI vision system + Quality management integration + Regulatory reporting"},
+    "future_roadmap": [
+      {"timeline": "Q3 2024", "initiative": "Packaging line", "description": "Extend AI inspection to packaging"}
+    ],
+    "lessons_learned": [
+      {"category": "Validation", "lesson": "Extensive validation documentation required for pharmaceutical applications"}
     ]
   },
   {
@@ -160,13 +492,51 @@
     "city": "Riyadh",
     "latitude": 24.7136,
     "longitude": 46.6753,
-    "image": "https://images.unsplash.com/photo-1592478411213-6153e4ebc696?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1592478411213-6153e4ebc696?w=800&h=400&fit=crop"
+    ],
     "category": "Training & Safety",
     "implementationTime": "3 months implementation",
+    "roiPercentage": "190% ROI in 18 months",
+    "contactPerson": "Hassan Al-Otaibi",
+    "contactTitle": "Safety Director",
     "benefits": [
       "70% faster training",
       "80% fewer accidents",
       "Enhanced worker safety"
+    ],
+    "executive_summary": "Safety First Industries implemented AR training systems achieving 70% faster training completion and 80% reduction in workplace accidents through immersive safety education.",
+    "business_challenge": {
+      "industry_context": "Industrial safety training effectiveness",
+      "specific_problems": ["Traditional training limitations", "High accident rates", "Knowledge retention"],
+      "business_impact": {"financial_loss": "1.9M annual accident costs"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Immersive experience", "Safety certification", "Easy content updates"],
+      "vendor_evaluation": {"selected_vendor": "Microsoft HoloLens Solutions"},
+      "technology_components": [
+        {"component": "AR Headsets", "details": "HoloLens 2 devices"},
+        {"component": "Training Platform", "details": "Custom safety scenarios"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Pilot program expansion",
+      "total_budget": "240,000",
+      "total_duration": "12 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Training Completion Time", "baseline": "40 hours", "current": "12 hours", "improvement": "70% reduction"},
+        {"metric": "Safety Incidents", "baseline": "25 per month", "current": "5 per month", "improvement": "80% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "1,520,000"}
+    },
+    "technical_architecture": {"system_overview": "AR headsets + Cloud training platform + Progress tracking"},
+    "future_roadmap": [
+      {"timeline": "Q4 2024", "initiative": "Maintenance training", "description": "Expand AR to maintenance procedures"}
+    ],
+    "lessons_learned": [
+      {"category": "User Adoption", "lesson": "Gradual introduction helps overcome technology resistance"}
     ]
   },
   {
@@ -177,13 +547,51 @@
     "city": "Dammam",
     "latitude": 26.3800,
     "longitude": 50.1280,
-    "image": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=400&fit=crop"
+    ],
     "category": "Energy Efficiency",
     "implementationTime": "2 months implementation",
+    "roiPercentage": "150% ROI in 14 months",
+    "contactPerson": "Yusuf Al-Dosari",
+    "contactTitle": "Facilities Manager",
     "benefits": [
       "45% energy savings",
       "Better worker visibility",
       "Reduced maintenance costs"
+    ],
+    "executive_summary": "Eastern Province Construction Materials deployed smart LED lighting achieving 45% energy savings while improving worker productivity through optimized lighting conditions and automated controls.",
+    "business_challenge": {
+      "industry_context": "Industrial facility energy costs",
+      "specific_problems": ["High lighting energy costs", "Poor visibility areas", "Maintenance overhead"],
+      "business_impact": {"financial_loss": "380K annual lighting costs"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Energy efficiency", "Automated controls", "Long lifespan"],
+      "vendor_evaluation": {"selected_vendor": "Philips Industrial Lighting"},
+      "technology_components": [
+        {"component": "Smart LED Fixtures", "details": "Connected lighting system"},
+        {"component": "Occupancy Sensors", "details": "Motion-activated controls"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Zone-by-zone replacement",
+      "total_budget": "120,000",
+      "total_duration": "8 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Energy Consumption", "baseline": "380K SAR/year", "current": "209K SAR/year", "improvement": "45% reduction"},
+        {"metric": "Maintenance Costs", "baseline": "45K SAR/year", "current": "12K SAR/year", "improvement": "73% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "204,000"}
+    },
+    "technical_architecture": {"system_overview": "Smart LED network + Occupancy sensors + Central control system"},
+    "future_roadmap": [
+      {"timeline": "Q1 2024", "initiative": "Daylight harvesting", "description": "Add natural light sensors"}
+    ],
+    "lessons_learned": [
+      {"category": "Implementation", "lesson": "Minimal production disruption with proper scheduling"}
     ]
   },
   {
@@ -194,13 +602,51 @@
     "city": "Jeddah",
     "latitude": 21.3891,
     "longitude": 39.8579,
-    "image": "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&h=400&fit=crop"
+    ],
     "category": "Factory Automation",
     "implementationTime": "4 months implementation",
+    "roiPercentage": "240% ROI in 18 months",
+    "contactPerson": "Amina Al-Rashid",
+    "contactTitle": "Production Manager",
     "benefits": [
       "300% faster packaging",
       "Zero product contamination",
       "$1.2M annual savings"
+    ],
+    "executive_summary": "Arabian Food Processing automated their packaging line with robotic systems achieving 300% speed increase while eliminating contamination and generating 1.2M SAR annual savings.",
+    "business_challenge": {
+      "industry_context": "Food packaging speed and safety",
+      "specific_problems": ["Manual packaging bottlenecks", "Contamination risks", "Labor shortages"],
+      "business_impact": {"financial_loss": "2.1M lost production capacity"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Food-grade materials", "High-speed capability", "Contamination prevention"],
+      "vendor_evaluation": {"selected_vendor": "KRONES Packaging Solutions"},
+      "technology_components": [
+        {"component": "Robotic Packaging System", "details": "Delta robots with vision"},
+        {"component": "Sterile Environment", "details": "Clean room packaging"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Lean installation",
+      "total_budget": "480,000",
+      "total_duration": "16 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Packaging Speed", "baseline": "500 units/hour", "current": "2000 units/hour", "improvement": "300% increase"},
+        {"metric": "Contamination Rate", "baseline": "0.3%", "current": "0%", "improvement": "100% elimination"}
+      ],
+      "roi_analysis": {"annual_savings": "1,200,000"}
+    },
+    "technical_architecture": {"system_overview": "Robotic packaging + Vision inspection + ERP integration"},
+    "future_roadmap": [
+      {"timeline": "Q3 2024", "initiative": "Secondary packaging", "description": "Automate case packing"}
+    ],
+    "lessons_learned": [
+      {"category": "Food Safety", "lesson": "Rigorous sanitation protocols essential for food automation"}
     ]
   },
   {
@@ -211,13 +657,51 @@
     "city": "Riyadh",
     "latitude": 24.6950,
     "longitude": 46.7150,
-    "image": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop"
+    ],
     "category": "Process Optimization",
     "implementationTime": "6 months implementation",
+    "roiPercentage": "195% ROI in 20 months",
+    "contactPerson": "Abdullah Al-Harthy",
+    "contactTitle": "Planning Manager",
     "benefits": [
       "35% efficiency increase",
       "Optimized resource usage",
       "$890K cost reduction"
+    ],
+    "executive_summary": "Precision Manufacturing implemented AI-powered production planning achieving 35% efficiency increase and 890K SAR cost reduction through optimized scheduling and resource allocation.",
+    "business_challenge": {
+      "industry_context": "Complex production scheduling",
+      "specific_problems": ["Manual planning inefficiencies", "Resource bottlenecks", "Demand variability"],
+      "business_impact": {"financial_loss": "2.5M opportunity costs"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Machine learning capabilities", "ERP integration", "Real-time optimization"],
+      "vendor_evaluation": {"selected_vendor": "Oracle Advanced Planning"},
+      "technology_components": [
+        {"component": "AI Planning Engine", "details": "Machine learning optimization"},
+        {"component": "Demand Forecasting", "details": "Predictive analytics"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Agile implementation",
+      "total_budget": "420,000",
+      "total_duration": "24 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Production Efficiency", "baseline": "68%", "current": "92%", "improvement": "35% increase"},
+        {"metric": "Resource Utilization", "baseline": "72%", "current": "89%", "improvement": "24% increase"}
+      ],
+      "roi_analysis": {"annual_savings": "890,000"}
+    },
+    "technical_architecture": {"system_overview": "AI planning engine + ERP integration + Real-time dashboards"},
+    "future_roadmap": [
+      {"timeline": "Q1 2025", "initiative": "Supply chain integration", "description": "Extend planning to suppliers"}
+    ],
+    "lessons_learned": [
+      {"category": "Data Integration", "lesson": "Clean master data essential for AI accuracy"}
     ]
   },
   {
@@ -228,13 +712,51 @@
     "city": "King Abdullah Economic City",
     "latitude": 22.4850,
     "longitude": 39.0900,
-    "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=400&fit=crop"
+    ],
     "category": "Supply Chain",
     "implementationTime": "5 months implementation",
+    "roiPercentage": "210% ROI in 18 months",
+    "contactPerson": "Noura Al-Balawi",
+    "contactTitle": "Warehouse Director",
     "benefits": [
       "99% inventory accuracy",
       "50% faster order fulfillment",
       "Reduced labor costs"
+    ],
+    "executive_summary": "Red Sea Logistics transformed warehouse operations with smart technology achieving 99% inventory accuracy and 50% faster order fulfillment while reducing labor costs significantly.",
+    "business_challenge": {
+      "industry_context": "Logistics efficiency demands",
+      "specific_problems": ["Inventory inaccuracies", "Slow order fulfillment", "High labor costs"],
+      "business_impact": {"financial_loss": "1.8M operational inefficiencies"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Real-time tracking", "Automated workflows", "Scalable architecture"],
+      "vendor_evaluation": {"selected_vendor": "Manhattan Associates WMS"},
+      "technology_components": [
+        {"component": "RFID Infrastructure", "details": "Passive and active tags"},
+        {"component": "Automated Guided Vehicles", "details": "AGV fleet for material handling"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Phased automation",
+      "total_budget": "680,000",
+      "total_duration": "20 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Inventory Accuracy", "baseline": "85%", "current": "99%", "improvement": "16.5% improvement"},
+        {"metric": "Order Fulfillment Time", "baseline": "4 hours", "current": "2 hours", "improvement": "50% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "1,350,000"}
+    },
+    "technical_architecture": {"system_overview": "Smart warehouse system + RFID network + AGV integration"},
+    "future_roadmap": [
+      {"timeline": "Q2 2024", "initiative": "AI optimization", "description": "Add machine learning for route optimization"}
+    ],
+    "lessons_learned": [
+      {"category": "Automation", "lesson": "Gradual automation reduces disruption and training needs"}
     ]
   },
   {
@@ -245,13 +767,51 @@
     "city": "Tabuk",
     "latitude": 28.3833,
     "longitude": 36.5667,
-    "image": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=250&fit=crop",
+    "images": [
+      "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&h=400&fit=crop"
+    ],
     "category": "Sustainability",
     "implementationTime": "8 months implementation",
+    "roiPercentage": "170% ROI in 3 years",
+    "contactPerson": "Dr. Tariq Al-Shamrani",
+    "contactTitle": "Sustainability Director",
     "benefits": [
       "60% renewable energy",
       "$750K annual savings",
       "Carbon neutral operations"
+    ],
+    "executive_summary": "NEOM Solar Power Systems achieved 60% renewable energy integration with smart grid technology, generating 750K SAR annual savings while reaching carbon neutral operations.",
+    "business_challenge": {
+      "industry_context": "Industrial carbon footprint reduction",
+      "specific_problems": ["High energy costs", "Carbon emissions", "Grid dependency"],
+      "business_impact": {"financial_loss": "4.5M annual energy costs"}
+    },
+    "solution_details": {
+      "selection_criteria": ["Grid integration", "Energy storage", "Monitoring capabilities"],
+      "vendor_evaluation": {"selected_vendor": "First Solar Middle East"},
+      "technology_components": [
+        {"component": "Solar Panel Array", "details": "2.5MW solar installation"},
+        {"component": "Battery Storage", "details": "1.2MWh lithium-ion storage"}
+      ]
+    },
+    "implementation_details": {
+      "methodology": "EPC contract",
+      "total_budget": "2,800,000",
+      "total_duration": "32 weeks"
+    },
+    "results": {
+      "quantitative_metrics": [
+        {"metric": "Renewable Energy Share", "baseline": "0%", "current": "60%", "improvement": "60% renewable"},
+        {"metric": "Carbon Emissions", "baseline": "2,400 tons CO2", "current": "0 tons CO2", "improvement": "100% reduction"}
+      ],
+      "roi_analysis": {"annual_savings": "750,000"}
+    },
+    "technical_architecture": {"system_overview": "Solar array + Battery storage + Smart grid integration"},
+    "future_roadmap": [
+      {"timeline": "Q4 2024", "initiative": "Grid export", "description": "Enable excess energy sales to grid"}
+    ],
+    "lessons_learned": [
+      {"category": "Regulatory", "lesson": "Early coordination with utility essential for grid connection"}
     ]
   }
 ]

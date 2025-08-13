@@ -127,6 +127,8 @@ export default function UseCaseDetail() {
         }
         const data = await response.json();
         setUseCase(data);
+        // Scroll to top when use case loads
+        window.scrollTo(0, 0);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An unknown error occurred.");
       } finally {

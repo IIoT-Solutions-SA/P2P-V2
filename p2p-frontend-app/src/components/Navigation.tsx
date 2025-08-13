@@ -100,7 +100,7 @@ export default function Navigation() {
                       {user?.firstName} {user?.lastName}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {user?.role === 'admin' ? 'Organization Admin' : 'Team Member'} • {organization?.name}
+                      {user?.title} • {user?.role === 'admin' ? 'Admin' : 'Member'} • {organization?.name}
                     </div>
                   </div>
                 </button>

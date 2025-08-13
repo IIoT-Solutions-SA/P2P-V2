@@ -10,12 +10,14 @@ import UseCaseDetail from './pages/UseCaseDetail'
 import UserManagement from './pages/UserManagement'
 import Navigation, { MobileNavigation } from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
+import ScrollToTop from './components/ScrollToTop'
 import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <div className="min-h-screen">
           <Navigation />
           <main>

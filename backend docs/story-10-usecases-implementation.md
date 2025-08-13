@@ -59,10 +59,22 @@ Key validated fields (subset):
 
 ### Page: `p2p-frontend-app/src/pages/UseCaseDetail.tsx`
 - Safe wrapping applied to prevent overlap in long strings across sections (solution overview, vendor evaluation, meta grids)
+- Added scroll-to-top behavior when use case data loads to ensure users start at the top of the page
+
+### Component: `p2p-frontend-app/src/components/ScrollToTop.tsx`
+- Global scroll-to-top component that automatically scrolls to top on any route change
+- Integrated into App.tsx to provide consistent navigation behavior across all pages
+
+### Navigation UX Improvements
+- Fixed issue where clicking on use cases would navigate to middle/bottom of detail page
+- Implemented dual scroll-to-top mechanism: global route-based + specific use case load-based
+- Ensures users always start at the top when viewing use case details
 
 ## Data Model Notes (Mongo)
 - Uses existing `UseCase` document with rich sections and indexes
-- Submissions are created as a single document and shown as a list projection and a full detail view; no separate “basic vs. detailed” pair is created at submit time
+- Submissions are created as a single document and shown as a list projection and a full detail view; no separate "basic vs. detailed" pair is created at submit time
+- **Unified Model**: All use cases (seeded and user-submitted) now use the same complete data structure with full detailed fields
+- **Realistic Metrics**: All engagement metrics (views, likes, bookmarks) start at 0 and increment only through actual user interactions
 
 ## API Summary (updated)
 - `POST /api/v1/use-cases` — Submit a new use case (session required)
@@ -86,6 +98,7 @@ Key validated fields (subset):
 
 Backend
 - Model: extended `UseCase` (Mongo) with `liked_by: List[str]` and existing counters (`view_count`, `like_count`, `bookmark_count`).
+- Seeding: All use cases now start with realistic counts (0 views, 0 likes, 0 bookmarks) instead of random values
 - Endpoints (FastAPI, `app/api/v1/endpoints/usecases.py`):
   - `GET /api/v1/use-cases/{company_slug}/{title_slug}` increments `view_count` with a 30‑minute per‑user dedupe using `UserActivity` entries of type `view` (prevents dev StrictMode double bumps).
   - `POST /api/v1/use-cases/{company_slug}/{title_slug}/like` toggles like for the session user, maintains `liked_by`, and updates `like_count`. Activity logged via `UserActivityService`.
@@ -101,6 +114,8 @@ Frontend
 ### B) Forum Saved Posts — DONE
 
 Backend
+- View tracking: Forum post views are now deduplicated per user using `UserActivity` records; users who reply to a post are automatically considered to have viewed it
+- Seeding: Forum posts start with realistic view counts based on actual user activities instead of random values
 - Endpoints (FastAPI, `app/api/v1/endpoints/forum.py`):
   - `GET /api/v1/forum/bookmarks` returns bookmarked forum posts for the current user.
   - `POST /api/v1/forum/posts/{post_id}/bookmark` toggles bookmark via `UserActivityService.add_bookmark(...)` and recalculates `UserStats` (also on unbookmark) so dashboard totals stay in sync.

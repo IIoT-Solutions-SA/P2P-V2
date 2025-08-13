@@ -61,6 +61,7 @@ class ForumPost(Document):
     has_best_answer: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    edited_at: Optional[datetime] = None
     class Settings:
         name = "forum_posts"
         indexes = [
@@ -78,8 +79,10 @@ class ForumReply(Document):
     upvotes: int = 0
     liked_by: List[str] = Field(default_factory=list)
     is_best_answer: bool = False
+    status: str = "published"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    edited_at: Optional[datetime] = None
     class Settings:
         name = "forum_replies"
         indexes = [
@@ -221,6 +224,7 @@ class UseCase(Document):
     liked_by: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    edited_at: Optional[datetime] = None
     
     class Settings:
         name = "use_cases"

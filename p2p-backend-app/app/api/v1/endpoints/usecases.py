@@ -19,9 +19,105 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.database_service import UserService
 from app.services.user_activity_service import UserActivityService
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class QuantitativeResultUpdate(BaseModel):
+    metric: Optional[str] = None
+    baseline: Optional[str] = None
+    current: Optional[str] = None
+    improvement: Optional[str] = None
+
+class ChallengeSolutionUpdate(BaseModel):
+    challenge: Optional[str] = None
+    description: Optional[str] = None
+    solution: Optional[str] = None
+    outcome: Optional[str] = None
+
+class UseCaseUpdate(BaseModel):
+    # Basic Information
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    description: Optional[str] = None  # Executive summary
+    category: Optional[str] = None
+    factoryName: Optional[str] = None
+
+    # Location
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+    # Business Challenge
+    industryContext: Optional[str] = None
+    specificProblems: Optional[List[str]] = None
+    financialLoss: Optional[str] = None
+
+    # Solution Overview
+    selectionCriteria: Optional[List[str]] = None
+    selectedVendor: Optional[str] = None
+    technologyComponents: Optional[List[str]] = None
+
+    # Implementation
+    implementationTime: Optional[str] = None
+    totalBudget: Optional[str] = None
+    methodology: Optional[str] = None
+
+    # Results
+    quantitativeResults: Optional[List[QuantitativeResultUpdate]] = None
+    roiPercentage: Optional[str] = None
+    annualSavings: Optional[str] = None
+
+    # Challenges & Solutions
+    challengesSolutions: Optional[List[ChallengeSolutionUpdate]] = None
+
+    # Contact & Media
+    contactPerson: Optional[str] = None
+    contactTitle: Optional[str] = None
+    images: Optional[List[str]] = None
+
+    # Additional optional fields
+    industryTags: Optional[List[str]] = None
+    technologyTags: Optional[List[str]] = None
+    vendorProcess: Optional[str] = None
+    vendorSelectionReasons: Optional[List[str]] = None
+    projectTeamInternal: Optional[List[dict]] = None
+    projectTeamVendor: Optional[List[dict]] = None
+    phases: Optional[List[dict]] = None
+    qualitativeImpacts: Optional[List[str]] = None
+    roiTotalInvestment: Optional[str] = None
+    roiThreeYearRoi: Optional[str] = None
+
+# Get use case by ID for editing
+@router.get("/by-id/{use_case_id}")
+async def get_use_case_by_id(
+    use_case_id: str,
+    session: SessionContainer = Depends(verify_session())
+):
+    """Get a specific use case by its MongoDB ID for editing purposes"""
+    try:
+        # Validate ObjectId format
+        if not ObjectId.is_valid(use_case_id):
+            raise HTTPException(status_code=400, detail="Invalid use case ID format")
+        
+        # Find the use case
+        use_case = await UseCase.find_one(UseCase.id == ObjectId(use_case_id))
+        if not use_case:
+            raise HTTPException(status_code=404, detail="Use case not found")
+        
+        # Convert to dict and return - this will include all nested fields needed for editing
+        use_case_dict = use_case.model_dump()
+        use_case_dict["_id"] = str(use_case.id)
+        
+        return use_case_dict
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching use case by ID {use_case_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 # This is the main endpoint for listing use cases
 @router.get("/")
@@ -33,7 +129,7 @@ async def get_use_cases(
     session: SessionContainer = Depends(verify_session())
 ):
     try:
-        query = {"published": True, "is_detailed_version": {"$ne": True}}
+        query = {"published": True, "is_detailed_version": {"$ne": True}, "status": {"$ne": "deleted"}}
         if category and category != "all":
             category_map = { "automation": "Factory Automation", "quality": "Quality Control", "maintenance": "Predictive Maintenance", "efficiency": "Process Optimization", "innovation": "Innovation & R&D", "sustainability": "Sustainability" }
             if category in category_map: query["category"] = category_map[category]
@@ -374,7 +470,7 @@ async def get_use_case_bookmarks(
         if not target_ids:
             return []
 
-        cases = await UseCase.find(In(UseCase.id, target_ids)).to_list()
+        cases = await UseCase.find(In(UseCase.id, target_ids), {"status": {"$ne": "deleted"}}).to_list()
         case_map = {str(c.id): c for c in cases}
         response = []
         for b in bookmarks:
@@ -413,7 +509,7 @@ async def get_use_case_bookmarks(
 async def get_use_case_categories(session: SessionContainer = Depends(verify_session())):
     try:
         pipeline = [
-            {"$match": {"published": True, "is_detailed_version": {"$ne": True}}},
+            {"$match": {"published": True, "is_detailed_version": {"$ne": True}, "status": {"$ne": "deleted"}}},
             {"$group": {"_id": "$category", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}}
         ]
@@ -421,7 +517,7 @@ async def get_use_case_categories(session: SessionContainer = Depends(verify_ses
         category_counts_list = await category_counts_cursor.to_list(length=100)
         
         category_counts = {item['_id']: item['count'] for item in category_counts_list if item['_id']}
-        total_cases = await UseCase.find({"published": True, "is_detailed_version": {"$ne": True}}).count()
+        total_cases = await UseCase.find({"published": True, "is_detailed_version": {"$ne": True}, "status": {"$ne": "deleted"}}).count()
 
         category_definitions = [
             {"id": "automation", "name": "Factory Automation"},
@@ -450,16 +546,16 @@ async def get_use_case_categories(session: SessionContainer = Depends(verify_ses
 @router.get("/stats")
 async def get_use_case_stats(session: SessionContainer = Depends(verify_session())):
     try:
-        total_use_cases = await UseCase.find({"published": True, "is_detailed_version": {"$ne": True}}).count()
+        total_use_cases = await UseCase.find({"published": True, "is_detailed_version": {"$ne": True}, "status": {"$ne": "deleted"}}).count()
         pipeline = [
-            {"$match": {"published": True, "factory_name": {"$ne": None}}},
+            {"$match": {"published": True, "factory_name": {"$ne": None}, "status": {"$ne": "deleted"}}},
             {"$group": {"_id": "$factory_name"}},
             {"$count": "unique_companies"}
         ]
         companies_cursor = UseCase.aggregate(pipeline)
         companies_result = await companies_cursor.to_list(length=1)
         contributing_companies = companies_result[0]['unique_companies'] if companies_result else 0
-        success_stories = await UseCase.find({"published": True, "featured": True}).count()
+        success_stories = await UseCase.find({"published": True, "featured": True, "status": {"$ne": "deleted"}}).count()
         
         return {
             "totalUseCases": total_use_cases,
@@ -498,3 +594,52 @@ async def get_top_contributors(
     except Exception as e:
         logger.error(f"Error getting top contributors: {e}")
         raise HTTPException(status_code=500, detail="Failed to get top contributors")
+
+
+@router.put("/{use_case_id}")
+async def update_use_case(
+    use_case_id: str,
+    update_data: UseCaseUpdate,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a use case (only by author)"""
+    try:
+        supertokens_user_id = session.get_user_id()
+        
+        updated_use_case = await UseCaseSubmissionService.update_use_case(
+            db=db,
+            user_supertokens_id=supertokens_user_id,
+            use_case_id=use_case_id,
+            update_data=update_data.dict(exclude_unset=True)
+        )
+        return {"success": True, "use_case": {"id": str(updated_use_case.id), "title": updated_use_case.title}}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating use case {use_case_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update use case")
+
+
+@router.delete("/{use_case_id}", status_code=204)
+async def delete_use_case(
+    use_case_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a use case (only by author) - soft delete"""
+    try:
+        supertokens_user_id = session.get_user_id()
+        result = await UseCaseSubmissionService.delete_use_case(
+            db=db,
+            user_supertokens_id=supertokens_user_id,
+            use_case_id=use_case_id
+        )
+        # Return 204 No Content on successful delete (no response body)
+        from fastapi import Response
+        return Response(status_code=204)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting use case {use_case_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete use case")

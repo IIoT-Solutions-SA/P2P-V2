@@ -3,6 +3,7 @@ from typing import Dict
 
 from bson import ObjectId
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException
 
 from app.models.mongo_models import ForumPost, ForumReply, User as MongoUser
 from app.services.database_service import UserService
@@ -94,5 +95,74 @@ class ForumService:
             document.upvotes += 1
             await document.save()
             return {"liked": True, "likes": document.upvotes}
+
+    @staticmethod
+    async def update_post(
+        user_supertokens_id: str,
+        post_id: str,
+        update_data: dict,
+        db: AsyncSession,
+    ) -> ForumPost:
+        """Update a forum post with authorization check"""
+        pg_user = await UserService.get_user_by_supertokens_id(db, user_supertokens_id)
+        if not pg_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        try:
+            post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+        except Exception:
+            post = None
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        # AUTHORIZATION CHECK - only author can edit their post
+        if post.author_id != str(mongo_user.id):
+            raise HTTPException(status_code=403, detail="User not authorized to edit this post")
+
+        # Update the post with edited timestamp
+        update_query = {"$set": {**update_data, "edited_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+        await post.update(update_query)
+        
+        # Return the updated post
+        return await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+
+    @staticmethod
+    async def delete_post(
+        user_supertokens_id: str,
+        post_id: str,
+        db: AsyncSession,
+    ) -> dict:
+        """Soft delete a forum post with authorization check"""
+        pg_user = await UserService.get_user_by_supertokens_id(db, user_supertokens_id)
+        if not pg_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        try:
+            post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+        except Exception:
+            post = None
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        # AUTHORIZATION CHECK - only author can delete their post
+        if post.author_id != str(mongo_user.id):
+            raise HTTPException(status_code=403, detail="User not authorized to delete this post")
+
+        # SOFT DELETE: Update status instead of permanently deleting
+        await post.update({"$set": {"status": "deleted", "updated_at": datetime.utcnow()}})
+        
+        # Optional: Update user stats to reflect the deletion
+        # This could be implemented later if needed
+        # await UserActivityService.recalculate_user_stats(str(mongo_user.id))
+        
+        return {"status": "deleted"}
 
 

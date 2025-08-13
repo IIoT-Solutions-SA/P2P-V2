@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -138,10 +139,17 @@ const categories = [
 ]
 
 export default function SubmitUseCase() {
+  const [searchParams] = useSearchParams()
+  const editUseCaseId = searchParams.get('edit')
+  const isEditMode = !!editUseCaseId
+
   const [currentStep, setCurrentStep] = useState(1)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isLoadingExistingData, setIsLoadingExistingData] = useState(false)
+  const [validationModalOpen, setValidationModalOpen] = useState(false)
+  const [validationMessage, setValidationMessage] = useState("")
   
   // State for dynamic arrays
   const [specificProblems, setSpecificProblems] = useState<string[]>(["", ""])
@@ -166,6 +174,13 @@ export default function SubmitUseCase() {
   // Tags (optional)
   const [industryTags, setIndustryTags] = useState<string[]>([])
   const [technologyTags, setTechnologyTags] = useState<string[]>([])
+  // Technical Architecture
+  const [systemOverview, setSystemOverview] = useState<string>("")
+  const [architectureComponents, setArchitectureComponents] = useState<Array<{layer: string, components: string[], specifications: string}>>([
+    { layer: "", components: [""], specifications: "" }
+  ])
+  const [securityMeasures, setSecurityMeasures] = useState<string[]>([""])
+  const [scalabilityDesign, setScalabilityDesign] = useState<string[]>([""])
   // ROI extras (optional)
   const [roiTotalInvestment, setRoiTotalInvestment] = useState<string>("")
   const [roiThreeYearRoi, setRoiThreeYearRoi] = useState<string>("")
@@ -237,13 +252,107 @@ export default function SubmitUseCase() {
     }
   })
 
+  // Fetch existing use case data when in edit mode
+  useEffect(() => {
+    if (isEditMode && editUseCaseId) {
+      const fetchExistingUseCase = async () => {
+        setIsLoadingExistingData(true)
+        try {
+          const response = await fetch(`http://localhost:8000/api/v1/use-cases/by-id/${editUseCaseId}`, {
+            credentials: 'include'
+          })
+          if (!response.ok) {
+            throw new Error('Failed to fetch use case data')
+          }
+          const data = await response.json()
+          
+          // Pre-populate form fields with existing data
+          form.setValue('title', data.title || '')
+          form.setValue('subtitle', data.subtitle || '')
+          form.setValue('description', data.executive_summary || '')
+          form.setValue('category', data.category || '')
+          form.setValue('factoryName', data.factory_name || '')
+          form.setValue('city', data.location?.city || '')
+          form.setValue('latitude', data.location?.lat || 24.7136)
+          form.setValue('longitude', data.location?.lng || 46.6753)
+          
+          // Business Challenge
+          form.setValue('industryContext', data.business_challenge?.industry_context || '')
+          form.setValue('financialLoss', data.business_challenge?.business_impact?.financial_loss || '')
+          
+          // Pre-populate dynamic arrays with existing data
+          if (data.business_challenge?.specific_problems?.length > 0) {
+            const problems = data.business_challenge.specific_problems
+            setSpecificProblems(problems.length < 2 ? [...problems, ""] : problems)
+            form.setValue('specificProblems', problems.length < 2 ? [...problems, ""] : problems)
+          }
+          
+          if (data.solution_details?.selection_criteria?.length > 0) {
+            const criteria = data.solution_details.selection_criteria
+            setSelectionCriteria(criteria.length < 2 ? [...criteria, ""] : criteria)
+            form.setValue('selectionCriteria', criteria.length < 2 ? [...criteria, ""] : criteria)
+          }
+          
+          form.setValue('selectedVendor', data.solution_details?.vendor_evaluation?.selected_vendor || '')
+          
+          if (data.solution_details?.technology_components?.length > 0) {
+            const components = data.solution_details.technology_components.map((comp: any) => 
+              typeof comp === 'string' ? comp : `${comp.component}: ${comp.details}`
+            )
+            setTechnologyComponents(components.length === 0 ? [""] : components)
+            form.setValue('technologyComponents', components.length === 0 ? [""] : components)
+          }
+          
+          // Implementation
+          form.setValue('implementationTime', data.implementation_time || '')
+          form.setValue('totalBudget', data.implementation_details?.total_budget || '')
+          form.setValue('methodology', data.implementation_details?.methodology || '')
+          
+          // Results
+          if (data.results?.quantitative_results?.length > 0) {
+            const results = data.results.quantitative_results
+            setQuantitativeResults(results.length < 2 ? [...results, { metric: "", baseline: "", current: "", improvement: "" }] : results)
+            form.setValue('quantitativeResults', results.length < 2 ? [...results, { metric: "", baseline: "", current: "", improvement: "" }] : results)
+          }
+          
+          form.setValue('roiPercentage', data.roi_percentage || '')
+          form.setValue('annualSavings', data.results?.annual_savings || '')
+          
+          // Challenges & Solutions
+          if (data.results?.challenges_solutions?.length > 0) {
+            const challenges = data.results.challenges_solutions
+            setChallengesSolutions(challenges)
+            form.setValue('challengesSolutions', challenges)
+          }
+          
+          // Contact
+          form.setValue('contactPerson', data.contact_person || '')
+          form.setValue('contactTitle', data.contact_title || '')
+          
+          // Note: Images would need special handling for edit mode since they're already uploaded
+          // For now, we'll show them but won't pre-populate the file upload
+          
+        } catch (error) {
+          console.error('Error fetching existing use case:', error)
+          setValidationMessage('Failed to load existing use case data. Please try again.')
+          setValidationModalOpen(true)
+        } finally {
+          setIsLoadingExistingData(false)
+        }
+      }
+      
+      fetchExistingUseCase()
+    }
+  }, [isEditMode, editUseCaseId, form])
+
   const steps = [
     { number: 1, title: "Basic Information", icon: Factory },
     { number: 2, title: "Business Challenge", icon: Target },
     { number: 3, title: "Solution & Implementation", icon: Zap },
-    { number: 4, title: "Results & Challenges", icon: BarChart3 },
-    { number: 5, title: "Location & Contact", icon: MapPin },
-    { number: 6, title: "Review & Submit", icon: CheckCircle }
+    { number: 4, title: "Technical Architecture", icon: Wrench },
+    { number: 5, title: "Results & Challenges", icon: BarChart3 },
+    { number: 6, title: "Location & Contact", icon: MapPin },
+    { number: 7, title: "Review & Submit", icon: CheckCircle }
   ]
 
   // Helper functions for dynamic arrays
@@ -390,19 +499,28 @@ export default function SubmitUseCase() {
         technologyTags,
       }
 
-      const res = await fetch('http://localhost:8000/api/v1/use-cases', {
-        method: 'POST',
+      // Use PUT for edit mode, POST for create mode
+      const url = isEditMode 
+        ? `http://localhost:8000/api/v1/use-cases/${editUseCaseId}`
+        : 'http://localhost:8000/api/v1/use-cases'
+      
+      const method = isEditMode ? 'PUT' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload)
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || 'Submission failed')
+        throw new Error(err.detail || `${isEditMode ? 'Update' : 'Submission'} failed`)
       }
       setIsSubmitted(true)
     } catch (error) {
-      console.error('Error submitting use case:', error)
+      console.error(`Error ${isEditMode ? 'updating' : 'submitting'} use case:`, error)
+      setValidationMessage(`Error ${isEditMode ? 'updating' : 'submitting'} use case. Please try again.`)
+      setValidationModalOpen(true)
     } finally {
       setIsSubmitting(false)
     }
@@ -413,19 +531,58 @@ export default function SubmitUseCase() {
     1: ['title', 'subtitle', 'description', 'category', 'factoryName'],
     2: ['industryContext', 'specificProblems', 'financialLoss'],
     3: ['selectionCriteria', 'selectedVendor', 'technologyComponents', 'implementationTime', 'totalBudget', 'methodology'],
-    4: ['quantitativeResults', 'challengesSolutions'],
-    5: ['city', 'latitude', 'longitude', 'images'],
-    6: []
+    4: [], // Technical Architecture is optional
+    5: ['quantitativeResults', 'challengesSolutions'],
+    6: ['city', 'latitude', 'longitude', 'images'],
+    7: []
   }
 
   const handleNext = async () => {
     const fields = stepFields[currentStep] || []
     const valid = await form.trigger(fields as any, { shouldFocus: true })
     if (!valid) {
-      alert('Please complete the required fields on this step before continuing.')
+      // Get specific field errors
+      const missingFields = []
+      
+      // Check each field for this step and collect missing ones
+      if (currentStep === 1) {
+        if (!form.getValues('title')?.trim()) missingFields.push('Use Case Title (minimum 10 characters)')
+        if (!form.getValues('subtitle')?.trim()) missingFields.push('Subtitle (minimum 10 characters)')
+        if (!form.getValues('description')?.trim()) missingFields.push('Executive Summary (minimum 50 characters)')
+        if (!form.getValues('category')) missingFields.push('Category selection')
+        if (!form.getValues('factoryName')?.trim()) missingFields.push('Factory Name (minimum 2 characters)')
+      } else if (currentStep === 2) {
+        if (!form.getValues('industryContext')?.trim()) missingFields.push('Industry Context (minimum 50 characters)')
+        if (specificProblems.filter(p => p.trim()).length < 2) missingFields.push('At least 2 Specific Problems (minimum 10 characters each)')
+        if (!form.getValues('financialLoss')?.trim()) missingFields.push('Financial Impact description')
+      } else if (currentStep === 3) {
+        if (selectionCriteria.filter(c => c.trim()).length < 2) missingFields.push('At least 2 Selection Criteria (minimum 10 characters each)')
+        if (!form.getValues('selectedVendor')?.trim()) missingFields.push('Selected Vendor/Partner name')
+        if (technologyComponents.filter(t => t.trim()).length < 1) missingFields.push('At least 1 Technology Component (minimum 20 characters)')
+        if (!form.getValues('implementationTime')?.trim()) missingFields.push('Implementation Duration')
+        if (!form.getValues('totalBudget')?.trim()) missingFields.push('Total Budget')
+        if (!form.getValues('methodology')?.trim()) missingFields.push('Implementation Methodology (minimum 20 characters)')
+      } else if (currentStep === 5) {
+        if (quantitativeResults.filter(r => r.metric.trim() && r.baseline.trim() && r.current.trim() && r.improvement.trim()).length < 2) {
+          missingFields.push('At least 2 complete Quantitative Results (metric, baseline, current, improvement)')
+        }
+        if (challengesSolutions.filter(c => c.challenge.trim() && c.description.trim() && c.solution.trim() && c.outcome.trim()).length < 1) {
+          missingFields.push('At least 1 complete Challenge & Solution (challenge, description, solution, outcome)')
+        }
+      } else if (currentStep === 6) {
+        if (!form.getValues('city')?.trim()) missingFields.push('City name (minimum 2 characters)')
+        if (uploadedImages.length < 1) missingFields.push('At least 1 uploaded image')
+      }
+
+      const message = missingFields.length > 0 
+        ? `Please complete the following required fields:\n\n• ${missingFields.join('\n• ')}`
+        : 'Please complete the required fields on this step before continuing.'
+        
+      setValidationMessage(message)
+      setValidationModalOpen(true)
       return
     }
-    if (currentStep < 6) setCurrentStep(currentStep + 1)
+    if (currentStep < 7) setCurrentStep(currentStep + 1)
   }
 
   const prevStep = () => {
@@ -439,16 +596,34 @@ export default function SubmitUseCase() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">Use Case Submitted Successfully!</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mb-4">
+            {isEditMode ? 'Use Case Updated Successfully!' : 'Use Case Submitted Successfully!'}
+          </h1>
           <p className="text-slate-600 mb-6">
-            Thank you for sharing your factory success story. Our team will review your submission and it will be published on the platform soon.
+            {isEditMode 
+              ? 'Your use case has been updated successfully and the changes are now live.'
+              : 'Thank you for sharing your factory success story. Our team will review your submission and it will be published on the platform soon.'
+            }
           </p>
           <Button 
-            onClick={() => window.location.reload()} 
+            onClick={() => window.location.href = '/usecases'} 
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
-            Submit Another Use Case
+            {isEditMode ? 'View Use Cases' : 'Browse Use Cases'}
           </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading overlay while fetching existing data
+  if (isLoadingExistingData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">Loading Use Case Data...</h2>
+          <p className="text-slate-600">Please wait while we fetch your existing data.</p>
         </div>
       </div>
     )
@@ -460,8 +635,15 @@ export default function SubmitUseCase() {
       <div className="bg-white border-b border-slate-200">
         <div className="container mx-auto px-6 py-8">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-slate-900 mb-4">Submit Your Success Story</h1>
-            <p className="text-xl text-slate-600">Share your factory's transformation with the community</p>
+            <h1 className="text-4xl font-bold text-slate-900 mb-4">
+              {isEditMode ? 'Edit Your Success Story' : 'Submit Your Success Story'}
+            </h1>
+            <p className="text-xl text-slate-600">
+              {isEditMode 
+                ? 'Update your factory transformation story' 
+                : 'Share your factory\'s transformation with the community'
+              }
+            </p>
           </div>
 
           {/* Progress Steps */}
@@ -507,7 +689,36 @@ export default function SubmitUseCase() {
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, () => { alert('Some required fields are missing or invalid. Please review highlighted fields.') })} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit, (errors) => { 
+              // Get specific validation errors
+              const errorMessages = []
+              
+              if (errors.title) errorMessages.push(`Use Case Title: ${errors.title.message}`)
+              if (errors.subtitle) errorMessages.push(`Subtitle: ${errors.subtitle.message}`)
+              if (errors.description) errorMessages.push(`Executive Summary: ${errors.description.message}`)
+              if (errors.category) errorMessages.push(`Category: ${errors.category.message}`)
+              if (errors.factoryName) errorMessages.push(`Factory Name: ${errors.factoryName.message}`)
+              if (errors.industryContext) errorMessages.push(`Industry Context: ${errors.industryContext.message}`)
+              if (errors.specificProblems) errorMessages.push(`Specific Problems: ${errors.specificProblems.message}`)
+              if (errors.financialLoss) errorMessages.push(`Financial Impact: ${errors.financialLoss.message}`)
+              if (errors.selectionCriteria) errorMessages.push(`Selection Criteria: ${errors.selectionCriteria.message}`)
+              if (errors.selectedVendor) errorMessages.push(`Selected Vendor: ${errors.selectedVendor.message}`)
+              if (errors.technologyComponents) errorMessages.push(`Technology Components: ${errors.technologyComponents.message}`)
+              if (errors.implementationTime) errorMessages.push(`Implementation Time: ${errors.implementationTime.message}`)
+              if (errors.totalBudget) errorMessages.push(`Total Budget: ${errors.totalBudget.message}`)
+              if (errors.methodology) errorMessages.push(`Methodology: ${errors.methodology.message}`)
+              if (errors.quantitativeResults) errorMessages.push(`Quantitative Results: ${errors.quantitativeResults.message}`)
+              if (errors.challengesSolutions) errorMessages.push(`Challenges & Solutions: ${errors.challengesSolutions.message}`)
+              if (errors.city) errorMessages.push(`City: ${errors.city.message}`)
+              if (errors.images) errorMessages.push(`Images: ${errors.images.message}`)
+              
+              const message = errorMessages.length > 0 
+                ? `Please fix the following validation errors:\n\n• ${errorMessages.join('\n• ')}`
+                : 'Some required fields are missing or invalid. Please review the highlighted fields and correct the errors before submitting.'
+                
+              setValidationMessage(message)
+              setValidationModalOpen(true)
+            })} className="space-y-8">
               
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
@@ -533,7 +744,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             A clear, compelling title that describes your success story
                           </FormDescription>
-                          <FormMessage />
+                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
                     />
@@ -553,7 +764,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             A descriptive subtitle explaining the technology or approach used
                           </FormDescription>
-                          <FormMessage />
+                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
                     />
@@ -570,15 +781,19 @@ export default function SubmitUseCase() {
                                 <SelectValue placeholder="Select a category" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="z-[9999] bg-white border-2 border-slate-200 shadow-2xl max-h-[300px] overflow-y-auto">
                               {categories.map((category) => (
-                                <SelectItem key={category.value} value={category.value}>
+                                <SelectItem 
+                                  key={category.value} 
+                                  value={category.value}
+                                  className="hover:bg-blue-50 hover:text-blue-900 cursor-pointer p-3 border-b border-slate-100 last:border-b-0"
+                                >
                                   {category.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          <FormMessage />
+                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
                     />
@@ -592,7 +807,7 @@ export default function SubmitUseCase() {
                           <FormControl>
                             <Input placeholder="e.g., Advanced Electronics Co." {...field} />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
                     />
@@ -613,7 +828,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             A comprehensive summary of your implementation and its business impact
                           </FormDescription>
-                          <FormMessage />
+                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
                     />
@@ -646,7 +861,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             Explain the industry pressures and market conditions driving the need for this solution
                           </FormDescription>
-                          <FormMessage />
+                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
                     />
@@ -708,7 +923,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             Quantify the financial impact of the problems (losses, inefficiencies, opportunity costs)
                           </FormDescription>
-                          <FormMessage />
+                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
                     />
@@ -784,7 +999,7 @@ export default function SubmitUseCase() {
                             <FormDescription>
                               Name of the technology vendor or implementation partner
                             </FormDescription>
-                            <FormMessage />
+                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
                       />
@@ -884,7 +1099,7 @@ export default function SubmitUseCase() {
                             <FormControl>
                               <Input placeholder="e.g., 6 months implementation" {...field} />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
                       />
@@ -901,7 +1116,7 @@ export default function SubmitUseCase() {
                             <FormDescription>
                               Total project budget (amount only, currency symbol will be added automatically)
                             </FormDescription>
-                            <FormMessage />
+                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
                       />
@@ -922,7 +1137,7 @@ export default function SubmitUseCase() {
                             <FormDescription>
                               Describe the project management approach and methodology used
                             </FormDescription>
-                            <FormMessage />
+                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
                       />
@@ -1006,8 +1221,186 @@ export default function SubmitUseCase() {
                 </div>
               )}
 
-              {/* Step 4: Results & Challenges */}
+              {/* Step 4: Technical Architecture */}
               {currentStep === 4 && (
+                <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                    <Wrench className="h-6 w-6 mr-3 text-purple-600" />
+                    Technical Architecture (Optional)
+                  </h2>
+                  <p className="text-slate-600 mb-6">
+                    Provide details about your system architecture, components, and technical specifications.
+                  </p>
+                  
+                  <div className="space-y-6">
+                    {/* System Overview */}
+                    <div>
+                      <label className="text-base font-semibold text-slate-900 mb-3 block">System Overview</label>
+                      <Textarea
+                        placeholder="Describe the overall system architecture and design principles..."
+                        value={systemOverview}
+                        onChange={(e) => setSystemOverview(e.target.value)}
+                        className="min-h-[100px]"
+                      />
+                      <p className="text-sm text-slate-500 mt-2">High-level description of your technical solution architecture</p>
+                    </div>
+
+                    {/* Architecture Components */}
+                    <div>
+                      <label className="text-base font-semibold text-slate-900 mb-3 block">Architecture Components</label>
+                      <div className="space-y-4">
+                        {architectureComponents.map((component, index) => (
+                          <div key={index} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                              <div>
+                                <label className="text-sm font-medium text-slate-700">Layer Name</label>
+                                <Input
+                                  placeholder="e.g., Data Layer, Processing Layer"
+                                  value={component.layer}
+                                  onChange={(e) => {
+                                    const updated = [...architectureComponents]
+                                    updated[index].layer = e.target.value
+                                    setArchitectureComponents(updated)
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-slate-700">Specifications</label>
+                                <Input
+                                  placeholder="Technical specifications..."
+                                  value={component.specifications}
+                                  onChange={(e) => {
+                                    const updated = [...architectureComponents]
+                                    updated[index].specifications = e.target.value
+                                    setArchitectureComponents(updated)
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="mb-3">
+                              <label className="text-sm font-medium text-slate-700">Components (comma-separated)</label>
+                              <Textarea
+                                placeholder="List the components in this layer..."
+                                value={component.components.join(", ")}
+                                onChange={(e) => {
+                                  const updated = [...architectureComponents]
+                                  updated[index].components = e.target.value.split(",").map(c => c.trim()).filter(Boolean)
+                                  setArchitectureComponents(updated)
+                                }}
+                                className="min-h-[60px]"
+                              />
+                            </div>
+                            {architectureComponents.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setArchitectureComponents(architectureComponents.filter((_, i) => i !== index))}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Remove Component
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setArchitectureComponents([...architectureComponents, { layer: "", components: [""], specifications: "" }])}
+                          className="flex items-center space-x-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span>Add Architecture Component</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Security Measures */}
+                    <div>
+                      <label className="text-base font-semibold text-slate-900 mb-3 block">Security Measures</label>
+                      <div className="space-y-3">
+                        {securityMeasures.map((measure, index) => (
+                          <div key={index} className="flex items-center space-x-3">
+                            <Input
+                              placeholder={`Security measure ${index + 1} (e.g., End-to-end encryption, Role-based access control)`}
+                              value={measure}
+                              onChange={(e) => {
+                                const updated = [...securityMeasures]
+                                updated[index] = e.target.value
+                                setSecurityMeasures(updated)
+                              }}
+                            />
+                            {securityMeasures.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSecurityMeasures(securityMeasures.filter((_, i) => i !== index))}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setSecurityMeasures([...securityMeasures, ""])}
+                          className="flex items-center space-x-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span>Add Security Measure</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Scalability Design */}
+                    <div>
+                      <label className="text-base font-semibold text-slate-900 mb-3 block">Scalability Design</label>
+                      <div className="space-y-3">
+                        {scalabilityDesign.map((design, index) => (
+                          <div key={index} className="flex items-center space-x-3">
+                            <Input
+                              placeholder={`Scalability feature ${index + 1} (e.g., Horizontal scaling, Load balancing)`}
+                              value={design}
+                              onChange={(e) => {
+                                const updated = [...scalabilityDesign]
+                                updated[index] = e.target.value
+                                setScalabilityDesign(updated)
+                              }}
+                            />
+                            {scalabilityDesign.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setScalabilityDesign(scalabilityDesign.filter((_, i) => i !== index))}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setScalabilityDesign([...scalabilityDesign, ""])}
+                          className="flex items-center space-x-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span>Add Scalability Feature</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Results & Challenges */}
+              {currentStep === 5 && (
                 <div className="space-y-8">
                   {/* Quantitative Results */}
                   <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
@@ -1113,7 +1506,7 @@ export default function SubmitUseCase() {
                               <FormControl>
                                 <Input placeholder="e.g., 250% ROI in first year" {...field} />
                               </FormControl>
-                              <FormMessage />
+                              <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                             </FormItem>
                           )}
                         />
@@ -1130,7 +1523,7 @@ export default function SubmitUseCase() {
                               <FormDescription>
                                 Annual cost savings amount (number only)
                               </FormDescription>
-                              <FormMessage />
+                              <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                             </FormItem>
                           )}
                         />
@@ -1286,8 +1679,8 @@ export default function SubmitUseCase() {
                 </div>
               )}
 
-              {/* Step 5: Location & Contact */}
-              {currentStep === 5 && (
+              {/* Step 6: Location & Contact */}
+              {currentStep === 6 && (
                 <div className="space-y-8">
                   {/* Location */}
                   <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
@@ -1306,7 +1699,7 @@ export default function SubmitUseCase() {
                             <FormControl>
                               <Input placeholder="e.g., Riyadh" {...field} />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
                       />
@@ -1362,7 +1755,7 @@ export default function SubmitUseCase() {
                             <FormControl>
                               <Input placeholder="e.g., Ahmed Al-Faisal" {...field} />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
                       />
@@ -1376,7 +1769,7 @@ export default function SubmitUseCase() {
                             <FormControl>
                               <Input placeholder="e.g., Operations Manager" {...field} />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
                       />
@@ -1426,8 +1819,8 @@ export default function SubmitUseCase() {
                 </div>
               )}
 
-              {/* Step 6: Review & Submit */}
-              {currentStep === 6 && (
+              {/* Step 7: Review & Submit */}
+              {currentStep === 7 && (
                 <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
                   <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
                     <CheckCircle className="h-6 w-6 mr-3 text-blue-600" />
@@ -1496,7 +1889,7 @@ export default function SubmitUseCase() {
                 </Button>
 
                 <div className="flex space-x-4">
-                  {currentStep < 6 ? (
+                  {currentStep < 7 ? (
                     <Button
                       type="button"
                       onClick={handleNext}
@@ -1518,7 +1911,7 @@ export default function SubmitUseCase() {
                       ) : (
                         <>
                           <Save className="h-4 w-4" />
-                          <span>Submit Use Case</span>
+                          <span>{isEditMode ? 'Update Use Case' : 'Submit Use Case'}</span>
                         </>
                       )}
                     </Button>
@@ -1529,6 +1922,41 @@ export default function SubmitUseCase() {
           </Form>
         </div>
       </div>
+
+      {/* Validation Modal - Professional & Modern */}
+      {validationModalOpen && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[9999] max-w-2xl w-full mx-4">
+          <div className="bg-gradient-to-br from-red-50 via-white to-red-50 rounded-2xl border-2 border-red-300 shadow-2xl p-6">
+            <div className="flex items-start space-x-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-lg">
+                <X className="h-6 w-6 text-white font-semibold" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-red-900 mb-3 flex items-center">
+                  ⚠️ Missing Required Fields
+                </h3>
+                <div className="text-red-800 font-medium text-base mb-4 whitespace-pre-line bg-white p-4 rounded-xl border-l-4 border-red-400 shadow-sm">
+                  {validationMessage}
+                </div>
+                <Button 
+                  onClick={() => setValidationModalOpen(false)}
+                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-6 py-2.5 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                >
+                  Got It, Fix Now
+                </Button>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setValidationModalOpen(false)}
+                className="text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

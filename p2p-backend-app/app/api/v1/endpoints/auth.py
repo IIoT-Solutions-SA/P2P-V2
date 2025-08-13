@@ -69,6 +69,7 @@ async def get_current_user(
         # Format user response
         user_response = {
             "id": str(user.id),
+            "mongo_id": str(mongo_profile.id) if mongo_profile else None,  # Add mongo_id for authorization checks
             "email": user.email,
             "firstName": user.name.split(' ')[0] if user.name else "",
             "lastName": " ".join(user.name.split(' ')[1:]) if len(user.name.split(' ')) > 1 else "",

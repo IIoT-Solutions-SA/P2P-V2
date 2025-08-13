@@ -29,6 +29,13 @@ class ReplyCreate(BaseModel):
     parent_reply_id: Optional[str] = None
 
 
+class PostUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
 def _normalize_category_name(raw: str) -> str:
     try:
         if not raw:
@@ -105,8 +112,8 @@ async def get_forum_posts(
         except Exception:
             current_user_mongo_id = None
 
-        # Build query (case-insensitive category filter)
-        query = {}
+        # Build query (case-insensitive category filter + exclude deleted posts)
+        query = {"status": {"$ne": "deleted"}}  # Exclude soft-deleted posts
         if category and category != "all":
             try:
                 query["category"] = {"$regex": f"^{re.escape(category)}$", "$options": "i"}
@@ -140,13 +147,17 @@ async def get_forum_posts(
                 minutes = max(1, time_diff.seconds // 60)
                 time_ago = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
             
-            # Get reply count
-            reply_count = await ForumReply.find(ForumReply.post_id == str(post.id)).count()
+            # Get reply count (exclude deleted replies)
+            reply_count = await ForumReply.find(
+                ForumReply.post_id == str(post.id), 
+                ForumReply.status != "deleted"
+            ).count()
             
             forum_data.append({
                 "id": str(post.id),
                 "title": post.title,
                 "author": user_names.get(post.author_id, "Unknown User"),
+                "author_id": post.author_id,  # Add this for authorization checks
                 "authorTitle": "Community Member",  # Can be enhanced later
                 "category": _normalize_category_name(post.category),
                 "content": post.content,
@@ -175,8 +186,9 @@ async def get_forum_posts(
 async def get_forum_categories(session: SessionContainer = Depends(verify_session())):
     """Get forum categories with real post counts (efficiently)"""
     try:
-        # UPDATED: Use MongoDB aggregation for much better performance
+        # UPDATED: Use MongoDB aggregation for much better performance (exclude deleted posts)
         pipeline = [
+            {"$match": {"status": {"$ne": "deleted"}}},  # Exclude deleted posts
             {"$group": {"_id": "$category", "count": {"$sum": 1}}},
             {"$sort": {"_id": 1}}
         ]
@@ -193,7 +205,7 @@ async def get_forum_categories(session: SessionContainer = Depends(verify_sessio
             norm_name = _normalize_category_name(raw_name)
             merged[norm_name] = merged.get(norm_name, 0) + int(cat.get("count", 0))
 
-        total_posts = sum(merged.values()) if merged else await ForumPost.find_all().count()
+        total_posts = sum(merged.values()) if merged else await ForumPost.find({"status": {"$ne": "deleted"}}).count()
 
         # Format for frontend
         formatted_categories = [{"id": "all", "name": "All Topics", "count": total_posts}]
@@ -218,9 +230,9 @@ async def get_forum_post(
 ):
     """Get a specific forum post with comments"""
     try:
-        # Get the post
+        # Get the post (exclude deleted posts)
         try:
-            post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+            post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id), ForumPost.status != "deleted")
         except Exception:
             post = None
         
@@ -284,8 +296,11 @@ async def get_forum_post(
         except Exception:
             author_name = "Unknown User"
         
-        # Get replies/comments
-        replies = await ForumReply.find(ForumReply.post_id == post_id).sort(ForumReply.created_at).to_list()
+        # Get replies/comments (exclude deleted replies)
+        replies = await ForumReply.find(
+            ForumReply.post_id == post_id, 
+            ForumReply.status != "deleted"
+        ).sort(ForumReply.created_at).to_list()
         
         # Get reply authors
         reply_data = []
@@ -441,15 +456,15 @@ async def get_forum_stats(
 ):
     """Get real forum statistics"""
     try:
-        # Get total topics count
-        total_topics = await ForumPost.find_all().count()
+        # Get total topics count (exclude deleted posts)
+        total_topics = await ForumPost.find({"status": {"$ne": "deleted"}}).count()
         
-        # Get total replies count (helpful answers)
-        total_replies = await ForumReply.find_all().count()
+        # Get total replies count (helpful answers) 
+        total_replies = await ForumReply.find({"status": {"$ne": "deleted"}}).count()
         
         # Get unique active members (users who posted or replied)
-        all_posts = await ForumPost.find_all().to_list()
-        all_replies = await ForumReply.find_all().to_list()
+        all_posts = await ForumPost.find({"status": {"$ne": "deleted"}}).to_list()
+        all_replies = await ForumReply.find({"status": {"$ne": "deleted"}}).to_list()
         
         # Collect unique user IDs
         active_user_ids = set()
@@ -477,9 +492,9 @@ async def get_top_contributors(
 ):
     """Get top contributors with calculated points"""
     try:
-        # Get all posts and replies to calculate points
-        all_posts = await ForumPost.find_all().to_list()
-        all_replies = await ForumReply.find_all().to_list()
+        # Get all posts and replies to calculate points (exclude deleted)
+        all_posts = await ForumPost.find({"status": {"$ne": "deleted"}}).to_list()
+        all_replies = await ForumReply.find({"status": {"$ne": "deleted"}}).to_list()
         
         # Calculate points for each user
         user_points = {}
@@ -630,3 +645,57 @@ async def bookmark_forum_post(
     except Exception as e:
         logger.error(f"Error toggling bookmark for forum post {post_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update bookmark")
+
+
+@router.put("/posts/{post_id}")
+async def update_forum_post(
+    post_id: str,
+    update_data: PostUpdate,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a forum post (only by author)"""
+    try:
+        supertokens_user_id = session.get_user_id()
+        
+        # Normalize category if provided
+        update_dict = update_data.dict(exclude_unset=True)
+        if 'category' in update_dict and update_dict['category']:
+            update_dict['category'] = _normalize_category_name(update_dict['category'])
+        
+        updated_post = await ForumService.update_post(
+            user_supertokens_id=supertokens_user_id,
+            post_id=post_id,
+            update_data=update_dict,
+            db=db
+        )
+        return {"success": True, "post": {"id": str(updated_post.id), "title": updated_post.title}}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating forum post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update post")
+
+
+@router.delete("/posts/{post_id}", status_code=204)
+async def delete_forum_post(
+    post_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a forum post (only by author) - soft delete"""
+    try:
+        supertokens_user_id = session.get_user_id()
+        result = await ForumService.delete_post(
+            user_supertokens_id=supertokens_user_id,
+            post_id=post_id,
+            db=db
+        )
+        # Return 204 No Content on successful delete (no response body)
+        from fastapi import Response
+        return Response(status_code=204)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting forum post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete post")

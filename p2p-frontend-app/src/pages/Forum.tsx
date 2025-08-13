@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { CreatePostModal } from "@/components/ui/CreatePostModal"
+import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { 
@@ -26,7 +27,10 @@ import {
   MoreVertical,
   Loader2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Edit,
+  Trash2,
+  Lightbulb
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -53,6 +57,7 @@ interface ForumPost {
   id: number
   title: string
   author: string
+  author_id?: string
   authorTitle: string
   category: string
   content?: string
@@ -99,6 +104,13 @@ export default function Forum() {
   }>>([])
   const [loadingContributors, setLoadingContributors] = useState(true)
   const [bookmarkedPosts, setBookmarkedPosts] = useState<number[]>([])
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
+  const [editingPost, setEditingPost] = useState<number | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editContent, setEditContent] = useState("")
+  const [editCategory, setEditCategory] = useState("")
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [postToDelete, setPostToDelete] = useState<ForumPost | null>(null)
 
   // Fetch initial data (categories, stats, contributors)
   useEffect(() => {
@@ -157,6 +169,148 @@ export default function Forum() {
       console.error('Error bookmarking post:', e)
     }
   }
+
+  const handleEditPost = (post: ForumPost) => {
+    setEditingPost(post.id)
+    setEditTitle(post.title)
+    setEditContent(post.content || '')
+    setEditCategory(post.category)
+    setOpenDropdown(null)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingPost) return
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${editingPost}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: editTitle,
+          content: editContent,
+          category: editCategory
+        })
+      })
+
+      if (response.ok) {
+        // Refresh posts to show updated content
+        const categoryQueryParam = selectedCategoryId === 'all' 
+          ? 'all' 
+          : categories.find(c => c.id === selectedCategoryId)?.name
+        if (categoryQueryParam) {
+          const postsResponse = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, { 
+            credentials: 'include' 
+          })
+          if (postsResponse.ok) {
+            const data = await postsResponse.json()
+            setForumPosts(data.posts || [])
+          }
+        }
+        setEditingPost(null)
+        setEditTitle('')
+        setEditContent('')
+        setEditCategory('')
+        
+        // Show success message
+        const successMessage = document.createElement('div')
+        successMessage.innerHTML = `
+          <div style="
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: #3B82F6; 
+            color: white; 
+            padding: 16px 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-weight: 500;
+          ">
+            ✏️ Post updated successfully!
+          </div>
+        `
+        document.body.appendChild(successMessage)
+        setTimeout(() => successMessage.remove(), 3000)
+      } else {
+        alert('❌ Failed to update post. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error updating post:', error)
+    }
+  }
+
+  const handleDeletePost = (post: ForumPost) => {
+    setPostToDelete(post)
+    setDeleteModalOpen(true)
+    setOpenDropdown(null)
+  }
+
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        // Remove post from local state with success feedback
+        setForumPosts(prev => prev.filter(p => p.id !== postToDelete.id))
+        
+        // Show success message
+        const successMessage = document.createElement('div')
+        successMessage.innerHTML = `
+          <div style="
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: #10B981; 
+            color: white; 
+            padding: 16px 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-weight: 500;
+          ">
+            ✅ Post deleted successfully!
+          </div>
+        `
+        document.body.appendChild(successMessage)
+        setTimeout(() => successMessage.remove(), 3000)
+      } else {
+        alert('❌ Failed to delete post. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error)
+      alert('❌ Network error. Please check your connection and try again.')
+    }
+  }
+
+  const isPostAuthor = (post: ForumPost): boolean => {
+    return user && post.author_id && user.mongo_id === post.author_id
+  }
+
+  // Handle clicking outside dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('.relative')) {
+        setOpenDropdown(null)
+      }
+    }
+    
+    if (openDropdown !== null) {
+      document.addEventListener('click', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [openDropdown])
 
   // Fetch posts when category changes
   useEffect(() => {
@@ -596,19 +750,49 @@ export default function Forum() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             {/* START: Create Post Trigger Section */}
-            <Card className="bg-white rounded-2xl p-6 border border-slate-200">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="flex-1 text-left text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-6 py-4 hover:bg-slate-100 transition-colors text-base"
-                >
-                  Start a post...
-                </button>
-                <Button onClick={() => setIsModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-5 text-base">
-                  <Plus className="h-5 w-5 mr-2" /> New Post
-                </Button>
-              </div>
-            </Card>
+            <div className="relative">
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-200 shadow-lg">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="w-full text-left text-slate-600 bg-white border-2 border-blue-100 rounded-full px-6 py-4 hover:bg-blue-50 hover:border-blue-300 transition-all text-base shadow-sm"
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                          <Plus className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <span className="text-slate-700">What's on your mind? Share your question or insight...</span>
+                      </div>
+                    </button>
+                  </div>
+                  <Button 
+                    onClick={() => setIsModalOpen(true)} 
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-14 px-8 text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 rounded-xl"
+                  >
+                    <Plus className="h-5 w-5 mr-2" /> 
+                    New Post
+                  </Button>
+                </div>
+                <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+                  <div className="flex items-center space-x-4">
+                    <span className="flex items-center">
+                      <MessageSquare className="h-4 w-4 mr-1 text-blue-500" />
+                      Ask questions
+                    </span>
+                    <span className="flex items-center">
+                      <Lightbulb className="h-4 w-4 mr-1 text-yellow-500" />
+                      Share insights
+                    </span>
+                    <span className="flex items-center">
+                      <Users className="h-4 w-4 mr-1 text-green-500" />
+                      Connect with peers
+                    </span>
+                  </div>
+                  <span className="text-blue-600 font-medium">Join the conversation →</span>
+                </div>
+              </Card>
+            </div>
             {/* END: Create Post Trigger Section */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <div className="flex items-center space-x-4">
@@ -630,6 +814,73 @@ export default function Forum() {
             </div>
 
             <div className="space-y-4">
+              {editingPost && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 border-2 border-amber-200 mb-6 shadow-lg">
+                  <div className="flex items-center mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mr-3">
+                      <Edit className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-900">Edit Your Post</h3>
+                      <p className="text-sm text-slate-600">Make your changes and save to update your post</p>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Post Title</label>
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
+                        placeholder="Enter a clear, descriptive title..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Content</label>
+                      <Textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="min-h-[120px] border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
+                        placeholder="Share your thoughts, questions, or insights..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
+                      <select
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
+                      >
+                        {categories.filter(c => c.id !== 'all').map(category => (
+                          <option key={category.id} value={category.name}>{category.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button 
+                        onClick={handleSaveEdit} 
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 rounded-xl"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setEditingPost(null)
+                          setEditTitle('')
+                          setEditContent('')
+                          setEditCategory('')
+                        }}
+                        className="px-6 py-2.5 border-2 border-slate-300 hover:border-slate-400 transition-all rounded-xl"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {loadingPosts ? (
                 <div className="text-center py-8 bg-white rounded-2xl border"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" /></div>
               ) : filteredPosts.length > 0 ? (
@@ -687,6 +938,50 @@ export default function Forum() {
                             <Clock className="h-3 w-3" />
                             <span>{post.timeAgo}</span>
                           </div>
+                          {isPostAuthor(post) && (
+                            <div className="relative">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setOpenDropdown(openDropdown === post.id ? null : post.id) 
+                                }}
+                                className="text-slate-600 hover:text-slate-900"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                              {openDropdown === post.id && (
+                                <div className="absolute right-0 top-8 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-10 min-w-[140px] overflow-hidden">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditPost(post);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-blue-50 flex items-center space-x-3 transition-colors group"
+                                  >
+                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                                      <Edit className="h-3 w-3 text-blue-600" />
+                                    </div>
+                                    <span className="font-medium">Edit Post</span>
+                                  </button>
+                                  <div className="h-px bg-slate-200 mx-2"></div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeletePost(post);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors group"
+                                  >
+                                    <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                                      <Trash2 className="h-3 w-3 text-red-600" />
+                                    </div>
+                                    <span className="font-medium">Delete Post</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -730,6 +1025,19 @@ export default function Forum() {
         }}
       />
       {/* END: Add the Modal Dialog */}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false)
+          setPostToDelete(null)
+        }}
+        onConfirm={confirmDeletePost}
+        title="Delete Post?"
+        message="Are you sure you want to delete this post? This action cannot be undone and the post will be permanently removed from the forum."
+        itemName={postToDelete?.title}
+      />
     </div>
   </div>
   )

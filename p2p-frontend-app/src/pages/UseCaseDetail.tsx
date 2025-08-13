@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal";
 import { 
   ArrowLeft, 
   Factory, 
@@ -22,14 +23,19 @@ import {
   Shield,
   Lightbulb,
   ImageIcon,
-  Loader2
+  Loader2,
+  Edit,
+  Trash2,
+  MoreVertical
 } from "lucide-react";
 import { SaudiRiyalCurrency } from '@/components/SaudiRiyal';
+import { useAuth } from '@/contexts/AuthContext';
 
 // This interface matches the UseCase MongoDB model structure
 interface DetailedUseCase {
   _id: string;
   title: string;
+  submitted_by?: string;
   subtitle?: string;
   last_updated?: string;
   downloads?: number;
@@ -108,10 +114,13 @@ interface DetailedUseCase {
 export default function UseCaseDetail() {
   const { company_slug, title_slug } = useParams<{ company_slug: string; title_slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [useCase, setUseCase] = useState<DetailedUseCase | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openDropdown, setOpenDropdown] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUseCaseDetail = async () => {
@@ -137,6 +146,82 @@ export default function UseCaseDetail() {
     };
     fetchUseCaseDetail();
   }, [company_slug, title_slug]);
+
+  const handleEditUseCase = () => {
+    if (useCase) {
+      // Navigate to submit page with edit parameter
+      navigate(`/submit?edit=${useCase._id}`);
+    }
+  };
+
+  const handleDeleteUseCase = () => {
+    setDeleteModalOpen(true);
+    setOpenDropdown(false);
+  };
+
+  const confirmDeleteUseCase = async () => {
+    if (!useCase) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/use-cases/${useCase._id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        // Show success message before navigation
+        const successMessage = document.createElement('div');
+        successMessage.innerHTML = `
+          <div style="
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: #10B981; 
+            color: white; 
+            padding: 16px 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-weight: 500;
+          ">
+            ✅ Use case deleted successfully!
+          </div>
+        `;
+        document.body.appendChild(successMessage);
+        setTimeout(() => successMessage.remove(), 2000);
+        
+        // Navigate back to use cases list after brief delay
+        setTimeout(() => navigate('/usecases'), 1500);
+      } else {
+        alert('❌ Failed to delete use case. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting use case:', error);
+      alert('❌ Network error. Please check your connection and try again.');
+    }
+  };
+
+  const isUseCaseAuthor = (): boolean => {
+    return user && useCase && useCase.submitted_by && user.mongo_id === useCase.submitted_by;
+  };
+
+  // Handle clicking outside dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.relative')) {
+        setOpenDropdown(false);
+      }
+    };
+
+    if (openDropdown) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [openDropdown]);
 
   if (loading) {
     return (
@@ -173,6 +258,47 @@ export default function UseCaseDetail() {
             <Button variant="outline" size="sm" className="flex items-center space-x-2"><Bookmark className="h-4 w-4" /><span className="hidden sm:block">Save</span></Button>
             <Button variant="outline" size="sm" className="flex items-center space-x-2"><Share2 className="h-4 w-4" /><span className="hidden sm:block">Share</span></Button>
             <Button variant="outline" size="sm" className="flex items-center space-x-2"><Download className="h-4 w-4" /><span className="hidden sm:block">Download PDF</span></Button>
+            {isUseCaseAuthor() && (
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setOpenDropdown(!openDropdown)}
+                  className="flex items-center space-x-2"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+                {openDropdown && (
+                  <div className="absolute right-0 top-10 bg-white border-2 border-gray-200 rounded-xl shadow-xl z-10 min-w-[160px] overflow-hidden">
+                    <button
+                      onClick={() => {
+                        handleEditUseCase();
+                        setOpenDropdown(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-blue-50 flex items-center space-x-3 transition-colors group"
+                    >
+                      <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                        <Edit className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-semibold">Edit Use Case</span>
+                    </button>
+                    <div className="h-px bg-gray-200 mx-2"></div>
+                    <button
+                      onClick={() => {
+                        handleDeleteUseCase();
+                        setOpenDropdown(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors group"
+                    >
+                      <div className="w-7 h-7 bg-red-100 rounded-full flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </div>
+                      <span className="font-semibold">Delete Use Case</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -750,6 +876,16 @@ export default function UseCaseDetail() {
 
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={confirmDeleteUseCase}
+        title="Delete Use Case?"
+        message="Are you sure you want to delete this use case? This action cannot be undone and the use case will be permanently removed from the platform."
+        itemName={useCase?.title}
+      />
     </div>
   )
 }

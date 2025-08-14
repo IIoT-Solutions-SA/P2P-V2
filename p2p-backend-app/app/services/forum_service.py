@@ -159,9 +159,8 @@ class ForumService:
         # SOFT DELETE: Update status instead of permanently deleting
         await post.update({"$set": {"status": "deleted", "updated_at": datetime.utcnow()}})
         
-        # Optional: Update user stats to reflect the deletion
-        # This could be implemented later if needed
-        # await UserActivityService.recalculate_user_stats(str(mongo_user.id))
+        # Update user stats to reflect the deletion
+        await UserActivityService.recalculate_user_stats(str(mongo_user.id))
         
         return {"status": "deleted"}
 

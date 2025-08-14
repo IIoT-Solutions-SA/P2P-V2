@@ -21,7 +21,7 @@ async def create_platform_user(email: str, password: str, first_name: str, last_
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8000/api/v1/auth/custom-signup",
+                "http://backend:8000/api/v1/auth/custom-signup",
                 headers={"Content-Type": "application/json"},
                 json={
                     "firstName": first_name,

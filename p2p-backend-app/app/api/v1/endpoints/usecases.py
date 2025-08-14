@@ -353,11 +353,6 @@ async def like_use_case(
         try:
             use_case.like_count = (getattr(use_case, 'like_count', 0) or 0) + 1
             # Maintain liked_by set as well
-            try:
-                if gettatr := getattr:  # guard to avoid syntax error in accidental code
-                    pass
-            except Exception:
-                pass
             if getattr(use_case, 'liked_by', None) is None:
                 use_case.liked_by = []
             if user_id_str not in use_case.liked_by:

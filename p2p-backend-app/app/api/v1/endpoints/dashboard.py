@@ -10,10 +10,20 @@ from app.services.user_activity_service import UserActivityService
 from app.services.database_service import UserService
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+class DraftCreate(BaseModel):
+    title: str
+    content: str
+    post_type: str = "forum_post"
+    category: Optional[str] = None
+    tags: List[str] = []
 
 @router.get("/stats")
 async def get_dashboard_stats(
@@ -216,6 +226,153 @@ async def get_user_drafts(
     except Exception as e:
         logger.error(f"Error getting user drafts: {e}")
         raise HTTPException(status_code=500, detail="Failed to get user drafts")
+
+@router.post("/drafts", status_code=201)
+async def create_draft_post(
+    draft_data: DraftCreate,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new draft post"""
+    try:
+        supertokens_user_id = session.get_user_id()
+        
+        # Get PostgreSQL user to get the MongoDB user ID
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user from MongoDB
+        from app.models.mongo_models import User as MongoUser
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        # Create draft
+        draft = await UserActivityService.create_draft_post(
+            user_id=str(mongo_user.id),
+            title=draft_data.title,
+            content=draft_data.content,
+            post_type=draft_data.post_type,
+            category=draft_data.category,
+            tags=draft_data.tags
+        )
+        
+        if not draft:
+            raise HTTPException(status_code=500, detail="Failed to create draft")
+        
+        return {
+            "success": True,
+            "draft_id": str(draft.id),
+            "message": "Draft saved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating draft post: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create draft")
+
+@router.put("/drafts/{draft_id}")
+async def update_draft_post(
+    draft_id: str,
+    draft_data: DraftCreate,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an existing draft post"""
+    try:
+        supertokens_user_id = session.get_user_id()
+        
+        # Get PostgreSQL user to get the MongoDB user ID
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user from MongoDB
+        from app.models.mongo_models import User as MongoUser, DraftPost
+        from bson import ObjectId
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        # Find and update the draft
+        try:
+            draft = await DraftPost.find_one(
+                DraftPost.id == ObjectId(draft_id),
+                DraftPost.user_id == str(mongo_user.id)
+            )
+        except Exception:
+            draft = None
+            
+        if not draft:
+            raise HTTPException(status_code=404, detail="Draft not found")
+        
+        # Update the draft
+        draft.title = draft_data.title
+        draft.content = draft_data.content
+        draft.category = draft_data.category
+        draft.post_type = draft_data.post_type
+        draft.tags = draft_data.tags
+        draft.updated_at = datetime.utcnow()
+        await draft.save()
+        
+        return {
+            "success": True,
+            "draft_id": str(draft.id),
+            "message": "Draft updated successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error updating draft post: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update draft")
+
+@router.delete("/drafts/{draft_id}")
+async def delete_draft_post(
+    draft_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a draft post"""
+    try:
+        supertokens_user_id = session.get_user_id()
+        
+        # Get PostgreSQL user to get the MongoDB user ID
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user from MongoDB
+        from app.models.mongo_models import User as MongoUser, DraftPost
+        from bson import ObjectId
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        # Find and delete the draft
+        try:
+            draft = await DraftPost.find_one(
+                DraftPost.id == ObjectId(draft_id),
+                DraftPost.user_id == str(mongo_user.id)
+            )
+        except Exception:
+            draft = None
+            
+        if not draft:
+            raise HTTPException(status_code=404, detail="Draft not found")
+        
+        # Delete the draft
+        await draft.delete()
+        
+        # Trigger stats recalculation to update draft count
+        await UserActivityService.recalculate_user_stats(str(mongo_user.id))
+        
+        return {
+            "success": True,
+            "message": "Draft deleted successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deleting draft post: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete draft")
 
 @router.post("/recalculate-stats")
 async def recalculate_user_stats(

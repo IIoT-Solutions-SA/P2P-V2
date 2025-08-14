@@ -140,8 +140,11 @@ class UserActivityService:
     async def recalculate_user_stats(user_id: str):
         """Calculate/update user statistics for dashboard"""
         try:
-            # Count questions asked (forum posts by user)
-            questions_asked = await ForumPost.find(ForumPost.author_id == user_id).count()
+            # Count questions asked (published forum posts by user, exclude deleted)
+            questions_asked = await ForumPost.find(
+                ForumPost.author_id == user_id,
+                ForumPost.status != "deleted"
+            ).count()
             
             # Count answers given (forum replies by user)  
             answers_given = await ForumReply.find(ForumReply.author_id == user_id).count()
@@ -161,8 +164,11 @@ class UserActivityService:
             # Count draft posts  
             draft_posts = await DraftPost.find(DraftPost.user_id == user_id).count()
             
-            # Calculate total upvotes received
-            user_posts = await ForumPost.find(ForumPost.author_id == user_id).to_list()
+            # Calculate total upvotes received (only from published posts, not deleted)
+            user_posts = await ForumPost.find(
+                ForumPost.author_id == user_id,
+                ForumPost.status != "deleted"
+            ).to_list()
             user_replies = await ForumReply.find(ForumReply.author_id == user_id).to_list()
             total_upvotes_received = sum(post.upvotes for post in user_posts) + sum(reply.upvotes for reply in user_replies)
             

@@ -9,7 +9,9 @@ import {
   EyeOff, 
   Loader2,
   AlertCircle,
-  ArrowRight 
+  ArrowRight,
+  ChevronDown,
+  ChevronUp 
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -24,6 +26,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showMore, setShowMore] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,15 +51,108 @@ export default function Login() {
       role: 'Organization Admin'
     },
     {
-      name: 'Sara Hassan (Member)',
+      name: 'Sara Hassan (Admin)',
       email: 'sara.hassan@gulf-plastics.com',
       company: 'Gulf Plastics Industries',
-      role: 'Team Member'
+      role: 'Organization Admin'
     },
     {
       name: 'Mohammed Rashid (Admin)',
       email: 'mohammed.rashid@saudi-steel.com',
       company: 'Saudi Steel Industries',
+      role: 'Organization Admin'
+    }
+  ]
+
+  const moreDemoAccounts = [
+    {
+      name: 'Fatima Ali (Admin)',
+      email: 'fatima.ali@arabian-food.com',
+      company: 'Arabian Food Processing',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Khalid Abdul (Admin)',
+      email: 'khalid.abdul@precision-mfg.com',
+      company: 'Precision Manufacturing Ltd',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Sarah Ahmed (Admin)',
+      email: 'sarah.ahmed@pharma-excellence.com',
+      company: 'Pharma Excellence Ltd',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Mohammed Al-Shahri (Admin)',
+      email: 'mohammed.alshahri@secure-supply.com',
+      company: 'Secure Supply Co.',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Fatima Al-Otaibi (Admin)',
+      email: 'fatima.otaibi@safety-first.com',
+      company: 'Safety First Industries',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Hessa Al-Sabah (Admin)',
+      email: 'hessa.alsabah@yanbu-smart.com',
+      company: 'Yanbu Smart Industries',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Faisal Al-Ghamdi (Admin)',
+      email: 'faisal.alghamdi@redsea-logistics.com',
+      company: 'Red Sea Logistics',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Nouf Al-Mutawa (Admin)',
+      email: 'nouf.almutawa@najd-dates.com',
+      company: 'Najd Dates Processing',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Tarek Mansour (Admin)',
+      email: 'tarek.mansour@alkhobar-mfg.com',
+      company: 'Al-Khobar Advanced Manufacturing',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Omar Bakr (Admin)',
+      email: 'omar.bakr@ep-construction.com',
+      company: 'Eastern Province Construction Materials',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Aisha Al-Jameel (Admin)',
+      email: 'aisha.aljameel@saudi-retail.com',
+      company: 'Saudi Retail Distribution Co.',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Sameer Khan (Admin)',
+      email: 'sameer.khan@mea-integrators.com',
+      company: 'MEA Systems Integrators',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Rania Al-Abdullah (Admin)',
+      email: 'rania.alabdullah@agritech-sa.com',
+      company: 'Agri-Tech Solutions Arabia',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Bandar Al-Harbi (Admin)',
+      email: 'bandar.alharbi@gulf-plastics.com',
+      company: 'Gulf Plastics Industries',
+      role: 'Organization Admin'
+    },
+    {
+      name: 'Layla Iskandar (Admin)',
+      email: 'layla.iskandar@neom-solar.com',
+      company: 'NEOM Solar Power Systems',
       role: 'Organization Admin'
     }
   ]
@@ -197,6 +293,50 @@ export default function Login() {
                   </div>
                 ))}
               </div>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowMore(!showMore)}
+                  className="w-full flex items-center justify-center gap-2 text-blue-700 hover:text-blue-800 font-medium"
+                >
+                  {showMore ? (
+                    <>
+                      Hide additional demo accounts
+                      <ChevronUp className="h-4 w-4" />
+                    </>
+                  ) : (
+                    <>
+                      Show {moreDemoAccounts.length} more demo accounts
+                      <ChevronDown className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {showMore && (
+                <div className="mt-4 max-h-64 overflow-y-auto space-y-3">
+                  {moreDemoAccounts.map((account, index) => (
+                    <div
+                      key={index}
+                      className="p-3 border border-slate-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setEmail(account.email)
+                        setPassword('password123')
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-slate-900">{account.name}</h4>
+                          <p className="text-xs text-slate-600">{account.company}</p>
+                          <p className="text-[10px] text-blue-600 font-medium">{account.role}</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-slate-400" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <h3 className="font-semibold text-blue-900 mb-2">Organization Features</h3>

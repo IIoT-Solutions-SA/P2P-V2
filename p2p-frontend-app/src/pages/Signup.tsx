@@ -305,12 +305,12 @@ export default function Signup() {
                       value={formData.industry} 
                       onValueChange={(value) => handleInputChange('industry', value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select your industry" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" className="z-50 bg-white border border-slate-200 shadow-xl rounded-md max-h-64 overflow-y-auto">
                         {industries.map((industry) => (
-                          <SelectItem key={industry} value={industry}>
+                          <SelectItem key={industry} value={industry} className="cursor-pointer">
                             {industry}
                           </SelectItem>
                         ))}
@@ -326,12 +326,12 @@ export default function Signup() {
                       value={formData.organizationSize} 
                       onValueChange={(value) => handleInputChange('organizationSize', value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select organization size" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" className="z-50 bg-white border border-slate-200 shadow-xl rounded-md max-h-64 overflow-y-auto">
                         {organizationSizes.map((size) => (
-                          <SelectItem key={size.value} value={size.value}>
+                          <SelectItem key={size.value} value={size.value} className="cursor-pointer">
                             {size.label}
                           </SelectItem>
                         ))}
@@ -361,12 +361,12 @@ export default function Signup() {
                         value={formData.city} 
                         onValueChange={(value) => handleInputChange('city', value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11">
                           <SelectValue placeholder="Select city" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent position="popper" className="z-50 bg-white border border-slate-200 shadow-xl rounded-md max-h-64 overflow-y-auto">
                           {saudiCities.map((city) => (
-                            <SelectItem key={city} value={city}>
+                            <SelectItem key={city} value={city} className="cursor-pointer">
                               {city}
                             </SelectItem>
                           ))}

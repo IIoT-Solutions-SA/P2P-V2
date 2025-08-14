@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
 import { 
   MessageSquare, 
   FileText, 
@@ -10,10 +11,12 @@ import {
   Star,
   Activity,
   Target,
-  UserCog
+  UserCog,
+  X
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useState as ReactUseState } from 'react'
 import { useState, useEffect } from 'react'
 
 interface DashboardStats {
@@ -52,20 +55,37 @@ export default function Dashboard() {
   const [drafts, setDrafts] = useState<any[]>([])
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
   const [loadingDrafts, setLoadingDrafts] = useState(false)
+  const [prefillDraft, setPrefillDraft] = useState<{ title?: string; content?: string; category?: string } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean
+    title?: string
+    message?: string
+    onConfirm?: () => void
+  }>({ show: false })
 
   // Dedicated loaders to avoid HMR/effect return confusion
+  const fetchStats = async () => {
+    try {
+      const statsResponse = await fetch('http://localhost:8000/api/v1/dashboard/stats', {
+        credentials: 'include'
+      })
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        setStats(statsData)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  }
+
+
+
   const loadDashboard = async () => {
       try {
         setLoading(true)
         
         // Fetch user stats
-        const statsResponse = await fetch('http://localhost:8000/api/v1/dashboard/stats', {
-          credentials: 'include'
-        })
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
-          setStats(statsData)
-        }
+        await fetchStats()
         
         // Fetch community activities
         const activitiesResponse = await fetch('http://localhost:8000/api/v1/dashboard/activities', {
@@ -131,7 +151,8 @@ export default function Dashboard() {
           title: b.target_title || b.title,
           target_type: 'forum_post',
           category: b.target_category,
-          saved_at: b.created_at || new Date().toISOString()
+          saved_at: b.created_at || new Date().toISOString(),
+          post_id: Number(b.target_id) || b.target_id
         })) : [])
         setForumBookmarkCount(Array.isArray(list) ? list.length : 0)
       } else {
@@ -142,7 +163,9 @@ export default function Dashboard() {
           title: b.title,
           target_type: 'use_case',
           category: b.category,
-          saved_at: b.created_at || new Date().toISOString()
+          saved_at: b.created_at || new Date().toISOString(),
+          title_slug: b.title_slug,
+          company_slug: b.company_slug
         })) : [])
         setUseCaseBookmarkCount(Array.isArray(list) ? list.length : 0)
       }
@@ -491,52 +514,60 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Bookmarks Modal */}
+      {/* Bookmarks Panel */}
       {showBookmarks && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900">{bookmarkModalTitle}</h3>
-                <button 
-                  onClick={() => setShowBookmarks(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  ✕
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm" onClick={() => setShowBookmarks(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white border-l border-blue-100 shadow-2xl flex flex-col">
+            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
+              <h3 className="text-xl font-bold">{bookmarkModalTitle}</h3>
+              <button onClick={() => setShowBookmarks(false)} className="text-white/80 hover:text-white">✕</button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
+            <div className="p-6 overflow-y-auto">
               {loadingBookmarks ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="text-slate-600 mt-2">Loading bookmarks...</p>
                 </div>
               ) : bookmarks.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {bookmarks.map((bookmark, i) => (
-                    <div key={i} className="p-4 bg-slate-50 rounded-lg">
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (bookmark.target_type === 'use_case' && bookmark.company_slug && bookmark.title_slug) {
+                          navigate(`/usecases/${bookmark.company_slug}/${bookmark.title_slug}`)
+                          setShowBookmarks(false)
+                        } else if (bookmark.target_type === 'forum_post' && bookmark.post_id) {
+                          navigate('/forum', { state: { openPostId: bookmark.post_id } })
+                          setShowBookmarks(false)
+                        }
+                      }}
+                      className="w-full text-left p-4 bg-white hover:bg-blue-50 border border-blue-100 hover:border-blue-300 rounded-lg transition-colors"
+                    >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-slate-900 mb-1">{bookmark.title}</h4>
-                          <p className="text-sm text-slate-600 mb-2">Type: {bookmark.target_type}</p>
-                          {bookmark.category && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                              {bookmark.category}
-                            </span>
-                          )}
+                        <div className="flex-1 pr-3">
+                          <h4 className="font-medium text-slate-900 mb-1 line-clamp-2">{bookmark.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500 capitalize">{bookmark.target_type === 'use_case' ? 'Use Case' : 'Forum Post'}</span>
+                            {bookmark.category && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-blue-100 text-blue-800">
+                                {bookmark.category}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs text-slate-500 ml-4">
+                        <span className="text-xs text-slate-500 ml-4 whitespace-nowrap">
                           {new Date(bookmark.saved_at).toLocaleDateString()}
                         </span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <BookmarkCheck className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600">No saved articles yet</p>
+                  <p className="text-slate-600">No saved items yet</p>
                   <p className="text-sm text-slate-500">Start bookmarking posts and use cases!</p>
                 </div>
               )}
@@ -545,57 +576,86 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Drafts Modal */}
+      {/* Drafts Panel */}
       {showDrafts && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900">Draft Posts</h3>
-                <button 
-                  onClick={() => setShowDrafts(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  ✕
-                </button>
-              </div>
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm" onClick={() => setShowDrafts(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white border-l border-blue-100 shadow-2xl flex flex-col">
+            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
+              <h3 className="text-xl font-bold">Draft Posts</h3>
+              <button onClick={() => setShowDrafts(false)} className="text-white/80 hover:text-white">✕</button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
+            <div className="p-6 overflow-y-auto">
               {loadingDrafts ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="text-slate-600 mt-2">Loading drafts...</p>
                 </div>
               ) : drafts.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {drafts.map((draft, i) => (
-                    <div key={i} className="p-4 bg-slate-50 rounded-lg">
-                      <div className="flex items-start justify-between mb-3">
-                        <h4 className="font-medium text-slate-900">{draft.title}</h4>
-                        <span className="text-xs text-slate-500">
-                          {new Date(draft.updated_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 mb-3">{draft.content}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-slate-100 text-slate-700">
+                    <div
+                      key={i}
+                      className="relative group bg-white border border-blue-100 rounded-lg transition-colors hover:border-blue-300"
+                    >
+                      <div
+                        onClick={() => {
+                          setPrefillDraft({ title: draft.title, content: draft.content, category: draft.category })
+                          navigate('/forum', { state: { openCreateWithDraft: { title: draft.title, content: draft.content, category: draft.category, draftId: draft.id } } })
+                          setShowDrafts(false)
+                        }}
+                        className="w-full text-left p-4 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="font-medium text-slate-900 line-clamp-2 pr-8">{draft.title}</h4>
+                          <span className="text-xs text-slate-500 ml-4 whitespace-nowrap">
+                            {new Date(draft.updated_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-3 line-clamp-2">{draft.content}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-slate-100 text-slate-700">
                             {draft.post_type}
                           </span>
                           {draft.category && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">  
-                              {draft.category}
-                            </span>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-blue-100 text-blue-800">{draft.category}</span>
                           )}
+                          <span className="ml-auto text-xs text-blue-700 font-medium">Continue writing →</span>
                         </div>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          Continue Writing
-                        </Button>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          console.log('Delete button clicked for draft:', draft.id)
+                          setDeleteConfirm({
+                            show: true,
+                            title: 'Delete Draft',
+                            message: 'Are you sure you want to delete this draft? This action cannot be undone.',
+                            onConfirm: async () => {
+                              try {
+                                const res = await fetch(`http://localhost:8000/api/v1/dashboard/drafts/${draft.id}`, {
+                                  method: 'DELETE',
+                                  credentials: 'include'
+                                })
+                                if (res.ok) {
+                                  // Refresh drafts list
+                                  fetchDrafts()
+                                  // Refresh stats
+                                  fetchStats()
+                                }
+                              } catch (error) {
+                                console.error('Error deleting draft:', error)
+                              }
+                              setDeleteConfirm({ show: false })
+                            }
+                          })
+                        }}
+                        className="absolute top-1 right-1 z-20 opacity-70 group-hover:opacity-100 transition-opacity p-2 bg-red-500 hover:bg-red-600 rounded-full text-white shadow-lg"
+                        title="Delete draft"
+                      >
+                        <X size={12} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -610,6 +670,19 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteConfirm.show}
+        title={deleteConfirm.title || "Confirm Delete"}
+        message={deleteConfirm.message || "Are you sure you want to delete this item?"}
+        onConfirm={() => {
+          if (deleteConfirm.onConfirm) {
+            deleteConfirm.onConfirm()
+          }
+        }}
+        onClose={() => setDeleteConfirm({ show: false })}
+      />
     </div>
   )
 }

@@ -33,6 +33,7 @@ import {
   Lightbulb
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
+import { useLocation } from 'react-router-dom'
 
 interface Category {
   id: string
@@ -75,6 +76,7 @@ interface ForumPost {
 
 export default function Forum() {
   const { user } = useAuth()
+  const location = useLocation() as { state?: { openPostId?: number; openCreateWithDraft?: { title?: string; content?: string; category?: string; draftId?: string } } } | any
   const [selectedCategoryId, setSelectedCategoryId] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null)
@@ -84,6 +86,7 @@ export default function Forum() {
   const [likedPosts, setLikedPosts] = useState<number[]>([])
   const [likedComments, setLikedComments] = useState<number[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [draftPrefill, setDraftPrefill] = useState<{ title?: string; content?: string; category?: string } | null>(null)
   const [expandedComments, setExpandedComments] = useState<Record<number, boolean>>({})
   
   // Real data state
@@ -155,6 +158,25 @@ export default function Forum() {
     
     fetchInitialData();
   }, [user])
+
+  // Open a specific post if requested via navigation state
+  useEffect(() => {
+    const targetId = location?.state?.openPostId
+    if (!targetId) return
+    ;(async () => {
+      try {
+        await handlePostClick(targetId)
+      } catch (_) {}
+    })()
+  }, [location?.state?.openPostId])
+
+  // If asked to create a post with prefilled draft, open the create modal with data
+  useEffect(() => {
+    const draft = location?.state?.openCreateWithDraft
+    if (!draft) return
+    setDraftPrefill(draft)
+    setIsModalOpen(true)
+  }, [location?.state?.openCreateWithDraft])
 
   const handleBookmarkPost = async (postId: number) => {
     try {
@@ -260,6 +282,19 @@ export default function Forum() {
       if (response.ok) {
         // Remove post from local state with success feedback
         setForumPosts(prev => prev.filter(p => p.id !== postToDelete.id))
+        
+        // Refresh categories (in case category now has 0 posts and should be removed)
+        try {
+          const catRes = await fetch('http://localhost:8000/api/v1/forum/categories', { credentials: 'include' })
+          if (catRes.ok) {
+            const catData = await catRes.json()
+            const newCategories = catData.categories || []
+            setCategories(newCategories)
+            console.log('Refreshed categories after deletion:', newCategories)
+          }
+        } catch (e) {
+          console.error('Error refreshing categories after deletion:', e)
+        }
         
         // Show success message
         const successMessage = document.createElement('div')
@@ -1007,20 +1042,35 @@ export default function Forum() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         categories={categories.filter(c => c.id !== 'all')}
+        initialTitle={draftPrefill?.title}
+        initialContent={draftPrefill?.content}
+        initialCategoryId={draftPrefill?.category}
+        draftId={location?.state?.openCreateWithDraft?.draftId}
         onPostSuccess={async () => {
           setIsModalOpen(false)
-          // Refresh posts after successful creation
+          setDraftPrefill(null)
+          
+          // Refresh categories first (in case new category was created)
           try {
-            const categoryQueryParam = selectedCategoryId === 'all' ? 'all' : categories.find(c => c.id === selectedCategoryId)?.name
-            if (categoryQueryParam) {
-              const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, { credentials: 'include' })
-              if (response.ok) {
-                const data = await response.json()
-                setForumPosts(data.posts || [])
+            const catRes = await fetch('http://localhost:8000/api/v1/forum/categories', { credentials: 'include' })
+            if (catRes.ok) {
+              const catData = await catRes.json()
+              const newCategories = catData.categories || []
+              setCategories(newCategories)
+              console.log('Refreshed categories:', newCategories)
+              
+              // Refresh posts after categories are updated
+              const categoryQueryParam = selectedCategoryId === 'all' ? 'all' : newCategories.find(c => c.id === selectedCategoryId)?.name
+              if (categoryQueryParam) {
+                const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, { credentials: 'include' })
+                if (response.ok) {
+                  const data = await response.json()
+                  setForumPosts(data.posts || [])
+                }
               }
             }
           } catch (e) {
-            // noop
+            console.error('Error refreshing categories and posts:', e)
           }
         }}
       />

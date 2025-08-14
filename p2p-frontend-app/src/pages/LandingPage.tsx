@@ -167,7 +167,7 @@ export default function LandingPage() {
             <Button 
               variant="outline" 
               className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => navigate('/usecase-detail')}
+              onClick={() => navigate('/usecases/advanced-electronics-co/ai-quality-inspection-system')}
             >
               View Full Case Study
             </Button>
@@ -194,7 +194,7 @@ export default function LandingPage() {
             <Button 
               variant="outline" 
               className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => navigate('/usecase-detail')}
+              onClick={() => navigate('/usecases/gulf-plastics-industries/predictive-maintenance-iot-system')}
             >
               View Full Case Study
             </Button>

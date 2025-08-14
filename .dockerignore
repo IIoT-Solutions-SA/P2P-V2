@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Docker
+
+
+# Python virtual environment & caches
+.venv
+venv/
+env/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Node.js dependencies
+p2p-frontend-app/node_modules
+p2p-frontend-app/dist
+p2p-frontend-app/.env
+p2p-frontend-app/npm-debug.log*
+p2p-frontend-app/yarn-debug.log*
+p2p-frontend-app/yarn-error.log*
+
+# IDE and OS files
+.vscode
+.idea
+.DS_Store
+
+# Local environment files
+p2p-backend-app/.env
+p2p-backend-app/.env.*
+
+# Logs and build artifacts
+p2p-backend-app/logs/
+p2p-backend-app/dist/
+p2p-backend-app/build/
+p2p-backend-app/*.egg-info/

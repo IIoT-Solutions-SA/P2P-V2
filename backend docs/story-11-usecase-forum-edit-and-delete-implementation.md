@@ -1,233 +1,276 @@
 # Story 11: Use Case & Forum CRUD Implementation
 
 ## Overview
-Complete implementation of Create, Read, Update, Delete (CRUD) operations for both Forum Posts and Use Cases, including comprehensive UI/UX improvements, proper validation, and authorization controls.
+Complete implementation of Create, Read, Update, Delete (CRUD) operations for both Forum Posts and Use Cases, including comprehensive UI/UX improvements, proper validation, and authorization controls with enhanced draft management system.
 
-## ✅ Completed Features
+## Implementation Status: ✅ COMPLETED (Full CRUD + Enhanced Features)
 
-### 🏗️ Backend Implementation
+## Acceptance Criteria
+- [x] Users can edit their own forum posts with inline editing interface
+- [x] Users can delete their own forum posts with confirmation modal
+- [x] Users can edit their own use cases with complete form pre-filling
+- [x] Users can delete their own use cases with professional confirmation
+- [x] Authorization system prevents editing/deleting others' content
+- [x] Enhanced draft system with create, update, delete, and auto-prefill functionality
+- [x] Dynamic category system with 35+ predefined manufacturing categories
+- [x] Real-time category refresh on post creation/deletion
+- [x] Professional validation with detailed error messaging
+- [x] Dashboard statistics exclude draft posts from forum post counts
 
-#### 1. Database Models Enhanced
-- **ForumPost & UseCase Models**:
-  - Added `edited_at: Optional[datetime] = None` 
-  - Added `status: str = "published"` for soft deletes
-  - Added `updated_at` field tracking
+## Backend Changes
 
-#### 2. Service Layer Implementation
-- **ForumService.update_post()**:
-  - Authorization check: only author can edit their posts
-  - Proper field mapping and validation
-  - Sets `edited_at` and `updated_at` timestamps
+### Enhanced Database Models (`app/models/mongo_models.py`)
+- **ForumPost Model Enhancements**:
+  - Added `edited_at: Optional[datetime] = None` for edit tracking
+  - Enhanced `status: str = "open"` (default) with "deleted" for soft deletes
+  - Existing `updated_at` field for modification timestamps
   
-- **ForumService.delete_post()**:
-  - Soft delete implementation (`status: "deleted"`)
-  - Authorization validation
+- **DraftPost Model** (New):
+  - Complete draft management with `user_id`, `title`, `content`, `category`
+  - `post_type`, `tags`, `created_at`, `updated_at` fields
+  - Separate collection for true draft persistence
+
+### Service Layer (`app/services/`)
+
+#### ForumService (`forum_service.py`)
+- **`update_post(user_supertokens_id, post_id, update_data, db)`**:
+  - Authorization: only post author can edit
+  - Field mapping with proper validation
+  - Sets `edited_at` and `updated_at` timestamps
+  - Auto-recalculates user stats after changes
+  
+- **`delete_post(user_supertokens_id, post_id, db)`**:
+  - Soft delete: sets `status: "deleted"`
+  - Authorization validation against `author_id`
+  - Triggers user stats recalculation
   - Returns confirmation response
 
-- **UseCaseSubmissionService.update_use_case()**:
-  - Complex field mapping from frontend structure to MongoDB schema
-  - Authorization checks against `submitted_by` field
-  - Handles nested objects and arrays properly
-  
-- **UseCaseSubmissionService.delete_use_case()**:
-  - Soft delete with status update
-  - Author-only permissions
-  - Proper error handling
+#### UserActivityService (`user_activity_service.py`)
+- **Enhanced Stats Calculation**:
+  - `questions_asked` now excludes deleted posts (`status != "deleted"`)
+  - `create_draft_post()` for true draft persistence
+  - `recalculate_user_stats()` properly separates drafts from published posts
+  - Draft count tracking separate from forum post count
 
-#### 3. API Endpoints
-- **Forum Endpoints**:
-  - `PUT /api/v1/forum/posts/{post_id}` - Update posts
-  - `DELETE /api/v1/forum/posts/{post_id}` - Delete posts (204 response)
-  - Enhanced `GET` endpoints to filter `status != "deleted"`
+### API Endpoints (`app/api/v1/endpoints/`)
 
-- **Use Case Endpoints**:
+#### Forum Endpoints (`forum.py`)
+- `PUT /api/v1/forum/posts/{post_id}` - Update forum posts with authorization
+- `DELETE /api/v1/forum/posts/{post_id}` - Soft delete with 204 response
+- Enhanced `GET` endpoints filter `status != "deleted"`
+- Categories endpoint uses dynamic aggregation for real-time counts
+
+#### Dashboard Endpoints (`dashboard.py`)
+- `POST /api/v1/dashboard/drafts` - Create new draft posts
+- `PUT /api/v1/dashboard/drafts/{draft_id}` - Update existing drafts
+- `DELETE /api/v1/dashboard/drafts/{draft_id}` - Delete draft posts
+- `POST /api/v1/dashboard/recalculate-stats` - Manual stats refresh
+
+#### Use Case Endpoints (`usecases.py`)
   - `PUT /api/v1/use-cases/{use_case_id}` - Update use cases
   - `DELETE /api/v1/use-cases/{use_case_id}` - Delete use cases
   - `GET /api/v1/use-cases/by-id/{use_case_id}` - Fetch for editing
-  - All listing endpoints filter soft-deleted items
+- All endpoints filter soft-deleted items
 
-#### 4. Schema Definitions
-- **PostUpdate**: Comprehensive schema matching frontend payload
-- **UseCaseUpdate**: 50+ optional fields supporting full form data
+### Schema Definitions (`app/schemas/`)
+- **PostUpdate**: Complete schema for forum post updates
+- **UseCaseUpdate**: 50+ optional fields for comprehensive editing
+- **DraftCreate**: Schema for draft post creation and updates
 - **Complex nested schemas**: QuantitativeResultUpdate, ChallengeSolutionUpdate
 
-#### 5. Authorization System
-- **Backend validation**: `user.mongo_id === content.author_id/submitted_by`
-- **Frontend context**: Enhanced AuthContext with `mongo_id` field
-- **API responses**: Include `author_id` for frontend authorization checks
+## Frontend Changes
 
-### 🎨 Frontend Implementation
+### Enhanced Forum Interface (`p2p-frontend-app/src/pages/Forum.tsx`)
+- **Edit/Delete Dropdown**: Three-dot menu (MoreVertical icon) visible only to post authors
+- **Inline Edit Form**: Direct editing with amber gradient styling and real-time validation
+- **Authorization Control**: `isPostAuthor()` function checks `user.mongo_id === post.author_id`
+- **Success Notifications**: Professional toast-style messages for edit/delete actions
+- **Category Refresh**: Automatic category list refresh on post creation/deletion
+- **Real-time Updates**: Categories sidebar updates immediately when posts are added/removed
 
-#### 1. Forum CRUD UI
-- **Edit/Delete Dropdown**: Three-dot menu (MoreVertical icon) on post cards
-- **Inline Edit Form**: Direct editing with amber gradient styling
-- **Authorization Display**: Show options only to post authors
-- **Success Notifications**: Toast-style messages for edit/delete actions
+### Enhanced Use Case Management (`p2p-frontend-app/src/pages/`)
+- **Edit Navigation**: "Edit Use Case" button → `/submit?edit={id}` with complete form pre-filling
+- **SubmitUseCase.tsx**: Enhanced to detect edit mode and populate all fields from existing data
+- **UseCaseDetail.tsx**: Author-only edit/delete options with proper authorization
+- **Delete Confirmation**: Custom DeleteConfirmModal replacing native browser alerts
+- **Loading States**: Professional "Loading Use Case Data..." indicators
 
-#### 2. Use Case CRUD UI
-- **Edit Navigation**: "Edit Use Case" → `/submit?edit={id}`
-- **Complete Form Pre-filling**: All fields populated from existing data
-- **Delete Confirmation**: Custom modal replacing native alerts
-- **Author-Only Display**: Conditional rendering based on `user.mongo_id`
+### Enhanced Draft Management System (`p2p-frontend-app/src/pages/Dashboard.tsx`)
+- **Draft CRUD Operations**:
+  - Create drafts via "Save Draft" button in CreatePostModal
+  - Update existing drafts (prevents duplicate creation)
+  - Delete drafts with confirmation modal and red X button
+  - Continue writing drafts with auto-prefill in Forum create modal
+  
+- **Visual Enhancements**:
+  - Right-side slide-over panels replacing full-screen modals
+  - Blue gradient headers with professional styling
+  - Hover-to-show delete buttons with proper z-index layering
+  - Clickable draft items that deep-link to Forum with prefilled content
 
-#### 3. Enhanced Validation System
-- **Professional Error Modal**: 
-  - Clean red gradient design
-  - Positioned at top (non-intrusive)
-  - Specific field-by-field error listing
-  - Professional "Got It, Fix Now" button
+### Dynamic Category System (`p2p-frontend-app/src/components/ui/CreatePostModal.tsx`)
+- **35+ Predefined Categories**: Comprehensive manufacturing category list including:
+  - Automation, Quality Management, AI, Maintenance (existing)
+  - Digital Transformation, IoT & Sensors, Robotics, Cybersecurity
+  - Energy Efficiency, Sustainability, Safety & Compliance
+  - Training & Development, Cost Optimization, Inventory Management
+  - Production Planning, Machine Learning, Data Analytics, ERP Systems
+  - Cloud Computing, 3D Printing, Packaging, Logistics, Procurement
+  - And 15+ additional manufacturing-focused categories
+  
+- **Smart Category Merging**:
+  - Combines API categories (with post counts) and predefined categories
+  - Avoids duplicates through case-insensitive matching
+  - Visual indicators: blue dots for existing categories, gray for new ones
+  - Alphabetically sorted for easy browsing
 
-- **Field-Level Validation Styling**:
-  - Red highlighted error messages
-  - `bg-red-50` background with `border-l-4 border-red-500`
-  - Font styling: `text-red-600 font-semibold`
-  - Clear visual separation from normal text
+### Professional Validation System
+- **Enhanced Error Handling**:
+  - Custom DeleteConfirmModal with red gradient design
+  - Field-level validation with specific error messages
+  - Professional styling: `bg-red-50`, `border-l-4 border-red-500`
+  - Clear "Got It, Fix Now" buttons instead of generic alerts
 
-#### 4. Technical Architecture Section Added
-- **New Step 4** in Use Case submission (7 steps total)
-- **System Overview**: Architecture description textarea
-- **Components**: Dynamic array for layers/specifications
-- **Security Measures**: Dynamic security features list
-- **Scalability Design**: Dynamic scalability features
+### UI Component Improvements
+- **DeleteConfirmModal**: Reusable component with consistent styling across Forum and Dashboard
+- **Enhanced Dropdowns**: Proper z-index handling and scrollable content
+- **Modal Positioning**: Top-centered, non-blocking design
+- **Responsive Design**: Proper layering and mobile-friendly interactions
 
-#### 5. UI Component Improvements
-- **DeleteConfirmModal**: Reusable styled confirmation component
-- **Enhanced Dropdowns**: Proper z-index (`z-[9999]`) and styling
-- **Form Navigation**: Updated step counts and validation flows
+## Critical Bug Fixes
 
-### 🔧 Critical Bug Fixes
+### 1. Draft System Issues
+- **Problem**: Draft posts counting as published forum posts in dashboard stats
+- **Solution**: Enhanced `UserActivityService.recalculate_user_stats()` to exclude deleted posts and properly separate draft counts
+- **Impact**: Dashboard "Questions Asked" now shows accurate published post count only
 
-#### 1. Edit Functionality Issues
-- **Problem**: Use case edits not saving due to schema mismatch
-- **Solution**: Complete `UseCaseUpdate` schema with all frontend fields
-- **Mapping Fix**: Proper field mapping `factoryName → factory_name`, etc.
+### 2. Category Refresh Issues  
+- **Problem**: New categories not appearing in sidebar after post creation
+- **Solution**: Added automatic category refresh in `onPostSuccess` callback
+- **Enhancement**: Categories refresh on both creation and deletion for real-time accuracy
 
-#### 2. Soft Delete Filtering
-- **Problem**: Deleted items reappearing after refresh
-- **Solution**: Added `{"status": {"$ne": "deleted"}}` to all GET endpoints
-- **Scope**: Forums, Use Cases, Categories, Stats, Bookmarks
+### 3. Draft Modal Issues
+- **Problem**: Delete confirmation modal state not defined, causing runtime errors
+- **Solution**: Added `deleteConfirm` state and proper `DeleteConfirmModal` integration
+- **Fix**: Changed `onCancel` prop to `onClose` to match component interface
 
-#### 3. Authorization Context
-- **Problem**: Edit/delete options not visible to content authors
-- **Solution**: Added `mongo_id` to `/auth/me` response and `author_id` to posts
-- **Frontend**: Updated AuthContext to populate `user.mongo_id`
+### 4. Draft Update vs Create
+- **Problem**: Continuing to write from draft created new drafts instead of updating existing ones
+- **Solution**: Added draft ID tracking and `PUT /api/v1/dashboard/drafts/{draft_id}` endpoint
+- **Enhancement**: Smart save button uses PUT for updates, POST for new drafts
 
-#### 4. Validation UX
-- **Problem**: Generic alerts with no specific guidance
-- **Solution**: Step-by-step validation with exact field requirements
-- **Visual**: Prominent red styling impossible to miss
+### 5. Landing Page Links
+- **Problem**: Featured use case buttons linked to generic placeholder page
+- **Solution**: Updated to link to specific use case detail pages:
+  - AI Quality Inspection → `/usecases/advanced-electronics-co/ai-quality-inspection-system`
+  - IoT Sensors → `/usecases/gulf-plastics-industries/predictive-maintenance-iot-system`
 
-### 📱 User Experience Enhancements
+## Testing & Validation
 
-#### 1. Visual Feedback
-- **Loading States**: "Loading Use Case Data..." for edit mode
-- **Success Messages**: Professional notifications for actions
-- **Error Handling**: Detailed, actionable error messages
+### Comprehensive CRUD Testing
+- ✅ **Forum Posts**: Create, edit, delete with proper authorization
+- ✅ **Use Cases**: Complete lifecycle with form pre-filling and validation
+- ✅ **Draft Management**: Create, update, delete, and continue writing workflows
+- ✅ **Category System**: Dynamic creation, real-time updates, proper filtering
+- ✅ **Authorization**: Author-only permissions enforced across all operations
+- ✅ **Statistics**: Accurate counting with proper separation of drafts and published content
 
-#### 2. Navigation Flow
-- **Edit Mode Detection**: URL parameter `?edit=use_case_id`
-- **Form Pre-population**: All existing data loaded automatically
-- **Modal Alternatives**: Custom components replacing native dialogs
+### User Experience Validation
+- ✅ **Professional UI**: Custom modals replace browser alerts throughout
+- ✅ **Real-time Updates**: Categories and stats refresh automatically
+- ✅ **Error Handling**: Detailed, actionable error messages with professional styling
+- ✅ **Navigation Flow**: Seamless editing and deletion workflows
+- ✅ **Mobile Responsive**: Proper layering and touch-friendly interactions
 
-#### 3. Responsive Design
-- **Modal Positioning**: Top-centered, non-blocking
-- **Dropdown Fixes**: Proper layering and visibility
-- **Form Validation**: Clear, step-by-step guidance
+## Security Implementation
 
-## 🛡️ Security Implementation
+### Multi-Layer Authorization
+1. **Backend Service Layer**: User ownership validation via `user.mongo_id === content.author_id`
+2. **API Endpoints**: Session verification + ownership checks before any modifications
+3. **Frontend UI**: Conditional rendering ensures edit/delete options only appear for content authors
+4. **Database**: Soft deletes preserve audit trail while hiding content from users
 
-### Authorization Layers
-1. **Backend Service Layer**: User ownership validation
-2. **API Endpoints**: Session verification + ownership checks  
-3. **Frontend UI**: Conditional rendering for authors only
-4. **Database**: Soft deletes preserve audit trail
+### Data Protection & Integrity
+- **Soft Deletes**: Content marked as `status: "deleted"`, never permanently removed
+- **Edit Tracking**: `edited_at` timestamps maintain change history
+- **Draft Separation**: True draft persistence separate from published content
+- **User Context**: Secure MongoDB ID matching prevents unauthorized access
 
-### Data Protection
-- **Soft Deletes**: Content marked as deleted, never permanently removed
-- **Edit Tracking**: `edited_at` timestamps for change history
-- **User Context**: Secure MongoDB ID matching for authorization
+## API Summary
 
-## 🚀 Technical Architecture
+### Forum Operations
+- `PUT /api/v1/forum/posts/{post_id}` — Update forum posts (author only)
+- `DELETE /api/v1/forum/posts/{post_id}` — Soft delete posts (204 response)
+- `GET /api/v1/forum/categories` — Dynamic categories with real-time counts
+- `POST /api/v1/forum/posts/{post_id}/bookmark` — Save/unsave posts
 
-### Backend Stack
-- **FastAPI**: REST API endpoints with Pydantic validation
-- **MongoDB/Beanie**: Document storage with ODM
-- **PostgreSQL**: User session management via SuperTokens
-- **Services Pattern**: Business logic separation
+### Use Case Operations  
+- `PUT /api/v1/use-cases/{use_case_id}` — Update use cases (author only)
+- `DELETE /api/v1/use-cases/{use_case_id}` — Soft delete use cases
+- `GET /api/v1/use-cases/by-id/{use_case_id}` — Fetch for editing
+- All listing endpoints filter soft-deleted content
 
-### Frontend Stack  
-- **React/TypeScript**: Component-based UI with type safety
-- **React Hook Form**: Form validation with Zod schemas
-- **Tailwind CSS**: Utility-first styling with custom components
-- **React Router**: SPA navigation with parameter handling
+### Draft Management
+- `POST /api/v1/dashboard/drafts` — Create new draft posts
+- `PUT /api/v1/dashboard/drafts/{draft_id}` — Update existing drafts
+- `DELETE /api/v1/dashboard/drafts/{draft_id}` — Delete drafts
+- `GET /api/v1/dashboard/drafts` — List user drafts
 
-### Integration Points
-- **Authentication Flow**: SuperTokens → PostgreSQL → MongoDB user linking
-- **API Communication**: RESTful endpoints with proper error handling
-- **State Management**: React hooks with form synchronization
+### Statistics & Analytics
+- `POST /api/v1/dashboard/recalculate-stats` — Manual stats refresh
+- `GET /api/v1/dashboard/stats` — User statistics (excludes drafts from forum count)
 
-## 📊 Implementation Metrics
+## Data Model Enhancements
 
-### Code Changes
-- **Backend Files Modified**: 6 (models, services, endpoints)
-- **Frontend Files Modified**: 4 (pages, components, context)
-- **New Components Created**: 2 (DeleteConfirmModal, enhanced validation)
-- **API Endpoints Added**: 6 (CRUD operations)
+### Forum Categories (Dynamic)
+- **Completely Dynamic**: Categories created automatically from post content
+- **Real-time Aggregation**: MongoDB aggregation pipeline for live counts
+- **Case-insensitive Normalization**: Prevents duplicate categories
+- **35+ Predefined Options**: Frontend provides comprehensive manufacturing category list
 
-### Feature Completeness
-- ✅ **Forum CRUD**: Complete with UI and validation
-- ✅ **Use Case CRUD**: Complete with edit pre-filling  
-- ✅ **Authorization**: Multi-layer security implementation
-- ✅ **Soft Deletes**: Proper filtering across all endpoints
-- ✅ **Validation**: Professional error handling and guidance
-- ✅ **Technical Architecture**: New section in submission form
+### Draft vs Published Content
+- **Separate Collections**: `DraftPost` collection distinct from `ForumPost`
+- **Status-based Filtering**: Published posts use `status != "deleted"`
+- **Statistics Separation**: Draft counts separate from forum post counts
+- **True Persistence**: Drafts saved to database, not temporary storage
 
-## 🎯 User Stories Completed
+## Migration/Deployment Notes
 
-1. **As a user**, I can edit my forum posts with an intuitive inline editor
-2. **As a user**, I can delete my forum posts with proper confirmation
-3. **As a user**, I can edit my use cases with all data pre-filled
-4. **As a user**, I can delete my use cases with professional confirmation
-5. **As a user**, I only see edit/delete options for content I authored
-6. **As a user**, I receive clear, specific validation guidance
-7. **As a user**, I can provide detailed technical architecture information
+### Database Changes
+- No SQL migration required; MongoDB collections auto-create
+- Enhanced `UserStats` calculation excludes deleted posts
+- `DraftPost` collection created automatically on first draft save
 
-## 🏆 Success Criteria Met
+### Frontend Deployment
+- New predefined categories available immediately in dropdown
+- DeleteConfirmModal component replaces all browser alerts
+- Enhanced category refresh requires no configuration changes
 
-- ✅ **Complete CRUD Operations**: All Create, Read, Update, Delete functions working
-- ✅ **Authorization Security**: Only content authors can modify their content
-- ✅ **Professional UI/UX**: Modern, clean interface with proper feedback
-- ✅ **Data Integrity**: Soft deletes preserve content for audit/recovery
-- ✅ **Validation Excellence**: Clear, helpful error messages and guidance
-- ✅ **Technical Completeness**: Full technical documentation capability
+## Production Readiness
 
-## 🔮 Future Enhancements
+### Performance Optimizations
+- **Category Aggregation**: Efficient MongoDB pipeline for real-time counts
+- **Soft Delete Filtering**: Proper indexing on `status` field
+- **Draft Separation**: Reduced query complexity for published content
+- **Statistics Caching**: User stats calculated on-demand with smart triggers
 
-### Potential Improvements
-1. **Revision History**: Track and display edit history
-2. **Bulk Operations**: Select multiple items for batch actions
-3. **Advanced Permissions**: Role-based editing (admin override)
-4. **Draft Mode**: Save drafts before publishing edits
-5. **Real-time Updates**: WebSocket notifications for live changes
+### Error Handling
+- **Professional Validation**: Custom error modals with specific guidance
+- **Network Resilience**: Graceful fallbacks for API failures  
+- **User Feedback**: Clear success/error messages for all operations
+- **Debug Logging**: Console logs for category refresh and draft operations
 
-### Technical Debt
-- **Image Handling**: Proper file upload for use case editing
-- **Optimistic Updates**: Immediate UI feedback with rollback
-- **Caching**: Smart cache invalidation for edited content
-- **Analytics**: Track edit/delete patterns for insights
+### Security Measures
+- **Authorization Enforcement**: Multi-layer permission checks
+- **Audit Trail**: Soft deletes preserve content history
+- **Session Validation**: All operations require active user session
+- **Data Isolation**: Users can only modify their own content
 
----
+## Notes
 
-## 📝 Summary
+This implementation delivers a comprehensive CRUD system with enhanced draft management, dynamic categories, and professional UI/UX. The system maintains data integrity through soft deletes while providing real-time updates and accurate statistics. All operations are properly authorized and validated, ensuring a secure and user-friendly experience.
 
-This implementation provides a complete, production-ready CRUD system for both Forum Posts and Use Cases with:
-
-- **Robust Backend**: Proper authorization, validation, and data integrity
-- **Professional Frontend**: Clean UI with excellent user experience  
-- **Security First**: Multi-layer authorization and soft delete safety
-- **Developer Experience**: Well-structured code with clear separation of concerns
-
-The system now supports the full content lifecycle from creation through editing to deletion, with proper user permissions and professional-grade validation and error handling.
+Key achievements include the separation of draft and published content, dynamic category system with 35+ manufacturing options, professional confirmation modals, and seamless integration between Dashboard drafts and Forum post creation.
 
 ---
 

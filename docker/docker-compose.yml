@@ -1,0 +1,149 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: p2p-postgres
+    environment:
+      - POSTGRES_DB=p2p_sandbox
+      - POSTGRES_USER=p2p_user
+      - POSTGRES_PASSWORD=iiot123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # THIS LINE runs your script at the right time, inside the container
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U p2p_user -d p2p_sandbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - p2p-network
+
+  mongodb:
+    image: mongo:7
+    container_name: p2p-mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=p2p_user
+      - MONGO_INITDB_ROOT_PASSWORD=iiot123
+      - MONGO_INITDB_DATABASE=p2p_sandbox
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - p2p-network
+
+
+  supertokens:
+    image: registry.supertokens.io/supertokens/supertokens-postgresql:11.0
+    container_name: p2p-supertokens
+    ports:
+      - "3567:3567"
+    environment:
+      - POSTGRESQL_CONNECTION_URI=postgresql://p2p_user:iiot123@postgres:5432/supertokens
+    depends_on:
+      postgres: # <-- DEPENDS DIRECTLY ON POSTGRES
+        condition: service_healthy # <-- The healthcheck guarantees the init script has run
+    networks:
+      - p2p-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: ./docker/backend.Dockerfile
+      target: development
+    container_name: p2p-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../p2p-backend-app:/app
+    command: >
+      sh -c "
+        echo 'Waiting for PostgreSQL...'
+        while ! python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect((\"postgres\", 5432))'; do
+          sleep 1
+        done
+        echo 'PostgreSQL is ready.'
+
+        echo 'Waiting for MongoDB...'
+        while ! python -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect((\"mongodb\", 27017))'; do
+          sleep 1
+        done
+        echo 'MongoDB is ready.'
+
+        echo 'Running database migrations...'
+        alembic upgrade head &&
+        echo 'Migrations complete. Starting server...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    # ---- END: REPLACE THE COMMAND ----
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://p2p_user:iiot123@postgres:5432/p2p_sandbox
+      - MONGODB_URL=mongodb://p2p_user:iiot123@mongodb:27017/p2p_sandbox?authSource=admin
+      - SUPERTOKENS_CONNECTION_URI=http://supertokens:3567
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres: { condition: service_healthy }
+      mongodb: { condition: service_healthy }
+      supertokens: { condition: service_started }
+    networks:
+      - p2p-network
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: ./docker/frontend.Dockerfile
+      target: development
+    container_name: p2p-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../p2p-frontend-app:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - p2p-network
+
+  seeder:
+    build:
+      context: ..
+      dockerfile: ./docker/backend.Dockerfile
+      target: production
+    container_name: p2p-seeder
+    command: >
+      sh -c "
+        python scripts/seed_db_users.py &&
+        python scripts/seed_forums.py &&
+        python scripts/seed_usecases.py &&
+        python scripts/seed_user_activities.py &&
+        echo 'All seeding complete! ✅'
+      "
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://p2p_user:iiot123@postgres:5432/p2p_sandbox
+      - MONGODB_URL=mongodb://p2p_user:iiot123@mongodb:27017/p2p_sandbox?authSource=admin
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - p2p-network
+
+volumes:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  p2p-network:
+    driver: bridge

@@ -45,11 +45,38 @@ docker-compose down
 docker-compose down -v
 ```
 
+## 🐳 Docker Philosophy - It Just Works!
+
+The Docker setup is designed to work out-of-the-box on any machine without configuration changes. The system automatically handles:
+
+- ✅ **Cross-platform compatibility** (Windows, Mac, Linux)
+- ✅ **Network configuration** (localhost, 127.0.0.1, container networking)
+- ✅ **CORS handling** (pre-configured for common Docker scenarios)
+- ✅ **Database connections** (automatic service discovery)
+
+### Accessing from Different Machines
+If you want to access the application from other machines on your network:
+
+1. **The Docker containers will work as-is** - no code changes needed
+2. **Access via your machine's IP:**
+   - Find your IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)  
+   - Frontend: `http://YOUR_IP:5173`
+   - Backend: `http://YOUR_IP:8000`
+3. **The application will work** because CORS is pre-configured for common scenarios
+
+### Troubleshooting
+If you encounter any issues:
+- Ensure Docker Desktop is running
+- Try accessing via `http://localhost:5173` first
+- Check that all containers are healthy: `docker-compose ps`
+- **If backend fails to start**: Ensure no local `.env` files are interfering (they're excluded via .dockerignore)
+
 ### Development Features
 - 🔥 **Hot Reloading:** Both frontend and backend update on code changes
 - 📊 **Full Data:** Complete with users, forum posts, use cases, and activities
 - 🔐 **Authentication:** SuperTokens integration ready to use
 - 🐳 **One Command:** Entire development environment in seconds
+- 🌐 **Network Ready:** Configurable for different machines and IPs
 
 ---
 

@@ -148,8 +148,7 @@ export default function SubmitUseCase() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoadingExistingData, setIsLoadingExistingData] = useState(false)
-  const [validationModalOpen, setValidationModalOpen] = useState(false)
-  const [validationMessage, setValidationMessage] = useState("")
+
   
   // State for dynamic arrays
   const [specificProblems, setSpecificProblems] = useState<string[]>(["", ""])
@@ -334,8 +333,6 @@ export default function SubmitUseCase() {
           
         } catch (error) {
           console.error('Error fetching existing use case:', error)
-          setValidationMessage('Failed to load existing use case data. Please try again.')
-          setValidationModalOpen(true)
         } finally {
           setIsLoadingExistingData(false)
         }
@@ -519,8 +516,6 @@ export default function SubmitUseCase() {
       setIsSubmitted(true)
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'submitting'} use case:`, error)
-      setValidationMessage(`Error ${isEditMode ? 'updating' : 'submitting'} use case. Please try again.`)
-      setValidationModalOpen(true)
     } finally {
       setIsSubmitting(false)
     }
@@ -541,45 +536,6 @@ export default function SubmitUseCase() {
     const fields = stepFields[currentStep] || []
     const valid = await form.trigger(fields as any, { shouldFocus: true })
     if (!valid) {
-      // Get specific field errors
-      const missingFields = []
-      
-      // Check each field for this step and collect missing ones
-      if (currentStep === 1) {
-        if (!form.getValues('title')?.trim()) missingFields.push('Use Case Title (minimum 10 characters)')
-        if (!form.getValues('subtitle')?.trim()) missingFields.push('Subtitle (minimum 10 characters)')
-        if (!form.getValues('description')?.trim()) missingFields.push('Executive Summary (minimum 50 characters)')
-        if (!form.getValues('category')) missingFields.push('Category selection')
-        if (!form.getValues('factoryName')?.trim()) missingFields.push('Factory Name (minimum 2 characters)')
-      } else if (currentStep === 2) {
-        if (!form.getValues('industryContext')?.trim()) missingFields.push('Industry Context (minimum 50 characters)')
-        if (specificProblems.filter(p => p.trim()).length < 2) missingFields.push('At least 2 Specific Problems (minimum 10 characters each)')
-        if (!form.getValues('financialLoss')?.trim()) missingFields.push('Financial Impact description')
-      } else if (currentStep === 3) {
-        if (selectionCriteria.filter(c => c.trim()).length < 2) missingFields.push('At least 2 Selection Criteria (minimum 10 characters each)')
-        if (!form.getValues('selectedVendor')?.trim()) missingFields.push('Selected Vendor/Partner name')
-        if (technologyComponents.filter(t => t.trim()).length < 1) missingFields.push('At least 1 Technology Component (minimum 20 characters)')
-        if (!form.getValues('implementationTime')?.trim()) missingFields.push('Implementation Duration')
-        if (!form.getValues('totalBudget')?.trim()) missingFields.push('Total Budget')
-        if (!form.getValues('methodology')?.trim()) missingFields.push('Implementation Methodology (minimum 20 characters)')
-      } else if (currentStep === 5) {
-        if (quantitativeResults.filter(r => r.metric.trim() && r.baseline.trim() && r.current.trim() && r.improvement.trim()).length < 2) {
-          missingFields.push('At least 2 complete Quantitative Results (metric, baseline, current, improvement)')
-        }
-        if (challengesSolutions.filter(c => c.challenge.trim() && c.description.trim() && c.solution.trim() && c.outcome.trim()).length < 1) {
-          missingFields.push('At least 1 complete Challenge & Solution (challenge, description, solution, outcome)')
-        }
-      } else if (currentStep === 6) {
-        if (!form.getValues('city')?.trim()) missingFields.push('City name (minimum 2 characters)')
-        if (uploadedImages.length < 1) missingFields.push('At least 1 uploaded image')
-      }
-
-      const message = missingFields.length > 0 
-        ? `Please complete the following required fields:\n\n• ${missingFields.join('\n• ')}`
-        : 'Please complete the required fields on this step before continuing.'
-        
-      setValidationMessage(message)
-      setValidationModalOpen(true)
       return
     }
     if (currentStep < 7) setCurrentStep(currentStep + 1)
@@ -689,36 +645,7 @@ export default function SubmitUseCase() {
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, (errors) => { 
-              // Get specific validation errors
-              const errorMessages = []
-              
-              if (errors.title) errorMessages.push(`Use Case Title: ${errors.title.message}`)
-              if (errors.subtitle) errorMessages.push(`Subtitle: ${errors.subtitle.message}`)
-              if (errors.description) errorMessages.push(`Executive Summary: ${errors.description.message}`)
-              if (errors.category) errorMessages.push(`Category: ${errors.category.message}`)
-              if (errors.factoryName) errorMessages.push(`Factory Name: ${errors.factoryName.message}`)
-              if (errors.industryContext) errorMessages.push(`Industry Context: ${errors.industryContext.message}`)
-              if (errors.specificProblems) errorMessages.push(`Specific Problems: ${errors.specificProblems.message}`)
-              if (errors.financialLoss) errorMessages.push(`Financial Impact: ${errors.financialLoss.message}`)
-              if (errors.selectionCriteria) errorMessages.push(`Selection Criteria: ${errors.selectionCriteria.message}`)
-              if (errors.selectedVendor) errorMessages.push(`Selected Vendor: ${errors.selectedVendor.message}`)
-              if (errors.technologyComponents) errorMessages.push(`Technology Components: ${errors.technologyComponents.message}`)
-              if (errors.implementationTime) errorMessages.push(`Implementation Time: ${errors.implementationTime.message}`)
-              if (errors.totalBudget) errorMessages.push(`Total Budget: ${errors.totalBudget.message}`)
-              if (errors.methodology) errorMessages.push(`Methodology: ${errors.methodology.message}`)
-              if (errors.quantitativeResults) errorMessages.push(`Quantitative Results: ${errors.quantitativeResults.message}`)
-              if (errors.challengesSolutions) errorMessages.push(`Challenges & Solutions: ${errors.challengesSolutions.message}`)
-              if (errors.city) errorMessages.push(`City: ${errors.city.message}`)
-              if (errors.images) errorMessages.push(`Images: ${errors.images.message}`)
-              
-              const message = errorMessages.length > 0 
-                ? `Please fix the following validation errors:\n\n• ${errorMessages.join('\n• ')}`
-                : 'Some required fields are missing or invalid. Please review the highlighted fields and correct the errors before submitting.'
-                
-              setValidationMessage(message)
-              setValidationModalOpen(true)
-            })} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
@@ -1923,40 +1850,7 @@ export default function SubmitUseCase() {
         </div>
       </div>
 
-      {/* Validation Modal - Professional & Modern */}
-      {validationModalOpen && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[9999] max-w-2xl w-full mx-4">
-          <div className="bg-gradient-to-br from-red-50 via-white to-red-50 rounded-2xl border-2 border-red-300 shadow-2xl p-6">
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-lg">
-                <X className="h-6 w-6 text-white font-semibold" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-red-900 mb-3 flex items-center">
-                  ⚠️ Missing Required Fields
-                </h3>
-                <div className="text-red-800 font-medium text-base mb-4 whitespace-pre-line bg-white p-4 rounded-xl border-l-4 border-red-400 shadow-sm">
-                  {validationMessage}
-                </div>
-                <Button 
-                  onClick={() => setValidationModalOpen(false)}
-                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-6 py-2.5 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                >
-                  Got It, Fix Now
-                </Button>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setValidationModalOpen(false)}
-                className="text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

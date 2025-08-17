@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Users, BookOpen, TrendingUp, Star, Sparkles, Globe, Building2, Cog, BarChart3, Factory, Wrench, CheckCircle, MapPin } from "lucide-react"
+import { ArrowRight, Users, BookOpen, TrendingUp, Star, Sparkles, Globe, Building2, Cog, BarChart3, Factory, Wrench, CheckCircle, MapPin, User } from "lucide-react"
 import InteractiveMap from "@/components/InteractiveMap"
 import { SaudiRiyalCurrency } from "@/components/SaudiRiyal"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth()
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -248,22 +250,42 @@ export default function LandingPage() {
               Connect with factory owners across Saudi Arabia, browse proven use cases, and optimize your operations - completely free
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <Button 
-                size="lg" 
-                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg font-semibold"
-                onClick={() => navigate('/signup')}
-              >
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg"
-                onClick={() => navigate('/login')}
-              >
-                Sign In
-              </Button>
+              {isAuthenticated && user ? (
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3 bg-blue-600 text-white px-6 py-4 rounded-lg">
+                    <User className="h-5 w-5" />
+                    <span className="text-lg font-semibold">Welcome back, {user.firstName} {user.lastName}!</span>
+                  </div>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg"
+                    onClick={() => navigate('/dashboard')}
+                  >
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button 
+                    size="lg" 
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg font-semibold"
+                    onClick={() => navigate('/signup')}
+                  >
+                    Get Started Free
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg"
+                    onClick={() => navigate('/login')}
+                  >
+                    Sign In
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

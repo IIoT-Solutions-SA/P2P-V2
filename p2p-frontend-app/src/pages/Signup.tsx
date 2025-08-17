@@ -94,6 +94,24 @@ export default function Signup() {
   }
 
   const nextStep = () => {
+    // Validation for each step
+    if (currentStep === 1) {
+      if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password.trim()) {
+        setError('Please fill in all required fields')
+        return
+      }
+      if (formData.password.length <= 5) {
+        setError('Password must be more than 5 characters')
+        return
+      }
+    } else if (currentStep === 2) {
+      if (!formData.organizationName.trim() || !formData.industry.trim() || !formData.organizationSize.trim() || !formData.city.trim()) {
+        setError('Please fill in all required fields')
+        return
+      }
+    }
+    
+    setError('')
     if (currentStep < 3) setCurrentStep(currentStep + 1)
   }
 

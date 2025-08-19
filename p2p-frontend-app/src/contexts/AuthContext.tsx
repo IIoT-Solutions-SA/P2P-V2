@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Session from "supertokens-auth-react/recipe/session";
 import type { User, Organization, AuthState, LoginCredentials, SignupData } from '@/types/auth';
+import { buildApiUrl } from '@/config/environment';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfileAndSetState = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/me', {
+      const response = await fetch(buildApiUrl('/api/v1/auth/me'), {
         credentials: 'include'
       });
       if (response.ok) {
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
-    const response = await fetch('http://localhost:8000/api/v1/auth/custom-signin', {
+    const response = await fetch(buildApiUrl('/api/v1/auth/custom-signin'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // --- FINAL FIX APPLIED HERE ---
     // STEP 1: Call the custom signup endpoint to create the user.
-    const signupResponse = await fetch('http://localhost:8000/api/v1/auth/custom-signup', {
+    const signupResponse = await fetch(buildApiUrl('/api/v1/auth/custom-signup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

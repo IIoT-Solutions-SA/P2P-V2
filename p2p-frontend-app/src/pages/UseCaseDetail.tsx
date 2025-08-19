@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { buildApiUrl } from '@/config/environment';
 import { Button } from "@/components/ui/button";
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal";
 import { 
@@ -128,7 +129,7 @@ export default function UseCaseDetail() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`http://localhost:8000/api/v1/use-cases/${company_slug}/${title_slug}`, {
+        const response = await fetch(buildApiUrl(`/api/v1/use-cases/${company_slug}/${title_slug}`), {
           credentials: 'include'
         });
         if (!response.ok) {
@@ -163,7 +164,7 @@ export default function UseCaseDetail() {
     if (!useCase) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/use-cases/${useCase._id}`, {
+      const response = await fetch(buildApiUrl(`/api/v1/use-cases/${useCase._id}`), {
         method: 'DELETE',
         credentials: 'include'
       });

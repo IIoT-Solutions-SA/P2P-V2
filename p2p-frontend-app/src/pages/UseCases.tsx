@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { buildApiUrl } from '@/config/environment';
 import { Button } from "@/components/ui/button";
 import { 
   Search, 
@@ -73,12 +74,12 @@ export default function UseCases() {
       try {
         setLoading(true);
         setError(null);
-        const useCasesUrl = `http://localhost:8000/api/v1/use-cases?category=${selectedCategory}&search=${searchQuery}&sort_by=${sortBy}`;
+        const useCasesUrl = buildApiUrl(`/api/v1/use-cases?category=${selectedCategory}&search=${searchQuery}&sort_by=${sortBy}`);
         const [categoriesRes, useCasesRes, statsRes, contributorsRes] = await Promise.all([
-          fetch('http://localhost:8000/api/v1/use-cases/categories', { credentials: 'include' }),
+          fetch(buildApiUrl('/api/v1/use-cases/categories'), { credentials: 'include' }),
           fetch(useCasesUrl, { credentials: 'include' }),
-          fetch('http://localhost:8000/api/v1/use-cases/stats', { credentials: 'include' }),
-          fetch('http://localhost:8000/api/v1/use-cases/contributors', { credentials: 'include' })
+          fetch(buildApiUrl('/api/v1/use-cases/stats'), { credentials: 'include' }),
+          fetch(buildApiUrl('/api/v1/use-cases/contributors'), { credentials: 'include' })
         ]);
         if (!categoriesRes.ok || !useCasesRes.ok || !statsRes.ok || !contributorsRes.ok) {
             throw new Error('Failed to fetch data from the server.');
@@ -100,7 +101,7 @@ export default function UseCases() {
   useEffect(() => {
     const fetchBookmarks = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/v1/use-cases/bookmarks', { credentials: 'include' });
+        const res = await fetch(buildApiUrl('/api/v1/use-cases/bookmarks'), { credentials: 'include' });
         if (!res.ok) return;
         const data = await res.json();
         const ids = new Set<string>(Array.isArray(data) ? data.map((b: any) => String(b.id)) : []);
@@ -115,7 +116,7 @@ export default function UseCases() {
   const handleLike = async (e: React.MouseEvent, uc: UseCase, idx: number) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/like`, {
+      const res = await fetch(buildApiUrl(`/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/like`), {
         method: 'POST',
         credentials: 'include'
       });
@@ -137,7 +138,7 @@ export default function UseCases() {
   const handleBookmark = async (e: React.MouseEvent, uc: UseCase, idx: number) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/bookmark`, {
+      const res = await fetch(buildApiUrl(`/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/bookmark`), {
         method: 'POST',
         credentials: 'include'
       });

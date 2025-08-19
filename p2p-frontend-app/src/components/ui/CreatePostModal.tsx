@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2, Send, MessageSquare, Tag, FileText, Sparkles, X, Save } from "lucide-react";
+import { buildApiUrl } from '@/config/environment';
 
 interface Category {
   id: string;
@@ -98,7 +99,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     setError(null);
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/api/v1/forum/posts", {
+      const response = await fetch(buildApiUrl("/api/v1/forum/posts"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -127,8 +128,8 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     setSavingDraft(true);
     try {
       const url = draftId 
-        ? `http://localhost:8000/api/v1/dashboard/drafts/${draftId}`
-        : "http://localhost:8000/api/v1/dashboard/drafts";
+        ? buildApiUrl(`/api/v1/dashboard/drafts/${draftId}`)
+        : buildApiUrl("/api/v1/dashboard/drafts");
       const method = draftId ? "PUT" : "POST";
       
       const res = await fetch(url, {

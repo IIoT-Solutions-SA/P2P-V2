@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { useState as ReactUseState } from 'react'
 import { useState, useEffect } from 'react'
+import { buildApiUrl } from '@/config/environment'
 
 interface DashboardStats {
   questions_asked: number
@@ -66,7 +67,7 @@ export default function Dashboard() {
   // Dedicated loaders to avoid HMR/effect return confusion
   const fetchStats = async () => {
     try {
-      const statsResponse = await fetch('http://localhost:8000/api/v1/dashboard/stats', {
+      const statsResponse = await fetch(buildApiUrl('/api/v1/dashboard/stats'), {
         credentials: 'include'
       })
       if (statsResponse.ok) {
@@ -88,7 +89,7 @@ export default function Dashboard() {
         await fetchStats()
         
         // Fetch community activities
-        const activitiesResponse = await fetch('http://localhost:8000/api/v1/dashboard/activities', {
+        const activitiesResponse = await fetch(buildApiUrl('/api/v1/dashboard/activities'), {
           credentials: 'include'
         })
         if (activitiesResponse.ok) {
@@ -119,8 +120,8 @@ export default function Dashboard() {
   const preloadBookmarkCounts = async () => {
     try {
       const [forumRes, ucRes] = await Promise.all([
-        fetch('http://localhost:8000/api/v1/forum/bookmarks', { credentials: 'include' }),
-        fetch('http://localhost:8000/api/v1/use-cases/bookmarks', { credentials: 'include' })
+        fetch(buildApiUrl('/api/v1/forum/bookmarks'), { credentials: 'include' }),
+        fetch(buildApiUrl('/api/v1/use-cases/bookmarks'), { credentials: 'include' })
       ])
       const forumData = forumRes.ok ? await forumRes.json() : []
       const ucData = ucRes.ok ? await ucRes.json() : []
@@ -145,7 +146,7 @@ export default function Dashboard() {
       setLoadingBookmarks(true)
       if (type === 'posts') {
         setBookmarkModalTitle('Saved Posts')
-        const res = await fetch('http://localhost:8000/api/v1/forum/bookmarks', { credentials: 'include' })
+        const res = await fetch(buildApiUrl('/api/v1/forum/bookmarks'), { credentials: 'include' })
         const list = res.ok ? await res.json() : []
         setBookmarks(Array.isArray(list) ? list.map((b: any) => ({
           title: b.target_title || b.title,
@@ -157,7 +158,7 @@ export default function Dashboard() {
         setForumBookmarkCount(Array.isArray(list) ? list.length : 0)
       } else {
         setBookmarkModalTitle('Saved Use Cases')
-        const res = await fetch('http://localhost:8000/api/v1/use-cases/bookmarks', { credentials: 'include' })
+        const res = await fetch(buildApiUrl('/api/v1/use-cases/bookmarks'), { credentials: 'include' })
         const list = res.ok ? await res.json() : []
         setBookmarks(Array.isArray(list) ? list.map((b: any) => ({
           title: b.title,
@@ -180,7 +181,7 @@ export default function Dashboard() {
   const fetchDrafts = async () => {
     try {
       setLoadingDrafts(true)
-      const response = await fetch('http://localhost:8000/api/v1/dashboard/drafts', {
+      const response = await fetch(buildApiUrl('/api/v1/dashboard/drafts'), {
         credentials: 'include'
       })
       if (response.ok) {
@@ -634,7 +635,7 @@ export default function Dashboard() {
                             message: 'Are you sure you want to delete this draft? This action cannot be undone.',
                             onConfirm: async () => {
                               try {
-                                const res = await fetch(`http://localhost:8000/api/v1/dashboard/drafts/${draft.id}`, {
+                                const res = await fetch(buildApiUrl(`/api/v1/dashboard/drafts/${draft.id}`), {
                                   method: 'DELETE',
                                   credentials: 'include'
                                 })

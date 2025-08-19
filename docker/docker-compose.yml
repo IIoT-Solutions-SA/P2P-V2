@@ -59,6 +59,7 @@ services:
       dockerfile: ./docker/backend.Dockerfile
       target: development
     container_name: p2p-backend
+    user: "1000:1000"
     ports:
       - "8000:8000"
     volumes:

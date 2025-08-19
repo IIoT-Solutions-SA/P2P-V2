@@ -5,6 +5,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import 'leaflet.markercluster'
 import { generateUseCasePopupHTML, type UseCase as PopupUseCase } from './UseCasePopup'
+import { buildApiUrl } from '@/config/environment'
 
 // Fix for default markers in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -53,7 +54,7 @@ export default function InteractiveMap({
     // Fetch use-cases from backend for map markers
     const fetchUseCases = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/v1/use-cases?limit=200', { credentials: 'include' })
+        const res = await fetch(buildApiUrl('/api/v1/use-cases?limit=200'), { credentials: 'include' })
         if (!res.ok) throw new Error('Failed to load use cases')
         const data = await res.json()
         setBackendUseCases(data)

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { buildApiUrl } from '@/config/environment'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -257,7 +258,7 @@ export default function SubmitUseCase() {
       const fetchExistingUseCase = async () => {
         setIsLoadingExistingData(true)
         try {
-          const response = await fetch(`http://localhost:8000/api/v1/use-cases/by-id/${editUseCaseId}`, {
+          const response = await fetch(buildApiUrl(`/api/v1/use-cases/by-id/${editUseCaseId}`), {
             credentials: 'include'
           })
           if (!response.ok) {
@@ -498,8 +499,8 @@ export default function SubmitUseCase() {
 
       // Use PUT for edit mode, POST for create mode
       const url = isEditMode 
-        ? `http://localhost:8000/api/v1/use-cases/${editUseCaseId}`
-        : 'http://localhost:8000/api/v1/use-cases'
+        ? buildApiUrl(`/api/v1/use-cases/${editUseCaseId}`)
+        : buildApiUrl('/api/v1/use-cases')
       
       const method = isEditMode ? 'PUT' : 'POST'
 

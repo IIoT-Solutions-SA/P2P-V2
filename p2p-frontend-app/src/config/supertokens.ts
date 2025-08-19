@@ -1,12 +1,13 @@
 import SuperTokens from "supertokens-auth-react";
 import EmailPassword from "supertokens-auth-react/recipe/emailpassword";
 import Session from "supertokens-auth-react/recipe/session";
+import { API_BASE_URL, WEBSITE_BASE_URL } from './environment';
 
 SuperTokens.init({
     appInfo: {
         appName: "P2P Sandbox for SMEs",
-        apiDomain: "http://localhost:8000",
-        websiteDomain: "http://localhost:5173",
+        apiDomain: API_BASE_URL,
+        websiteDomain: WEBSITE_BASE_URL,
         apiBasePath: "/api/v1/auth",
         websiteBasePath: "/auth"
     },

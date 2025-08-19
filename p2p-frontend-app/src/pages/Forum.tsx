@@ -34,6 +34,7 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useLocation } from 'react-router-dom'
+import { buildApiUrl } from '@/config/environment'
 
 interface Category {
   id: string
@@ -123,9 +124,9 @@ export default function Forum() {
       setLoading(true);
       try {
         const [catRes, statsRes, contribRes] = await Promise.all([
-          fetch('http://localhost:8000/api/v1/forum/categories', { credentials: 'include' }),
-          fetch('http://localhost:8000/api/v1/forum/stats', { credentials: 'include' }),
-          fetch('http://localhost:8000/api/v1/forum/contributors?limit=3', { credentials: 'include' })
+          fetch(buildApiUrl('/api/v1/forum/categories'), { credentials: 'include' }),
+          fetch(buildApiUrl('/api/v1/forum/stats'), { credentials: 'include' }),
+          fetch(buildApiUrl('/api/v1/forum/contributors?limit=3'), { credentials: 'include' })
         ]);
 
         if (catRes.ok) {
@@ -140,7 +141,7 @@ export default function Forum() {
 
         // Prefetch bookmarks to highlight icon
         try {
-          const bmRes = await fetch('http://localhost:8000/api/v1/forum/bookmarks', { credentials: 'include' })
+          const bmRes = await fetch(buildApiUrl('/api/v1/forum/bookmarks'), { credentials: 'include' })
           if (bmRes.ok) {
             const list = await bmRes.json()
             const ids = Array.isArray(list) ? list.map((b: any) => Number(b.target_id) || b.target_id) : []
@@ -180,7 +181,7 @@ export default function Forum() {
 
   const handleBookmarkPost = async (postId: number) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}/bookmark`, {
+      const res = await fetch(buildApiUrl(`/api/v1/forum/posts/${postId}/bookmark`), {
         method: 'POST',
         credentials: 'include'
       })
@@ -204,7 +205,7 @@ export default function Forum() {
     if (!editingPost) return
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${editingPost}`, {
+      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${editingPost}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -223,7 +224,7 @@ export default function Forum() {
           ? 'all' 
           : categories.find(c => c.id === selectedCategoryId)?.name
         if (categoryQueryParam) {
-          const postsResponse = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, { 
+          const postsResponse = await fetch(buildApiUrl(`/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`), { 
             credentials: 'include' 
           })
           if (postsResponse.ok) {
@@ -274,7 +275,7 @@ export default function Forum() {
     if (!postToDelete) return
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postToDelete.id}`, {
+      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${postToDelete.id}`), {
         method: 'DELETE',
         credentials: 'include'
       })
@@ -285,7 +286,7 @@ export default function Forum() {
         
         // Refresh categories (in case category now has 0 posts and should be removed)
         try {
-          const catRes = await fetch('http://localhost:8000/api/v1/forum/categories', { credentials: 'include' })
+          const catRes = await fetch(buildApiUrl('/api/v1/forum/categories'), { credentials: 'include' })
           if (catRes.ok) {
             const catData = await catRes.json()
             const newCategories = catData.categories || []
@@ -366,7 +367,7 @@ export default function Forum() {
             return;
         }
         
-        const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, {
+        const response = await fetch(buildApiUrl(`/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`), {
           credentials: 'include'
         })
         if (response.ok) {
@@ -393,7 +394,7 @@ export default function Forum() {
   // Function to fetch full post details with comments
   const handlePostClick = async (postId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}`, {
+      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${postId}`), {
         credentials: 'include'
       });
 
@@ -411,7 +412,7 @@ export default function Forum() {
 
   const handleLikePost = async (postId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${postId}/like`, {
+      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${postId}/like`), {
         method: 'POST',
         credentials: 'include'
       })
@@ -430,7 +431,7 @@ export default function Forum() {
 
   const handleLikeComment = async (commentId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/forum/replies/${commentId}/like`, {
+      const response = await fetch(buildApiUrl(`/api/v1/forum/replies/${commentId}/like`), {
         method: 'POST',
         credentials: 'include'
       })
@@ -455,7 +456,7 @@ export default function Forum() {
   const handlePostComment = async () => {
     if (!newComment.trim() || !selectedPost) return
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${selectedPost.id}/replies`, {
+      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${selectedPost.id}/replies`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -477,7 +478,7 @@ export default function Forum() {
   const handleSubmitReply = async (parentReplyId: number) => {
     if (!replyText.trim() || !selectedPost) return
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/forum/posts/${selectedPost.id}/replies`, {
+      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${selectedPost.id}/replies`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1052,7 +1053,7 @@ export default function Forum() {
           
           // Refresh categories first (in case new category was created)
           try {
-            const catRes = await fetch('http://localhost:8000/api/v1/forum/categories', { credentials: 'include' })
+            const catRes = await fetch(buildApiUrl('/api/v1/forum/categories'), { credentials: 'include' })
             if (catRes.ok) {
               const catData = await catRes.json()
               const newCategories = catData.categories || []
@@ -1062,7 +1063,7 @@ export default function Forum() {
               // Refresh posts after categories are updated
               const categoryQueryParam = selectedCategoryId === 'all' ? 'all' : newCategories.find(c => c.id === selectedCategoryId)?.name
               if (categoryQueryParam) {
-                const response = await fetch(`http://localhost:8000/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`, { credentials: 'include' })
+                const response = await fetch(buildApiUrl(`/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`), { credentials: 'include' })
                 if (response.ok) {
                   const data = await response.json()
                   setForumPosts(data.posts || [])

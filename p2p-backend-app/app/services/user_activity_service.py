@@ -44,8 +44,10 @@ class UserActivityService:
     async def get_user_activities(user_id: str, limit: int = 10) -> List[Dict]:
         """Get recent activities for a user's dashboard feed"""
         try:
+            # Exclude 'view' activities from dashboard feed - they're too noisy
             activities = await UserActivity.find(
-                UserActivity.user_id == user_id
+                UserActivity.user_id == user_id,
+                UserActivity.activity_type != "view"
             ).sort(-UserActivity.created_at).limit(limit).to_list()
             
             # Convert to dashboard format
@@ -80,7 +82,10 @@ class UserActivityService:
     async def get_community_activities(limit: int = 10) -> List[Dict]:
         """Get recent community activities for dashboard feed"""
         try:
-            activities = await UserActivity.find().sort(-UserActivity.created_at).limit(limit).to_list()
+            # Exclude 'view' activities from dashboard feed - they're too noisy
+            activities = await UserActivity.find(
+                UserActivity.activity_type != "view"
+            ).sort(-UserActivity.created_at).limit(limit).to_list()
             
             # Get user names for activities
             from bson import ObjectId

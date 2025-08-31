@@ -124,35 +124,6 @@ services:
     networks:
       - p2p-network
 
-  seeder:
-    build:
-      context: ..
-      dockerfile: ./docker/backend.Dockerfile
-      target: production
-    container_name: p2p-seeder
-    command: >
-      sh -c "
-        python scripts/seed_db_users.py &&
-        python scripts/seed_forums.py &&
-        python scripts/seed_usecases.py &&
-        python scripts/seed_user_activities.py &&
-        echo 'All seeding complete! ✅'
-      "
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://p2p_user:iiot123@postgres:5432/p2p_sandbox
-      - MONGODB_URL=mongodb://p2p_user:iiot123@mongodb:27017/p2p_sandbox?authSource=admin
-      - BACKEND_CORS_ORIGINS="http://localhost:5173"
-      - SECRET_KEY=your-secret-key-here-change-in-production
-      - DEBUG=true
-      - LOG_LEVEL=DEBUG
-      - API_DOMAIN=http://localhost:8000
-      - WEBSITE_DOMAIN=http://localhost:5173
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - p2p-network
-
 volumes:
   postgres_data:
   mongodb_data:

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Users, BookOpen, TrendingUp, Star, Sparkles, Globe, Building2, Cog, BarChart3, Factory, Wrench, CheckCircle, MapPin, User } from "lucide-react"
+import { ArrowRight, Users, BookOpen, Cog, BarChart3, Factory, Wrench, CheckCircle, User } from "lucide-react"
 import InteractiveMap from "@/components/InteractiveMap"
 import { SaudiRiyalCurrency } from "@/components/SaudiRiyal"
 import { useNavigate } from "react-router-dom"

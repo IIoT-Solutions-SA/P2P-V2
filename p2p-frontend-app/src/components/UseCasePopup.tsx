@@ -129,7 +129,7 @@ export default function UseCasePopup({ useCase, onTitleClick }: UseCasePopupProp
         </div>
       </div>
       
-      <style jsx>{`
+      <style>{`
         .use-case-popup-component {
           width: 360px;
           font-family: system-ui, -apple-system, sans-serif;

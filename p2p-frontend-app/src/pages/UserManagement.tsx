@@ -12,18 +12,15 @@ import {
   Users, 
   UserPlus, 
   Mail, 
-  User, 
+ 
   Shield, 
   Clock, 
   CheckCircle, 
   XCircle,
   Search,
-  Filter,
-  MoreHorizontal,
   Edit,
   Trash2,
   ArrowLeft,
-  Home
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 // import { mockUsers, mockOrganizations } from '@/contexts/AuthContext' // REMOVED - exports disabled
@@ -73,8 +70,8 @@ export default function UserManagement() {
   ])
 
   // Filter users for current organization (mock data disabled for testing)
-  const organizationUsers = [] // mockUsers.filter(u => u.organizationId === organization?.id)
-  const filteredUsers = organizationUsers.filter(u => {
+  const organizationUsers: any[] = [] // mockUsers.filter(u => u.organizationId === organization?.id)
+  const filteredUsers = organizationUsers.filter((u: any) => {
     const matchesSearch = `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === 'all' || u.role === roleFilter
     return matchesSearch && matchesRole
@@ -294,7 +291,7 @@ export default function UserManagement() {
           </div>
 
           <div className="divide-y divide-slate-200">
-            {filteredUsers.map((user) => (
+            {filteredUsers.map((user: any) => (
               <div key={user.id} className="p-6 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">

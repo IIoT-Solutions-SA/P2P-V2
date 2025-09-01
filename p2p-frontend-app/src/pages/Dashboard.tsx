@@ -16,7 +16,6 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { useState as ReactUseState } from 'react'
 import { useState, useEffect } from 'react'
 import { buildApiUrl } from '@/config/environment'
 
@@ -56,7 +55,7 @@ export default function Dashboard() {
   const [drafts, setDrafts] = useState<any[]>([])
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
   const [loadingDrafts, setLoadingDrafts] = useState(false)
-  const [prefillDraft, setPrefillDraft] = useState<{ title?: string; content?: string; category?: string } | null>(null)
+  const setPrefillDraft = useState<{ title?: string; content?: string; category?: string } | null>(null)[1]
   const [deleteConfirm, setDeleteConfirm] = useState<{
     show: boolean
     title?: string

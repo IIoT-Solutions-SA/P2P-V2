@@ -24,19 +24,25 @@ A comprehensive platform for manufacturing professionals to share use cases, dis
    - **Frontend:** http://15.185.167.236:5173 (accessible to everyone)
    - **Backend API:** http://15.185.167.236:8000
    - **API Documentation:** http://15.185.167.236:8000/docs
+   - Uses production-optimized Docker builds
+   - Minified frontend assets, optimized for deployment
 
-   **Development Mode:**
+   **Development Mode (Recommended for local development):**
    ```bash
    MODE=development docker-compose up --build
    ```
    - **Frontend:** http://localhost:5173 (local only)
    - **Backend API:** http://localhost:8000
    - **API Documentation:** http://localhost:8000/docs
+   - Uses production Docker builds with development runtime settings
+   - Hot reload enabled, source maps available, no minification
 
    For PowerShell:
    ```powershell
    $env:MODE="development"; docker-compose up --build
    ```
+
+   **Note:** Both modes use production-optimized Docker images. The `MODE` variable only affects runtime behavior (hot reload, minification, API URLs). This hybrid approach ensures you develop with production-like containers while maintaining developer conveniences.
 
 ### What Gets Started
 - ✅ PostgreSQL database (with SuperTokens schema)
@@ -65,12 +71,14 @@ docker-compose down -v
 - Uses IP address: `15.185.167.236`
 - Accessible from anywhere on the internet
 - Just run: `docker-compose up`
+- Production-optimized builds with minified assets
 
 ### Development Mode
-- For local testing only
+- For local testing and development
 - Uses localhost addresses
 - PowerShell: `$env:MODE="development"; docker-compose up`
 - Bash: `MODE=development docker-compose up`
+- Production Docker builds with development runtime (hot reload, source maps)
 
 ### IP Address Changes
 If the EC2 IP address changes, update the hardcoded IP in:

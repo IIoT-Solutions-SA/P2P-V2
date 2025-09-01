@@ -57,7 +57,7 @@ services:
     build:
       context: ..
       dockerfile: ./docker/backend.Dockerfile
-      target: development
+      target: production
     container_name: p2p-backend
     user: "1000:1000"
     ports:
@@ -111,7 +111,7 @@ services:
     build:
       context: ..
       dockerfile: ./docker/frontend.Dockerfile
-      target: development
+      target: production
     container_name: p2p-frontend
     environment:
       - MODE=${MODE:-production}

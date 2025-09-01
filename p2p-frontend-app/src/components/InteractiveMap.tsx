@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import 'leaflet.markercluster'
-import { generateUseCasePopupHTML, type UseCase as PopupUseCase } from './UseCasePopup'
+import { generateUseCasePopupHTML, type UseCase, type UseCase as PopupUseCase } from './UseCasePopup'
 import { buildApiUrl } from '@/config/environment'
 
 // Fix for default markers in React-Leaflet
@@ -47,7 +47,7 @@ export default function InteractiveMap({
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const currentPopupRef = useRef<L.Popup | null>(null)
-  const [currentZoom, setCurrentZoom] = useState(6)
+  const setCurrentZoom = useState(6)[1]
   const [backendUseCases, setBackendUseCases] = useState<BackendUseCase[] | null>(null)
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export default function InteractiveMap({
     // Create cluster popup content with zoom controls
     const createClusterPopupContent = (markers: L.Marker[], cluster: any) => {
       const useCases = markers.map((marker: any) => marker.options.useCase)
-      const bounds = cluster.getBounds()
+      cluster.getBounds()
       
       console.log('Creating cluster popup for', useCases.length, 'use cases')
       
@@ -321,7 +321,7 @@ export default function InteractiveMap({
                       margin-top: auto;
                     ">
                       <div class="cluster-benefits" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                        ${useCase.benefits.slice(0, 2).map(benefit => `
+                        ${useCase.benefits.slice(0, 2).map((benefit: string) => `
                           <span class="cluster-benefit-tag" style="
                             background: linear-gradient(135deg, #eff6ff, #dbeafe); 
                             color: #1e40af; 
@@ -598,7 +598,7 @@ export default function InteractiveMap({
         <div ref={mapRef} style={{ height, width: '100%', zIndex: 1 }} />
       </div>
       
-      <style jsx>{`
+      <style>{`
         .interactive-map-container {
           position: relative;
         }

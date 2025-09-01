@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Zap, Home, MessageSquare, BookOpen, BarChart3, Bell, Plus, LogOut, User } from "lucide-react"
+import { Home, MessageSquare, BookOpen, BarChart3, Bell, Plus, LogOut } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 

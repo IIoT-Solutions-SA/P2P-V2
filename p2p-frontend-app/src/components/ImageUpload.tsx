@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react'
-import { Upload, X, Image as ImageIcon, FileImage, AlertCircle } from 'lucide-react'
+import { Upload, X, FileImage, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ImageUploadProps {
@@ -294,7 +294,7 @@ export default function ImageUpload({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .upload-area {
           border: 2px dashed #d1d5db;
           border-radius: 12px;

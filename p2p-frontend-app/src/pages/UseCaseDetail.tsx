@@ -203,7 +203,7 @@ export default function UseCaseDetail() {
   };
 
   const isUseCaseAuthor = (): boolean => {
-    return user && useCase && useCase.submitted_by && user.mongo_id === useCase.submitted_by;
+    return !!(user && useCase && useCase.submitted_by && user.id === useCase.submitted_by);
   };
 
   // Handle clicking outside dropdown to close it

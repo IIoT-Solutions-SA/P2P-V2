@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { CreatePostModal } from "@/components/ui/CreatePostModal"
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { 
   Search, 
@@ -15,14 +15,9 @@ import {
   ThumbsUp,
   Pin,
   CheckCircle,
-  Zap,
   Tag,
   ArrowLeft,
-  TrendingUp,
-  Star,
   Send,
-  Heart,
-  Share2,
   Bookmark,
   MoreVertical,
   Loader2,
@@ -327,7 +322,7 @@ export default function Forum() {
   }
 
   const isPostAuthor = (post: ForumPost): boolean => {
-    return user && post.author_id && user.mongo_id === post.author_id
+    return !!(user && post.author_id && user.id === post.author_id)
   }
 
   // Handle clicking outside dropdown to close it
@@ -1061,7 +1056,7 @@ export default function Forum() {
               console.log('Refreshed categories:', newCategories)
               
               // Refresh posts after categories are updated
-              const categoryQueryParam = selectedCategoryId === 'all' ? 'all' : newCategories.find(c => c.id === selectedCategoryId)?.name
+              const categoryQueryParam = selectedCategoryId === 'all' ? 'all' : newCategories.find((c: any) => c.id === selectedCategoryId)?.name
               if (categoryQueryParam) {
                 const response = await fetch(buildApiUrl(`/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`), { credentials: 'include' })
                 if (response.ok) {

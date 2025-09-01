@@ -4,11 +4,10 @@ import { buildApiUrl } from '@/config/environment';
 import { Button } from "@/components/ui/button";
 import { 
   Search, 
-  Filter, 
+ 
   BookOpen, 
   Star,
   CheckCircle,
-  Tag,
   TrendingUp,
   Building2,
   Cog,
@@ -18,7 +17,6 @@ import {
   ThumbsUp,
   Clock,
   Loader2,
-  ArrowRight,
   Bookmark
 } from "lucide-react";
 
@@ -62,7 +60,7 @@ export default function UseCases() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const setError = useState<string | null>(null)[1];
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -240,7 +238,7 @@ export default function UseCases() {
               </div>
               <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg">
                 {sortOptions.map((option) => (
-                  <Button key={option.id} variant={sortBy === option.id ? "primary" : "ghost"} size="sm" onClick={() => setSortBy(option.id)} className={`rounded-md transition-all duration-200 ${sortBy === option.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'}`}>
+                  <Button key={option.id} variant={sortBy === option.id ? "default" : "ghost"} size="sm" onClick={() => setSortBy(option.id)} className={`rounded-md transition-all duration-200 ${sortBy === option.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'}`}>
                     <option.icon className="h-4 w-4 mr-2" />
                     {option.name}
                   </Button>

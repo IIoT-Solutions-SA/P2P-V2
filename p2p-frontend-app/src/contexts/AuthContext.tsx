@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Session from "supertokens-auth-react/recipe/session";
-import type { User, Organization, AuthState, LoginCredentials, SignupData } from '@/types/auth';
+import type { User, AuthState, LoginCredentials, SignupData } from '@/types/auth';
 import { buildApiUrl } from '@/config/environment';
 
 interface AuthContextType extends AuthState {

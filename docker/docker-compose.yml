@@ -114,7 +114,8 @@ services:
       target: development
     container_name: p2p-frontend
     environment:
-      - NODE_ENV=production
+      - MODE=${MODE:-production}
+    command: sh -c "npm run dev -- --host --mode $$MODE"
     ports:
       - "5173:5173"
     volumes:

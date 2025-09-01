@@ -1,14 +1,14 @@
 // Environment configuration for API base URL
-// DEFAULT: Production (uses IP address 15.185.167.236)
-// Development: Set NODE_ENV=development to use localhost
+// DEFAULT: Development (uses localhost)
+// Production: Set VITE_NODE_ENV=production to use production server
 
-export const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-  : import.meta.env.VITE_API_BASE_URL || 'http://15.185.167.236:8000';
+export const API_BASE_URL = import.meta.env.VITE_NODE_ENV === 'production' 
+  ? import.meta.env.VITE_API_BASE_URL || 'http://15.185.167.236:8000'
+  : import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-export const WEBSITE_BASE_URL = process.env.NODE_ENV === 'development'
-  ? import.meta.env.VITE_WEBSITE_BASE_URL || 'http://localhost:5173'
-  : import.meta.env.VITE_WEBSITE_BASE_URL || 'http://15.185.167.236:5173';
+export const WEBSITE_BASE_URL = import.meta.env.VITE_NODE_ENV === 'production'
+  ? import.meta.env.VITE_WEBSITE_BASE_URL || 'http://15.185.167.236:5173'
+  : import.meta.env.VITE_WEBSITE_BASE_URL || 'http://localhost:5173';
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string): string => {

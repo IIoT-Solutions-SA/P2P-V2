@@ -15,7 +15,9 @@ A comprehensive platform for manufacturing professionals to share use cases, dis
    cd docker
    ```
 
-2. **Start all services (Production - Default):**
+2. **Start all services:**
+   
+   **Production Mode (Default):**
    ```bash
    docker-compose up --build
    ```
@@ -23,13 +25,18 @@ A comprehensive platform for manufacturing professionals to share use cases, dis
    - **Backend API:** http://15.185.167.236:8000
    - **API Documentation:** http://15.185.167.236:8000/docs
 
-3. **For Local Development (PowerShell):**
-   ```powershell
-   $env:NODE_ENV="development"; docker-compose up --build
+   **Development Mode:**
+   ```bash
+   MODE=development docker-compose up --build
    ```
    - **Frontend:** http://localhost:5173 (local only)
    - **Backend API:** http://localhost:8000
    - **API Documentation:** http://localhost:8000/docs
+
+   For PowerShell:
+   ```powershell
+   $env:MODE="development"; docker-compose up --build
+   ```
 
 ### What Gets Started
 - ✅ PostgreSQL database (with SuperTokens schema)
@@ -62,8 +69,8 @@ docker-compose down -v
 ### Development Mode
 - For local testing only
 - Uses localhost addresses
-- PowerShell: `$env:NODE_ENV="development"; docker-compose up`
-- Bash: `NODE_ENV=development docker-compose up`
+- PowerShell: `$env:MODE="development"; docker-compose up`
+- Bash: `MODE=development docker-compose up`
 
 ### IP Address Changes
 If the EC2 IP address changes, update the hardcoded IP in:

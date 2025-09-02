@@ -77,7 +77,7 @@ const formSchema = z.object({
     .min(2, "Please add at least 2 problems")
     .max(5, "Maximum 5 problems allowed"),
   financialLoss: z.string()
-    .min(5, "Financial loss description is required"),
+    .min(5, "Financial impact description must be at least 5 characters"),
   
   // Solution Overview
   selectionCriteria: z.array(z.string().min(10, "Criteria must be at least 10 characters"))
@@ -296,7 +296,7 @@ export default function SubmitUseCase() {
           form.setValue('selectedVendor', data.solution_details?.vendor_evaluation?.selected_vendor || '')
           
           if (data.solution_details?.technology_components?.length > 0) {
-            const components = data.solution_details.technology_components.map((comp: any) => 
+            const components = data.solution_details.technology_components.map((comp: string | { component: string; details: string }) => 
               typeof comp === 'string' ? comp : `${comp.component}: ${comp.details}`
             )
             setTechnologyComponents(components.length === 0 ? [""] : components)
@@ -535,8 +535,181 @@ export default function SubmitUseCase() {
 
   const handleNext = async () => {
     const fields = stepFields[currentStep] || []
-    const valid = await form.trigger(fields as any, { shouldFocus: true })
-    if (!valid) {
+    let hasValidationErrors = false
+    
+    // For step validation, we need to manually validate dynamic arrays
+    // since they're not automatically synced with form state
+    if (currentStep === 2) {
+      // Validate specific problems
+      const validProblems = specificProblems.filter(p => p.trim().length >= 10).length >= 2
+      if (!validProblems) {
+        let message = "Please add at least 2 problems"
+        if (specificProblems.length >= 2) {
+          // Check which problems are too short
+          const shortProblems: string[] = []
+          specificProblems.forEach((p, i) => {
+            if (p.trim().length > 0 && p.trim().length < 10) {
+              shortProblems.push(`Problem ${i + 1} needs ${10 - p.trim().length} more characters`)
+            }
+          })
+          if (shortProblems.length > 0) {
+            message = shortProblems[0]
+          } else {
+            message = "Each problem must be at least 10 characters"
+          }
+        }
+        form.setError('specificProblems', { 
+          type: 'manual',
+          message: message 
+        })
+        hasValidationErrors = true
+      } else {
+        form.clearErrors('specificProblems')
+      }
+    }
+    
+    if (currentStep === 3) {
+      // Validate selection criteria
+      const validCriteria = selectionCriteria.filter(c => c.trim().length >= 10).length >= 2
+      if (!validCriteria) {
+        let message = "Please add at least 2 selection criteria"
+        if (selectionCriteria.length >= 2) {
+          // Check which criteria are too short
+          const shortCriteria: string[] = []
+          selectionCriteria.forEach((c, i) => {
+            if (c.trim().length > 0 && c.trim().length < 10) {
+              shortCriteria.push(`Criteria ${i + 1} needs ${10 - c.trim().length} more characters`)
+            }
+          })
+          if (shortCriteria.length > 0) {
+            message = shortCriteria[0]
+          } else {
+            message = "Each criteria must be at least 10 characters"
+          }
+        }
+        form.setError('selectionCriteria', { 
+          type: 'manual',
+          message: message 
+        })
+        hasValidationErrors = true
+      } else {
+        form.clearErrors('selectionCriteria')
+      }
+      
+      // Validate technology components
+      const validComponents = technologyComponents.filter(c => c.trim().length >= 20).length >= 1
+      if (!validComponents) {
+        let message = "Please add at least 1 technology component"
+        if (technologyComponents.length >= 1) {
+          // Check which components are too short
+          const shortComponents: string[] = []
+          technologyComponents.forEach((c, i) => {
+            if (c.trim().length > 0 && c.trim().length < 20) {
+              shortComponents.push(`Component ${i + 1} needs ${20 - c.trim().length} more characters`)
+            }
+          })
+          if (shortComponents.length > 0) {
+            message = shortComponents[0]
+          } else {
+            message = "Each component description must be at least 20 characters"
+          }
+        }
+        form.setError('technologyComponents', { 
+          type: 'manual',
+          message: message 
+        })
+        hasValidationErrors = true
+      } else {
+        form.clearErrors('technologyComponents')
+      }
+    }
+    
+    if (currentStep === 5) {
+      // Validate quantitative results
+      const validResults = quantitativeResults.filter(r => 
+        r.metric.trim().length >= 5 && 
+        r.baseline.trim().length >= 2 && 
+        r.current.trim().length >= 2 && 
+        r.improvement.trim().length >= 2
+      ).length >= 2
+      if (!validResults) {
+        form.setError('quantitativeResults', { 
+          type: 'manual',
+          message: "Please add at least 2 quantitative results with all fields filled"
+        })
+        hasValidationErrors = true
+      } else {
+        form.clearErrors('quantitativeResults')
+      }
+      
+      // Validate challenges & solutions
+      const validChallenges = challengesSolutions.filter(c => 
+        c.challenge.trim().length >= 10 && 
+        c.description.trim().length >= 20 && 
+        c.solution.trim().length >= 20 && 
+        c.outcome.trim().length >= 10
+      ).length >= 1
+      
+      if (!validChallenges) {
+        // More specific error message
+        const hasAnyChallenges = challengesSolutions.some(c => 
+          c.challenge.trim().length > 0 || 
+          c.description.trim().length > 0 || 
+          c.solution.trim().length > 0 || 
+          c.outcome.trim().length > 0
+        )
+        
+        let message = "Please add at least 1 challenge with all fields filled"
+        if (hasAnyChallenges) {
+          // Check which specific fields are invalid
+          const invalidFields: string[] = []
+          challengesSolutions.forEach((c, i) => {
+            if (c.challenge.trim().length > 0 && c.challenge.trim().length < 10) {
+              invalidFields.push(`Challenge ${i + 1} name needs ${10 - c.challenge.trim().length} more characters`)
+            }
+            if (c.description.trim().length > 0 && c.description.trim().length < 20) {
+              invalidFields.push(`Challenge ${i + 1} description needs ${20 - c.description.trim().length} more characters`)
+            }
+            if (c.solution.trim().length > 0 && c.solution.trim().length < 20) {
+              invalidFields.push(`Challenge ${i + 1} solution needs ${20 - c.solution.trim().length} more characters`)
+            }
+            if (c.outcome.trim().length > 0 && c.outcome.trim().length < 10) {
+              invalidFields.push(`Challenge ${i + 1} outcome needs ${10 - c.outcome.trim().length} more characters`)
+            }
+          })
+          
+          if (invalidFields.length > 0) {
+            message = invalidFields[0] // Show the first validation error
+          } else {
+            message = "Challenge requirements: Name (10+ chars), Description (20+ chars), Solution (20+ chars), Outcome (10+ chars)"
+          }
+        }
+        
+        form.setError('challengesSolutions', { 
+          type: 'manual',
+          message: message 
+        })
+        hasValidationErrors = true
+      } else {
+        form.clearErrors('challengesSolutions')
+      }
+    }
+
+    if (currentStep === 6) {
+      // Validate images
+      if (uploadedImages.length < 1) {
+        form.setError('images', { 
+          type: 'manual',
+          message: "Please upload at least 1 image"
+        })
+        hasValidationErrors = true
+      } else {
+        form.clearErrors('images')
+      }
+    }
+
+    const valid = await form.trigger(fields as (keyof FormData)[], { shouldFocus: true })
+    if (!valid || hasValidationErrors) {
       return
     }
     if (currentStep < 7) setCurrentStep(currentStep + 1)
@@ -662,7 +835,7 @@ export default function SubmitUseCase() {
                       name="title"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Use Case Title</FormLabel>
+                          <FormLabel>Use Case Title <span className="text-gray-500">(10-100 chars)</span></FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g., AI Quality Inspection System Reduces Defects by 85%" 
@@ -672,6 +845,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             A clear, compelling title that describes your success story
                           </FormDescription>
+                          <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/100 characters</div>
                           <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
@@ -682,7 +856,7 @@ export default function SubmitUseCase() {
                       name="subtitle"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Subtitle</FormLabel>
+                          <FormLabel>Subtitle <span className="text-gray-500">(10-150 chars)</span></FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g., Transforming PCB Manufacturing Through Computer Vision and Machine Learning" 
@@ -692,6 +866,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             A descriptive subtitle explaining the technology or approach used
                           </FormDescription>
+                          <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/150 characters</div>
                           <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
@@ -731,10 +906,11 @@ export default function SubmitUseCase() {
                       name="factoryName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Factory Name</FormLabel>
+                          <FormLabel>Factory Name <span className="text-gray-500">(2-80 chars)</span></FormLabel>
                           <FormControl>
                             <Input placeholder="e.g., Advanced Electronics Co." {...field} />
                           </FormControl>
+                          <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/80 characters</div>
                           <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
@@ -745,7 +921,7 @@ export default function SubmitUseCase() {
                       name="description"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Executive Summary</FormLabel>
+                          <FormLabel>Executive Summary <span className="text-gray-500">(50-500 chars)</span></FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Provide an executive summary covering the problem, solution, and key results achieved..."
@@ -756,6 +932,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             A comprehensive summary of your implementation and its business impact
                           </FormDescription>
+                          <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/500 characters</div>
                           <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
@@ -778,7 +955,7 @@ export default function SubmitUseCase() {
                       name="industryContext"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Industry Context</FormLabel>
+                          <FormLabel>Industry Context <span className="text-gray-500">(50-500 chars)</span></FormLabel>
                           <FormControl>
                             <Textarea 
                               placeholder="Describe the broader industry challenges and trends that motivated this implementation..."
@@ -789,6 +966,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             Explain the industry pressures and market conditions driving the need for this solution
                           </FormDescription>
+                          <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/500 characters</div>
                           <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
@@ -801,13 +979,14 @@ export default function SubmitUseCase() {
                       </FormDescription>
                       <div className="space-y-3">
                         {specificProblems.map((problem, index) => (
-                          <div key={index} className="flex items-center space-x-3">
-                            <Input
-                              placeholder={`Problem ${index + 1} (e.g., Manual inspection inconsistency with 15% defect rate)`}
-                              value={problem}
-                              onChange={(e) => updateSpecificProblem(index, e.target.value)}
-                              className="flex-1"
-                            />
+                          <div key={index} className="space-y-2">
+                            <div className="flex items-center space-x-3">
+                              <Input
+                                placeholder={`Problem ${index + 1} (e.g., Manual inspection inconsistency with 15% defect rate)`}
+                                value={problem}
+                                onChange={(e) => updateSpecificProblem(index, e.target.value)}
+                                className="flex-1"
+                              />
                             {specificProblems.length > 2 && (
                               <Button
                                 type="button"
@@ -819,6 +998,8 @@ export default function SubmitUseCase() {
                                 <X className="h-4 w-4" />
                               </Button>
                             )}
+                            </div>
+                            <div className="text-xs text-gray-500 ml-1">{problem.length}/10 characters minimum</div>
                           </div>
                         ))}
                         
@@ -834,6 +1015,12 @@ export default function SubmitUseCase() {
                           </Button>
                         )}
                       </div>
+                      {/* Show validation error for specific problems */}
+                      {form.formState.errors.specificProblems && (
+                        <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                          {form.formState.errors.specificProblems.message || "Please add at least 2 problems (minimum 10 characters each)"}
+                        </div>
+                      )}
                     </div>
 
                     <FormField
@@ -841,7 +1028,7 @@ export default function SubmitUseCase() {
                       name="financialLoss"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Financial Impact</FormLabel>
+                          <FormLabel>Financial Impact <span className="text-gray-500">(min 5 chars)</span></FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g., 450K annually in waste, rework, and returns"
@@ -851,6 +1038,7 @@ export default function SubmitUseCase() {
                           <FormDescription>
                             Quantify the financial impact of the problems (losses, inefficiencies, opportunity costs)
                           </FormDescription>
+                          <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/5 characters</div>
                           <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                         </FormItem>
                       )}
@@ -877,24 +1065,27 @@ export default function SubmitUseCase() {
                         </FormDescription>
                         <div className="space-y-3">
                           {selectionCriteria.map((criteria, index) => (
-                            <div key={index} className="flex items-center space-x-3">
-                              <Input
-                                placeholder={`Criteria ${index + 1} (e.g., Real-time processing capability >50 units/minute)`}
-                                value={criteria}
-                                onChange={(e) => updateSelectionCriteria(index, e.target.value)}
-                                className="flex-1"
-                              />
-                              {selectionCriteria.length > 2 && (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => removeSelectionCriteria(index)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
+                            <div key={index} className="space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <Input
+                                  placeholder={`Criteria ${index + 1} (e.g., Real-time processing capability >50 units/minute)`}
+                                  value={criteria}
+                                  onChange={(e) => updateSelectionCriteria(index, e.target.value)}
+                                  className="flex-1"
+                                />
+                                {selectionCriteria.length > 2 && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeSelectionCriteria(index)}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 ml-1">{criteria.length}/10 characters minimum</div>
                             </div>
                           ))}
                           
@@ -910,6 +1101,12 @@ export default function SubmitUseCase() {
                             </Button>
                           )}
                         </div>
+                        {/* Show validation error for selection criteria */}
+                        {form.formState.errors.selectionCriteria && (
+                          <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                            {form.formState.errors.selectionCriteria.message || "Please add at least 2 selection criteria (minimum 10 characters each)"}
+                          </div>
+                        )}
                       </div>
 
                       <FormField
@@ -917,7 +1114,7 @@ export default function SubmitUseCase() {
                         name="selectedVendor"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Selected Vendor/Partner</FormLabel>
+                            <FormLabel>Selected Vendor/Partner <span className="text-gray-500">(min 2 chars)</span></FormLabel>
                             <FormControl>
                               <Input 
                                 placeholder="e.g., VisionTech Systems"
@@ -927,6 +1124,7 @@ export default function SubmitUseCase() {
                             <FormDescription>
                               Name of the technology vendor or implementation partner
                             </FormDescription>
+                            <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/2 characters</div>
                             <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
@@ -973,24 +1171,27 @@ export default function SubmitUseCase() {
                         </FormDescription>
                         <div className="space-y-3">
                           {technologyComponents.map((component, index) => (
-                            <div key={index} className="flex items-center space-x-3">
-                              <Textarea
-                                placeholder={`Component ${index + 1} (e.g., 4x 4K industrial cameras with specialized LED lighting systems and conveyor integration)`}
-                                value={component}
-                                onChange={(e) => updateTechnologyComponent(index, e.target.value)}
-                                className="flex-1 min-h-[60px]"
-                              />
-                              {technologyComponents.length > 1 && (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => removeTechnologyComponent(index)}
-                                  className="text-red-600 hover:text-red-700 self-start mt-2"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
+                            <div key={index} className="space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <Textarea
+                                  placeholder={`Component ${index + 1} (e.g., 4x 4K industrial cameras with specialized LED lighting systems and conveyor integration)`}
+                                  value={component}
+                                  onChange={(e) => updateTechnologyComponent(index, e.target.value)}
+                                  className="flex-1 min-h-[60px]"
+                                />
+                                {technologyComponents.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeTechnologyComponent(index)}
+                                    className="text-red-600 hover:text-red-700 self-start mt-2"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 ml-1">{component.length}/20 characters minimum</div>
                             </div>
                           ))}
                           
@@ -1006,6 +1207,12 @@ export default function SubmitUseCase() {
                             </Button>
                           )}
                         </div>
+                        {/* Show validation error for technology components */}
+                        {form.formState.errors.technologyComponents && (
+                          <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                            {form.formState.errors.technologyComponents.message || "Please add at least 1 technology component (minimum 20 characters)"}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1023,10 +1230,11 @@ export default function SubmitUseCase() {
                         name="implementationTime"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Implementation Duration</FormLabel>
+                            <FormLabel>Implementation Duration <span className="text-gray-500">(min 3 chars)</span></FormLabel>
                             <FormControl>
                               <Input placeholder="e.g., 6 months implementation" {...field} />
                             </FormControl>
+                            <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/3 characters</div>
                             <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
@@ -1037,13 +1245,14 @@ export default function SubmitUseCase() {
                         name="totalBudget"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Total Budget</FormLabel>
+                            <FormLabel>Total Budget <span className="text-gray-500">(min 3 chars)</span></FormLabel>
                             <FormControl>
                               <Input placeholder="e.g., 285,000" {...field} />
                             </FormControl>
                             <FormDescription>
                               Total project budget (amount only, currency symbol will be added automatically)
                             </FormDescription>
+                            <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/3 characters</div>
                             <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
@@ -1054,7 +1263,7 @@ export default function SubmitUseCase() {
                         name="methodology"
                         render={({ field }) => (
                           <FormItem className="md:col-span-2">
-                            <FormLabel>Implementation Methodology</FormLabel>
+                            <FormLabel>Implementation Methodology <span className="text-gray-500">(min 20 chars)</span></FormLabel>
                             <FormControl>
                               <Textarea 
                                 placeholder="e.g., Agile implementation with weekly sprints and continuous stakeholder feedback"
@@ -1065,6 +1274,7 @@ export default function SubmitUseCase() {
                             <FormDescription>
                               Describe the project management approach and methodology used
                             </FormDescription>
+                            <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/20 characters</div>
                             <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
@@ -1422,6 +1632,13 @@ export default function SubmitUseCase() {
                             </Button>
                           )}
                         </div>
+                        {/* Show validation error for quantitative results */}
+                        {form.formState.errors.quantitativeResults && (
+                          <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                            {form.formState.errors.quantitativeResults.message || 
+                             "Please add at least 2 quantitative results with all fields filled"}
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1506,7 +1723,7 @@ export default function SubmitUseCase() {
                           <div key={index} className="p-6 border border-orange-200 rounded-lg bg-orange-50">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                               <div>
-                                <FormLabel className="text-sm font-medium">Challenge Name</FormLabel>
+                                <FormLabel className="text-sm font-medium">Challenge Name <span className="text-gray-500">(min 10 chars)</span></FormLabel>
                                 <Input
                                   placeholder="e.g., Data Quality and Labeling"
                                   value={item.challenge}
@@ -1518,6 +1735,7 @@ export default function SubmitUseCase() {
                                   }}
                                   className="mt-1"
                                 />
+                                <div className="text-xs text-gray-500 mt-1">{item.challenge.length}/10 characters</div>
                               </div>
                               {challengesSolutions.length > 1 && (
                                 <div className="flex justify-end">
@@ -1541,7 +1759,7 @@ export default function SubmitUseCase() {
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <FormLabel className="text-sm font-medium">Challenge Description</FormLabel>
+                                <FormLabel className="text-sm font-medium">Challenge Description <span className="text-gray-500">(min 20 chars)</span></FormLabel>
                                 <Textarea
                                   placeholder="Describe the challenge in detail..."
                                   value={item.description}
@@ -1553,9 +1771,10 @@ export default function SubmitUseCase() {
                                   }}
                                   className="mt-1 min-h-[80px]"
                                 />
+                                <div className="text-xs text-gray-500 mt-1">{item.description.length}/20 characters</div>
                               </div>
                               <div>
-                                <FormLabel className="text-sm font-medium">Solution</FormLabel>
+                                <FormLabel className="text-sm font-medium">Solution <span className="text-gray-500">(min 20 chars)</span></FormLabel>
                                 <Textarea
                                   placeholder="How was it solved..."
                                   value={item.solution}
@@ -1567,10 +1786,11 @@ export default function SubmitUseCase() {
                                   }}
                                   className="mt-1 min-h-[80px]"
                                 />
+                                <div className="text-xs text-gray-500 mt-1">{item.solution.length}/20 characters</div>
                               </div>
                             </div>
                             <div className="mt-3">
-                              <FormLabel className="text-sm font-medium">Outcome</FormLabel>
+                              <FormLabel className="text-sm font-medium">Outcome <span className="text-gray-500">(min 10 chars)</span></FormLabel>
                               <Textarea
                                 placeholder="What was the result..."
                                 value={item.outcome}
@@ -1582,6 +1802,7 @@ export default function SubmitUseCase() {
                                 }}
                                 className="mt-1 min-h-[80px]"
                               />
+                              <div className="text-xs text-gray-500 mt-1">{item.outcome.length}/10 characters</div>
                             </div>
                           </div>
                         ))}
@@ -1602,6 +1823,12 @@ export default function SubmitUseCase() {
                           </Button>
                         )}
                       </div>
+                      {/* Show validation error for challenges & solutions */}
+                      {form.formState.errors.challengesSolutions && (
+                        <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                          {form.formState.errors.challengesSolutions.message || "Please add at least 1 challenge with all fields filled"}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1623,10 +1850,11 @@ export default function SubmitUseCase() {
                         name="city"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>City</FormLabel>
+                            <FormLabel>City <span className="text-gray-500">(2-50 chars)</span></FormLabel>
                             <FormControl>
                               <Input placeholder="e.g., Riyadh" {...field} />
                             </FormControl>
+                            <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/50 characters</div>
                             <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
                         )}
@@ -1664,6 +1892,12 @@ export default function SubmitUseCase() {
                       onImagesUpdate={handleImagesUpdate}
                       maxImages={5}
                     />
+                    {/* Show validation error for images */}
+                    {form.formState.errors.images && (
+                      <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                        {form.formState.errors.images.message || "Please upload at least 1 image"}
+                      </div>
+                    )}
                   </div>
 
                   {/* Contact Information */}
@@ -1850,8 +2084,6 @@ export default function SubmitUseCase() {
           </Form>
         </div>
       </div>
-
-
     </div>
   )
 }

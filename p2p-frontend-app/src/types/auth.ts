@@ -10,6 +10,10 @@ export interface User {
   isActive: boolean
   lastLogin?: Date
   createdAt: Date
+  company?: string
+  location?: string
+  industrySector?: string
+  expertiseTags?: string[]
 }
 
 export interface Organization {
@@ -69,4 +73,12 @@ export interface PendingInvitation {
   status: 'pending' | 'accepted' | 'expired'
   expiresAt: Date
   createdAt: Date
+}
+
+export interface UpdateProfileData {
+  firstName?: string
+  lastName?: string
+  title?: string
+  location?: string
+  expertiseTags?: string[]
 }

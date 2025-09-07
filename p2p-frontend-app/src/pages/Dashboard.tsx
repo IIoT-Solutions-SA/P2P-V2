@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
+import { EditProfilePanel } from "@/components/EditProfilePanel"
 import { 
   MessageSquare, 
   FileText, 
@@ -51,6 +52,7 @@ export default function Dashboard() {
   const [useCaseBookmarkCount, setUseCaseBookmarkCount] = useState(0)
   const [bookmarkModalTitle, setBookmarkModalTitle] = useState<string>('Saved Items')
   const [showDrafts, setShowDrafts] = useState(false)
+  const [showEditProfile, setShowEditProfile] = useState(false)
   const [bookmarks, setBookmarks] = useState<any[]>([])
   const [drafts, setDrafts] = useState<any[]>([])
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
@@ -404,7 +406,10 @@ export default function Dashboard() {
                     <span className="font-medium">Verified</span>
                   </div>
                 </div>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                <Button 
+                  onClick={() => setShowEditProfile(true)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   Edit Profile
                 </Button>
               </div>
@@ -682,6 +687,16 @@ export default function Dashboard() {
           }
         }}
         onClose={() => setDeleteConfirm({ show: false })}
+      />
+
+      {/* Edit Profile Panel */}
+      <EditProfilePanel
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        onSave={async () => {
+          // Reload user data after successful update
+          await loadDashboard()
+        }}
       />
     </div>
   )

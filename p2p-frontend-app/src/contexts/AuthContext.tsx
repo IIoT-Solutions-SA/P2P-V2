@@ -7,7 +7,8 @@ interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (user: User) => Promise<void>;
+  updateUser: (user: User) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -112,13 +113,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const updateUser = async (user: User) => {
+  const updateUser = (user: User) => {
     setAuthState(prev => ({ ...prev, user }));
+  };
+
+  const refreshProfile = async () => {
+    await fetchProfileAndSetState();
   };
 
   return (
     <AuthContext.Provider 
-      value={{ ...authState, login, signup, logout, updateUser }}
+      value={{ ...authState, login, signup, logout, updateUser, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

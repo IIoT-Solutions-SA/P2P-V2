@@ -277,7 +277,9 @@ export default function Dashboard() {
                     </div>
                   </button>
                 ) : (
-                  <button className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
+                  <button 
+                    onClick={() => navigate('/connect')}
+                    className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
                     <div className="bg-blue-500 p-4 rounded-lg mb-4 group-hover:bg-blue-600 transition-colors">
                       <Users className="h-6 w-6 text-white" />
                     </div>

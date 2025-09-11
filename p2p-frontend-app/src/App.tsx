@@ -2,12 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import MemberSignup from './pages/MemberSignup'
 import Dashboard from './pages/Dashboard'
 import Forum from './pages/Forum'
 import UseCases from './pages/UseCases'
 import SubmitUseCase from './pages/SubmitUseCase'
 import UseCaseDetail from './pages/UseCaseDetail'
 import UserManagement from './pages/UserManagement'
+import Connect from './pages/Connect'
 import Navigation, { MobileNavigation } from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import ScrollToTop from './components/ScrollToTop'
@@ -27,6 +29,7 @@ function App() {
               <Route path="/home" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/join" element={<MemberSignup />} />
               
               {/* Protected Routes */}
               <Route path="/dashboard" element={
@@ -59,6 +62,11 @@ function App() {
               <Route path="/user-management" element={
                 <ProtectedRoute>
                   <UserManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/connect" element={
+                <ProtectedRoute>
+                  <Connect />
                 </ProtectedRoute>
               } />
             </Routes>

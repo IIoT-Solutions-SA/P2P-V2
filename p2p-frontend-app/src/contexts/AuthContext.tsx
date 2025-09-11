@@ -81,7 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         companyName: data.organizationName,
         industrySector: data.industry,
         companySize: data.organizationSize,
-        city: data.city
+        city: data.city,
+        // Pass invitation fields if present
+        ...(data.inviteToken && { inviteToken: data.inviteToken }),
+        ...(data.isInvited && { isInvited: data.isInvited })
     };
     
     // --- FINAL FIX APPLIED HERE ---

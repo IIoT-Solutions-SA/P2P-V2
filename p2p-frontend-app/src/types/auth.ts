@@ -53,6 +53,9 @@ export interface SignupData {
   organizationSize: string
   country: string
   city: string
+  inviteToken?: string
+  isInvited?: boolean
+  role?: string
 }
 
 export interface InviteUserData {

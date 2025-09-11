@@ -21,3 +21,6 @@ export const buildWebsiteUrl = (path: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${WEBSITE_BASE_URL}${cleanPath}`;
 };
+
+// Alias for backward compatibility
+export const getApiUrl = (): string => API_BASE_URL;

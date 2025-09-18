@@ -29,20 +29,23 @@ A comprehensive platform for manufacturing professionals to share use cases, dis
 
    **Development Mode (Recommended for local development):**
    ```bash
-   MODE=development docker-compose up --build
+   BUILD_TARGET=development MODE=development docker-compose up --build
    ```
    - **Frontend:** http://localhost:5173 (local only)
    - **Backend API:** http://localhost:8000
    - **API Documentation:** http://localhost:8000/docs
-   - Uses production Docker builds with development runtime settings
-   - Hot reload enabled, source maps available, no minification
+   - Uses development Docker target with hot reload
+   - Source maps available, no minification
 
    For PowerShell:
    ```powershell
-   $env:MODE="development"; docker-compose up --build
+   $env:BUILD_TARGET="development"; $env:MODE="development"; $env:CORS_ORIGINS='["http://localhost:5173"]'; $env:API_DOMAIN="http://localhost:8000"; $env:WEBSITE_DOMAIN="http://localhost:5173"; docker-compose up --build
    ```
 
-   **Note:** Both modes use production-optimized Docker images. The `MODE` variable only affects runtime behavior (hot reload, minification, API URLs). This hybrid approach ensures you develop with production-like containers while maintaining developer conveniences.
+   **Note:** 
+   - `BUILD_TARGET` controls which Docker stage to use (development vs production)
+   - `MODE` controls runtime behavior (API URLs, debug settings)
+   - Production mode (CI/CD) doesn't need any environment variables - just run `docker-compose up --build`
 
 ### What Gets Started
 - ✅ PostgreSQL database (with SuperTokens schema)
@@ -76,9 +79,15 @@ docker-compose down -v
 ### Development Mode
 - For local testing and development
 - Uses localhost addresses
-- PowerShell: `$env:MODE="development"; docker-compose up`
-- Bash: `MODE=development docker-compose up`
-- Production Docker builds with development runtime (hot reload, source maps)
+- **PowerShell (Full Command):**
+  ```powershell
+  $env:BUILD_TARGET="development"; $env:MODE="development"; $env:CORS_ORIGINS='["http://localhost:5173"]'; $env:API_DOMAIN="http://localhost:8000"; $env:WEBSITE_DOMAIN="http://localhost:5173"; docker-compose up --build
+  ```
+- **Bash:**
+  ```bash
+  BUILD_TARGET=development MODE=development CORS_ORIGINS='["http://localhost:5173"]' API_DOMAIN="http://localhost:8000" WEBSITE_DOMAIN="http://localhost:5173" docker-compose up --build
+  ```
+- Development Docker target with hot reload and source maps
 
 ### IP Address Changes
 If the EC2 IP address changes, update the hardcoded IP in:

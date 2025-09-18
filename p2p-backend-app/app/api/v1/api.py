@@ -5,7 +5,8 @@ from app.api.v1.endpoints import (
     supertokens_auth, # <-- Re-add this import
     dashboard,
     forum,
-    usecases
+    usecases,
+    invites
 )
 
 api_router = APIRouter()
@@ -19,3 +20,4 @@ api_router.include_router(health.router, prefix="/health", tags=["Health"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 api_router.include_router(forum.router, prefix="/forum", tags=["Forum"])
 api_router.include_router(usecases.router, prefix="/use-cases", tags=["Use Cases"])
+api_router.include_router(invites.router, prefix="/invites", tags=["Invitations"])

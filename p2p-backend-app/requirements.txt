@@ -26,6 +26,9 @@ tenacity==8.2.3
 httpx==0.26.0
 pymongo==4.6.0
 
+# Email
+fastapi-mail==1.4.1
+
 # psutil
 psutil==6.1.1
 

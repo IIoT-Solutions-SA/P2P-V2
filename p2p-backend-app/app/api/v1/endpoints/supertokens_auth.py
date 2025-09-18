@@ -7,6 +7,7 @@ import logging
 
 from app.core.database import get_db
 from app.services.database_service import UserService
+from app.models.mongo_models import Invitation, User as MongoUser
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,42 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
         
         logger.info(f"Sign-up attempt for email: {email}")
         
+        # Check if this is an invited member signup - presence of token is what matters
+        invite_token = body.get("inviteToken")
+        is_invited = bool(invite_token)  # If there's a token, they're invited
+        
+        # Log what we received
+        logger.info(f"Received signup request - inviteToken: {invite_token}, is_invited: {is_invited}")
+        organization_id = None
+        
+        # If invited, validate and get the organization from the inviter
+        if invite_token:
+            from app.services import invitation_service
+            from datetime import datetime
+            
+            # Validate the invitation
+            invitation = await invitation_service.validate_invitation(invite_token)
+            if not invitation:
+                logger.error(f"Invalid or expired invitation token: {invite_token}")
+                return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Invalid or expired invitation token"})
+            
+            # Check if email matches
+            if invitation.email != email:
+                logger.error(f"Email mismatch: invitation for {invitation.email}, signup with {email}")
+                return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Email does not match invitation"})
+                
+            # Get the inviter's user to find their organization
+            inviter = await MongoUser.find_one(MongoUser.email == invitation.invited_by_email)
+            if inviter and inviter.organization_id:
+                organization_id = inviter.organization_id
+                logger.info(f"Found inviter's organization: {organization_id}")
+            else:
+                logger.warning(f"Could not find organization for inviter: {invitation.invited_by_email}")
+        
+        # Determine role based on invitation status
+        user_role = "member" if is_invited else "admin"
+        logger.info(f"Setting user role: {user_role} (is_invited: {is_invited})")
+        
         profile_data = {
             "name": f"{body.get('firstName')} {body.get('lastName')}",
             "company": body.get("companyName"),
@@ -33,8 +70,13 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
             "company_size": body.get("companySize"),
             "location": body.get("city"),
             "title": body.get("title"),
-            "role": "admin"
+            # Set role based on whether they're invited or creating new org
+            "role": user_role,
+            # Pass organization_id if this is an invited member
+            "organization_id": organization_id
         }
+        
+        logger.info(f"Profile data being sent: role={profile_data['role']}, org_id={profile_data['organization_id']}")
 
         required_fields = [
             "firstName", "lastName", "email", "password",
@@ -63,6 +105,12 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
                 profile_data=profile_data
             )
             logger.info("User created successfully in database")
+            
+            # Mark invitation as used if this was an invited signup
+            if invite_token:
+                from app.services import invitation_service
+                await invitation_service.mark_invitation_used(invite_token)
+                logger.info(f"Marked invitation as used: {invite_token}")
 
             return JSONResponse(status_code=200, content={"status": "OK", "message": "User created successfully."})
             

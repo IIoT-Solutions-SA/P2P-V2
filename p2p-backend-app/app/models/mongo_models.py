@@ -234,3 +234,25 @@ class UseCase(Document):
             [("location", pymongo.GEO2D)],
             [("title", pymongo.TEXT)]
         ]
+
+class Invitation(Document):
+    """Model for user invitations"""
+    email: EmailStr
+    token: str = Field(..., unique=True)
+    invited_by_id: str
+    invited_by_email: str
+    invited_by_name: str
+    expires_at: datetime
+    used: bool = False
+    used_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "invitations"
+        indexes = [
+            [("token", pymongo.ASCENDING)],
+            [("email", pymongo.ASCENDING)],
+            [("invited_by_id", pymongo.ASCENDING)],
+            [("expires_at", pymongo.ASCENDING)],
+            [("created_at", pymongo.DESCENDING)]
+        ]

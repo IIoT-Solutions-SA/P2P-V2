@@ -299,3 +299,78 @@ async def update_password(
             status_code=500,
             detail=f"Error updating password: {str(e)}"
         )
+
+@router.get("/users/organization")
+async def get_organization_members(
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all members of the current user's organization.
+    Requires valid SuperTokens session.
+    """
+    try:
+        # Get current user
+        supertokens_user_id = session.get_user_id()
+        user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get current user's MongoDB profile to find organization
+        mongo_profile = await MongoUser.find_one(MongoUser.email == user.email)
+        
+        if not mongo_profile or not mongo_profile.organization_id:
+            # If no organization, return just the current user
+            return {
+                "users": [{
+                    "id": str(user.id),
+                    "email": user.email,
+                    "firstName": user.name.split(' ')[0] if user.name else "",
+                    "lastName": " ".join(user.name.split(' ')[1:]) if len(user.name.split(' ')) > 1 else "",
+                    "name": user.name,
+                    "role": user.role,
+                    "title": mongo_profile.title if mongo_profile and hasattr(mongo_profile, 'title') else "Team Member",
+                    "company": mongo_profile.company if mongo_profile and hasattr(mongo_profile, 'company') else "",
+                    "location": mongo_profile.location if mongo_profile and hasattr(mongo_profile, 'location') else "",
+                    "industrySector": mongo_profile.industry_sector if mongo_profile and hasattr(mongo_profile, 'industry_sector') else "",
+                    "expertiseTags": mongo_profile.expertise_tags if mongo_profile and hasattr(mongo_profile, 'expertise_tags') else [],
+                    "isActive": user.is_active,
+                    "createdAt": user.created_at
+                }]
+            }
+        
+        # Find all MongoDB users in the same organization
+        org_members = await MongoUser.find(MongoUser.organization_id == mongo_profile.organization_id).to_list()
+        
+        # Build the response with all organization members
+        users_list = []
+        for member in org_members:
+            # Try to find the corresponding PostgreSQL user
+            pg_user = await UserService.get_user_by_email_pg(db, member.email)
+            
+            users_list.append({
+                "id": str(pg_user.id) if pg_user else str(member.id),
+                "email": member.email,
+                "firstName": member.name.split(' ')[0] if member.name else "",
+                "lastName": " ".join(member.name.split(' ')[1:]) if len(member.name.split(' ')) > 1 else "",
+                "name": member.name,
+                "role": member.role,
+                "title": member.title if hasattr(member, 'title') else "Team Member",
+                "company": member.company if hasattr(member, 'company') else "",
+                "location": member.location if hasattr(member, 'location') else "",
+                "industrySector": member.industry_sector if hasattr(member, 'industry_sector') else "",
+                "expertiseTags": member.expertise_tags if hasattr(member, 'expertise_tags') else [],
+                "isActive": pg_user.is_active if pg_user else True,
+                "createdAt": pg_user.created_at if pg_user else member.created_at
+            })
+        
+        return {"users": users_list}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching organization members: {str(e)}"
+        )

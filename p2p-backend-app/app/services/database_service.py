@@ -34,28 +34,32 @@ class UserService:
         await db.refresh(pg_user)
         
         # --- 2. Create Extended Profile in MongoDB ---
-        # Create or link Organization by domain inferred from email
-        organization_id = None
-        try:
-            domain = email.split("@")[1]
-            org_name = domain.split(".")[0].replace("-", " ").title()
-            existing_org = await Organization.find_one(Organization.domain == domain)
-            if existing_org:
-                organization_id = str(existing_org.id)
-            else:
-                new_org = Organization(
-                    name=org_name,
-                    domain=domain,
-                    industry_sector=profile_data.get("industry_sector"),
-                    size=profile_data.get("company_size"),
-                    country="Saudi Arabia",
-                    city=profile_data.get("location"),
-                    is_active=True,
-                )
-                await new_org.insert()
-                organization_id = str(new_org.id)
-        except Exception:
-            organization_id = None
+        # Check if organization_id was passed (for invited members)
+        organization_id = profile_data.get("organization_id")
+        
+        # Only create/find organization if not passed and user is admin
+        if not organization_id and profile_data.get("role") == "admin":
+            try:
+                # Create or link Organization by domain inferred from email
+                domain = email.split("@")[1]
+                org_name = domain.split(".")[0].replace("-", " ").title()
+                existing_org = await Organization.find_one(Organization.domain == domain)
+                if existing_org:
+                    organization_id = str(existing_org.id)
+                else:
+                    new_org = Organization(
+                        name=org_name,
+                        domain=domain,
+                        industry_sector=profile_data.get("industry_sector"),
+                        size=profile_data.get("company_size"),
+                        country="Saudi Arabia",
+                        city=profile_data.get("location"),
+                        is_active=True,
+                    )
+                    await new_org.insert()
+                    organization_id = str(new_org.id)
+            except Exception:
+                organization_id = None
 
         mongo_user = MongoUser(
             email=email,

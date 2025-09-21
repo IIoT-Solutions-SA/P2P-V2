@@ -131,7 +131,7 @@ services:
     build:
       context: ..
       dockerfile: ./docker/frontend.Dockerfile
-      target: ${BUILD_TARGET:-production}
+      target: ${BUILD_TARGET:-development}
     container_name: p2p-frontend
     environment:
       - MODE=${MODE:-production}

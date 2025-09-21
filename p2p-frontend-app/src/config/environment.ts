@@ -3,7 +3,6 @@
 
 // Smart environment detection based on hostname
 const isProductionServer = window.location.hostname === '15.185.167.236';
-const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 // Use environment variables if set, otherwise use smart detection based on hostname
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||

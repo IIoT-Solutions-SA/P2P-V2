@@ -22,6 +22,8 @@
     
     # --- Stage 3: Production Image ---
     FROM base AS production
+    # Install curl for health checks in production
+    RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
     # The 'wait-for-it.sh' script and its dependencies are no longer needed
     COPY ./p2p-backend-app/requirements.txt ./
     RUN pip install -r requirements.txt

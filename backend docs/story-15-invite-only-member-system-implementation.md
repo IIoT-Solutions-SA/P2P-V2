@@ -277,14 +277,18 @@ User confirmed working on September 10, 2025:
 
 ### ✅ Critical Production Link Fix & UI Improvements (September 21, 2025)
 
-**1. Dynamic Domain Configuration for Invitation Links**:
-- **Problem**: Invitation links were hardcoded to `localhost:5173` even in production
-- **Solution**: Now uses `WEBSITE_DOMAIN` environment variable
-  - Development: `http://localhost:5173/join?token=...`
-  - Production: `http://15.185.167.236:5173/join?token=...`
+**1. HARDCODED Production URL for Invitation Links**:
+- **Problem**: Invitation links were using `localhost:5173` even in production
+- **Initial Approach**: Tried using environment variables but had configuration issues
+- **Final Solution**: HARDCODED production IP directly in invitation service
+  - All invitation emails now use: `http://15.185.167.236:5173/join?token=...`
+  - Hardcoded in `/app/services/invitation_service.py` line 57
+  - Does NOT rely on environment variables or config settings
+  - Console also prints localhost version for development testing
+- **Why Hardcoded**: Ensures invitation links ALWAYS work regardless of deployment environment
 - **Files Updated**:
-  - `/app/api/v1/endpoints/invites.py` - Uses `settings.WEBSITE_DOMAIN` instead of hardcoded URL
-  - `/app/services/invitation_service.py` - Falls back to `settings.WEBSITE_DOMAIN` if not provided
+  - `/app/services/invitation_service.py` - Hardcoded production IP for invite links
+  - `/app/api/v1/endpoints/invites.py` - Fetches inviter's actual name from MongoDB
 
 **2. Inviter Name Display Fix**:
 - **Problem**: Emails showed inviter's email address instead of their name
@@ -330,10 +334,11 @@ User confirmed working on September 10, 2025:
 - `/p2p-frontend-app/src/pages/UserManagement.tsx` - Notification system & confirmation modal
 - `/p2p-frontend-app/src/App.css` - Added slideInRight animation
 
-**Environment Configuration**:
-- Docker compose correctly configured: `WEBSITE_DOMAIN=${WEBSITE_DOMAIN:-http://15.185.167.236:5173}`
-- Production deployment will automatically use production IP
-- Development mode uses localhost
+**Production Link Strategy**:
+- Invitation links are HARDCODED to `http://15.185.167.236:5173` in the code
+- This ensures emails always contain working links accessible from anywhere
+- Console outputs both production and localhost links for debugging
+- Config files remain with localhost defaults for other services
 
 ---
 *Implementation completed: September 10-11, 2025*

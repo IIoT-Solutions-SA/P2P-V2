@@ -48,25 +48,34 @@ async def send_invitation(
     # Create invitation
     try:
         user_data = current_user.get("user", {})
-        
-        # Get inviter's MongoDB profile to fetch company name
+
+        # Get inviter's MongoDB profile to fetch company name and user's actual name
         from app.models.mongo_models import User as MongoUser
         inviter = await MongoUser.find_one(MongoUser.email == user_data.get("email", ""))
-        
+
         company_name = "Company"  # Default
-        if inviter and hasattr(inviter, 'company') and inviter.company:
-            company_name = inviter.company
-        
+        inviter_name = user_data.get("email", "Admin")  # Default to email if no name found
+
+        if inviter:
+            # Get company name from MongoDB profile
+            if hasattr(inviter, 'company') and inviter.company:
+                company_name = inviter.company
+
+            # Get the actual name from MongoDB profile
+            if hasattr(inviter, 'name') and inviter.name:
+                inviter_name = inviter.name
+
         invited_by = {
             "id": user_data.get("id", ""),
             "email": user_data.get("email", ""),
-            "name": user_data.get("name", user_data.get("email", "Admin")),
+            "name": inviter_name,
             "company": company_name
         }
-        
-        # Use localhost:5173 for development
-        website_url = "http://localhost:5173"
-        
+
+        # Use environment variable for website URL (dynamic based on environment)
+        from app.core.config import settings
+        website_url = settings.WEBSITE_DOMAIN
+
         result = await invitation_service.create_invitation(
             email=invitation.email,
             invited_by=invited_by,

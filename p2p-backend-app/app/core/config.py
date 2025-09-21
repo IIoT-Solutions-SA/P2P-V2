@@ -1,7 +1,8 @@
 from typing import List, Optional
 from pydantic_settings import BaseSettings
-from pydantic import AnyHttpUrl, validator
+from pydantic import AnyHttpUrl, validator, Field
 import secrets
+import os
 
 class Settings(BaseSettings):
     # API Settings
@@ -9,12 +10,12 @@ class Settings(BaseSettings):
     API_VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "P2P Sandbox for SMEs"
-    
+
     # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
-    
+    SECRET_KEY: str = Field(default_factory=lambda: os.getenv("SECRET_KEY", secrets.token_urlsafe(32)))
+
     # CORS - Allow multiple common localhost variations for Docker compatibility
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://0.0.0.0:5173"]
+    BACKEND_CORS_ORIGINS: List[str] = Field(default=["http://localhost:5173", "http://127.0.0.1:5173", "http://0.0.0.0:5173"])
     
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
     # Database URLs
     DATABASE_URL: str = "postgresql+asyncpg://p2p_user:iiot123@localhost:5432/p2p_sandbox"
     MONGODB_URL: str = "mongodb://p2p_user:iiot123@localhost:27017/"
-    
+
     # SuperTokens Configuration
     SUPERTOKENS_CONNECTION_URI: str = "http://localhost:3567"
     API_DOMAIN: str = "http://localhost:8000"

@@ -275,8 +275,70 @@ User confirmed working on September 10, 2025:
 - `/app/services/invitation_service.py` - Enabled actual email sending
 - `/app/api/v1/endpoints/invites.py` - Fetch company name for invitations
 
+### ✅ Critical Production Link Fix & UI Improvements (September 21, 2025)
+
+**1. Dynamic Domain Configuration for Invitation Links**:
+- **Problem**: Invitation links were hardcoded to `localhost:5173` even in production
+- **Solution**: Now uses `WEBSITE_DOMAIN` environment variable
+  - Development: `http://localhost:5173/join?token=...`
+  - Production: `http://15.185.167.236:5173/join?token=...`
+- **Files Updated**:
+  - `/app/api/v1/endpoints/invites.py` - Uses `settings.WEBSITE_DOMAIN` instead of hardcoded URL
+  - `/app/services/invitation_service.py` - Falls back to `settings.WEBSITE_DOMAIN` if not provided
+
+**2. Inviter Name Display Fix**:
+- **Problem**: Emails showed inviter's email address instead of their name
+- **Solution**: Fetch actual name from MongoDB user profile
+- **Result**: Emails now show "Aadil invited you" instead of "aadil@company.com invited you"
+
+**3. Notification System Replacement**:
+- **Problem**: Browser alerts (alert()) for success/error messages
+- **Solution**: Implemented elegant notification banners
+  - Green success notifications
+  - Red error notifications
+  - Top-right corner with slide-in animation
+  - Auto-dismiss after 5 seconds
+  - Manual close button
+- **Applied to**:
+  - Invitation sent success/error
+  - Cancel invitation success/error
+
+**4. Confirmation Modal for Cancel Action**:
+- **Problem**: Invitations cancelled immediately without confirmation
+- **Solution**: Added confirmation modal
+  - Shows warning icon and email being cancelled
+  - "No, Keep It" / "Yes, Cancel" buttons
+  - Only cancels after confirmation
+
+**5. Email Template Optimizations**:
+- **Problem**: Gmail truncating emails with "..." hiding footer
+- **Solution**:
+  - Removed TEST MODE warning banner from emails
+  - Simplified and compacted email content
+  - Moved footer content inline to ensure visibility
+  - Centered invitation link for better presentation
+  - Added "Do not reply" warning in concise format
+
+**6. UI Clean-up**:
+- Removed "Test Mode Active" warning from invite form dialog
+- Removed test mode CSS classes from email templates
+
+**Files Modified**:
+- `/p2p-backend-app/app/api/v1/endpoints/invites.py` - Dynamic URL & name fetching
+- `/p2p-backend-app/app/services/invitation_service.py` - Environment-aware URLs
+- `/p2p-backend-app/app/services/email_service.py` - Streamlined email template
+- `/p2p-frontend-app/src/pages/UserManagement.tsx` - Notification system & confirmation modal
+- `/p2p-frontend-app/src/App.css` - Added slideInRight animation
+
+**Environment Configuration**:
+- Docker compose correctly configured: `WEBSITE_DOMAIN=${WEBSITE_DOMAIN:-http://15.185.167.236:5173}`
+- Production deployment will automatically use production IP
+- Development mode uses localhost
+
 ---
-*Implementation completed: September 10-11, 2025*  
-*All acceptance criteria met and verified by user*  
+*Implementation completed: September 10-11, 2025*
+*Production fixes and UI improvements: September 21, 2025*
+*All acceptance criteria met and verified by user*
 *Organization inheritance bug fixed and verified with real data*
 *Email service configured with Gmail SMTP and company branding*
+*Production-ready with dynamic URL configuration*

@@ -112,14 +112,6 @@ async def send_invitation_email(
                 font-size: 14px;
                 background-color: #f8f9fa;
             }}
-            .test-mode {{
-                background-color: #fff3cd;
-                border: 1px solid #ffc107;
-                color: #856404;
-                padding: 10px;
-                border-radius: 5px;
-                margin: 15px 0;
-            }}
             .expires {{
                 background-color: #e7f3ff;
                 border-left: 4px solid #2196F3;
@@ -139,16 +131,12 @@ async def send_invitation_email(
                 
                 <p><strong>{invited_by_name}</strong> from <strong>{company_name}</strong> has invited you to join their organization on the P2P Manufacturing Platform as a team member.</p>
                 
-                {"<div class='test-mode'><strong>🧪 TEST MODE:</strong> This invitation was originally sent to " + recipient_email + " but has been redirected to " + TEST_EMAIL + " for testing purposes.</div>" if TEST_MODE else ""}
-                
                 <div class="benefits">
-                    <h3>As a member, you'll be able to:</h3>
-                    <ul>
-                        <li>✅ Browse and connect with other manufacturing professionals</li>
-                        <li>✅ Share and discover innovative use cases</li>
-                        <li>✅ Participate in industry discussions and forums</li>
-                        <li>✅ Access exclusive manufacturing insights and solutions</li>
-                        <li>✅ Collaborate on solving industry challenges</li>
+                    <h3>Join your team to:</h3>
+                    <ul style="padding-left: 20px;">
+                        <li>Connect with manufacturing professionals</li>
+                        <li>Share and discover innovative solutions</li>
+                        <li>Collaborate on industry challenges</li>
                     </ul>
                 </div>
                 
@@ -160,17 +148,19 @@ async def send_invitation_email(
                     <a href="{invite_link}" class="button">Accept Invitation & Join Platform</a>
                 </div>
                 
-                <p style="color: #666; font-size: 14px;">
-                    If the button doesn't work, copy and paste this link into your browser:<br>
-                    <a href="{invite_link}" style="color: #667eea; word-break: break-all;">{invite_link}</a>
-                </p>
-            </div>
-            
-            <div class="footer">
-                <p>This invitation was sent by {invited_by_name} from {company_name} via P2P Manufacturing Platform</p>
-                <p>If you didn't expect this invitation, please ignore this email.</p>
-                <p style="margin-top: 20px; font-weight: bold; color: #666;">⚠️ Please do not reply to this email. This is an automated message from an unmonitored inbox.</p>
-                <p style="margin-top: 20px; color: #999;">© 2025 P2P Manufacturing Platform. All rights reserved.</p>
+                <div style="text-align: center; color: #666; font-size: 14px; margin-top: 20px;">
+                    <p style="margin-bottom: 10px;">If the button doesn't work, copy and paste this link into your browser:</p>
+                    <div style="background-color: #f8f9fa; padding: 12px; border-radius: 5px; margin: 10px auto; display: inline-block;">
+                        <a href="{invite_link}" style="color: #667eea; text-decoration: none; font-family: monospace; font-size: 13px;">{invite_link}</a>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #e5e7eb; margin-top: 30px; padding-top: 20px; text-align: center;">
+                    <p style="color: #666; font-size: 13px; margin: 5px 0;">This invitation was sent by {invited_by_name} from {company_name}</p>
+                    <p style="color: #666; font-size: 13px; margin: 5px 0;">If you didn't expect this invitation, please ignore this email.</p>
+                    <p style="color: #888; font-size: 12px; margin: 10px 0; font-weight: 600;">⚠️ Do not reply - this is an automated message</p>
+                    <p style="color: #999; font-size: 12px; margin-top: 10px;">© 2025 P2P Manufacturing Platform</p>
+                </div>
             </div>
         </div>
     </body>
@@ -257,14 +247,6 @@ async def send_welcome_email(
                 font-size: 14px;
                 background-color: #f8f9fa;
             }}
-            .test-mode {{
-                background-color: #fff3cd;
-                border: 1px solid #ffc107;
-                color: #856404;
-                padding: 10px;
-                border-radius: 5px;
-                margin: 15px 0;
-            }}
         </style>
     </head>
     <body>
@@ -278,7 +260,6 @@ async def send_welcome_email(
                 
                 <p>Your account has been successfully created as <strong>{role_message}</strong> on the P2P Manufacturing Platform.</p>
                 
-                {"<div class='test-mode'><strong>🧪 TEST MODE:</strong> This email was originally for " + recipient_email + " but has been redirected to " + TEST_EMAIL + " for testing purposes.</div>" if TEST_MODE else ""}
                 
                 <div class="getting-started">
                     <h3>🚀 Getting Started</h3>

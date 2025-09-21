@@ -9,6 +9,7 @@ from beanie import PydanticObjectId
 
 from app.models.mongo_models import Invitation
 from app.services.email_service import send_invitation_email
+from app.core.config import settings
 
 def generate_invite_token() -> str:
     """Generate a secure random token for invitation"""
@@ -17,7 +18,7 @@ def generate_invite_token() -> str:
 async def create_invitation(
     email: EmailStr,
     invited_by: Dict[str, Any],
-    website_url: str = "http://localhost:5173"
+    website_url: Optional[str] = None
 ) -> Invitation:
     """
     Create a new invitation and send email
@@ -50,10 +51,14 @@ async def create_invitation(
     
     # Save to database
     await invitation.create()
-    
-    # Generate signup link - use /join for invited members
-    invite_link = f"{website_url}/join?token={token}&email={email}"
-    
+
+    # ALWAYS use production URL for invitation links
+    # Hardcode the production IP for emails
+    invite_link = f"http://15.185.167.236:5173/join?token={token}&email={email}"
+
+    # Also generate localhost link for development testing (console only)
+    localhost_link = f"http://localhost:5173/join?token={token}&email={email}"
+
     # Send invitation email
     try:
         await send_invitation_email(
@@ -65,9 +70,12 @@ async def create_invitation(
             expires_at=expires_at
         )
         print(f"✅ Invitation email sent successfully to {email} (redirected to test email in TEST MODE)")
+        print(f"📧 Production link: {invite_link}")
+        print(f"🔧 Development link (localhost): {localhost_link}")
     except Exception as e:
         print(f"⚠️ Failed to send email: {str(e)}")
-        print(f"📧 Manual invitation link for {email}: {invite_link}")
+        print(f"📧 Production link for {email}: {invite_link}")
+        print(f"🔧 Development link (localhost): {localhost_link}")
     
     return invitation
 

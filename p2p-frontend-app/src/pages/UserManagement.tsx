@@ -40,6 +40,20 @@ export default function UserManagement() {
   const [realInvitations, setRealInvitations] = useState<any[]>([])
   const [organizationMembers, setOrganizationMembers] = useState<any[]>([])
 
+  // Notification state
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error'
+  }>({ show: false, message: '', type: 'success' })
+
+  // Confirmation modal state
+  const [confirmCancel, setConfirmCancel] = useState<{
+    show: boolean;
+    invitationId: string | null;
+    email: string;
+  }>({ show: false, invitationId: null, email: '' })
+
   // Mock pending invitations - not currently used, will be replaced with real API data
   /*
   const [pendingInvitations] = useState<PendingInvitation[]>([
@@ -93,17 +107,28 @@ export default function UserManagement() {
       
       if (response.ok) {
         // const data = await response.json() // Response data not currently used
-        alert(`Invitation sent!`)
+        setNotification({ show: true, message: 'Invitation sent successfully!', type: 'success' })
+        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
         setInviteEmail('')
         setShowInviteForm(false)
         fetchInvitations() // Refresh the invitations list
       } else {
         const error = await response.json()
-        alert(`Failed to send invitation: ${error.detail || 'Unknown error'}`)
+        setNotification({
+          show: true,
+          message: `Failed to send invitation: ${error.detail || 'Unknown error'}`,
+          type: 'error'
+        })
+        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
       }
     } catch (error) {
       console.error('Error inviting user:', error)
-      alert('Failed to send invitation. Please try again.')
+      setNotification({
+        show: true,
+        message: 'Failed to send invitation. Please try again.',
+        type: 'error'
+      })
+      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
     } finally {
       setInviting(false)
     }
@@ -136,7 +161,44 @@ export default function UserManagement() {
       console.error('Error fetching organization members:', error)
     }
   }
-  
+
+  const handleCancelInvitation = async () => {
+    if (!confirmCancel.invitationId) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/invites/${confirmCancel.invitationId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      if (response.ok) {
+        setNotification({
+          show: true,
+          message: 'Invitation cancelled successfully',
+          type: 'success'
+        })
+        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
+        fetchInvitations()
+      } else {
+        setNotification({
+          show: true,
+          message: 'Failed to cancel invitation',
+          type: 'error'
+        })
+        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
+      }
+    } catch (error) {
+      console.error('Error cancelling invitation:', error)
+      setNotification({
+        show: true,
+        message: 'Error cancelling invitation. Please try again.',
+        type: 'error'
+      })
+      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
+    } finally {
+      setConfirmCancel({ show: false, invitationId: null, email: '' })
+    }
+  }
+
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchInvitations()
@@ -160,7 +222,37 @@ export default function UserManagement() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-6 py-8">
-        
+
+        {/* Notification Banner */}
+        {notification.show && (
+          <div
+            className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transition-all duration-500 ${
+              notification.type === 'success'
+                ? 'bg-green-500 text-white'
+                : 'bg-red-500 text-white'
+            }`}
+            style={{
+              animation: 'slideInRight 0.3s ease-out',
+              maxWidth: '400px'
+            }}
+          >
+            <div className="flex items-center gap-3">
+              {notification.type === 'success' ? (
+                <CheckCircle className="h-5 w-5 flex-shrink-0" />
+              ) : (
+                <XCircle className="h-5 w-5 flex-shrink-0" />
+              )}
+              <p className="font-medium">{notification.message}</p>
+              <button
+                onClick={() => setNotification({ show: false, message: '', type: 'success' })}
+                className="ml-auto hover:opacity-80 transition-opacity"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Back to Dashboard Button */}
         <Button 
           variant="ghost" 
@@ -227,12 +319,6 @@ export default function UserManagement() {
             <div className="bg-white rounded-2xl p-8 max-w-md w-full">
               <h2 className="text-2xl font-bold text-slate-900 mb-6">Invite Team Member</h2>
               
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-amber-800">
-                  <strong>🧪 Test Mode Active:</strong> All invitation emails will be sent to <strong>hamzaferoze115@gmail.com</strong> regardless of the email address entered.
-                </p>
-              </div>
-              
               <form onSubmit={handleInviteUser} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -274,6 +360,42 @@ export default function UserManagement() {
                   </Button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Cancel Confirmation Modal */}
+        {confirmCancel.show && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+              <div className="mb-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4">
+                  <XCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 text-center mb-2">
+                  Cancel Invitation?
+                </h3>
+                <p className="text-slate-600 text-center">
+                  Are you sure you want to cancel the invitation sent to{' '}
+                  <span className="font-medium">{confirmCancel.email}</span>?
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmCancel({ show: false, invitationId: null, email: '' })}
+                  className="flex-1"
+                >
+                  No, Keep It
+                </Button>
+                <Button
+                  onClick={handleCancelInvitation}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Yes, Cancel
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -385,20 +507,12 @@ export default function UserManagement() {
                       variant="ghost" 
                       size="sm" 
                       className="text-red-600 hover:text-red-700"
-                      onClick={async () => {
-                        if (confirm('Cancel this invitation?')) {
-                          try {
-                            const response = await fetch(`${API_BASE_URL}/api/v1/invites/${invitation.id}`, {
-                              method: 'DELETE',
-                              credentials: 'include'
-                            })
-                            if (response.ok) {
-                              fetchInvitations()
-                            }
-                          } catch (error) {
-                            console.error('Error cancelling invitation:', error)
-                          }
-                        }
+                      onClick={() => {
+                        setConfirmCancel({
+                          show: true,
+                          invitationId: invitation.id,
+                          email: invitation.email
+                        })
                       }}
                     >
                       <XCircle className="h-4 w-4" />

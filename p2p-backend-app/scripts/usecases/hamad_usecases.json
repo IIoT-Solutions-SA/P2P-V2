@@ -43,7 +43,7 @@
       ],
       "vendor_evaluation": {
         "selected_vendor": "IIoT Solutions (with KACST)",
-        "selection_reasons": "Proven AI vision expertise, local support, and successful implementations"
+        "selection_reasons": ["Proven AI vision expertise", "Local support", "Successful implementations"]
       },
       "technology_components": [
         {
@@ -221,7 +221,7 @@
       ],
       "vendor_evaluation": {
         "selected_vendor": "IIoT Solutions (with KACST)",
-        "selection_reasons": "Advanced vision AI capabilities and proven safety implementations"
+        "selection_reasons": ["Advanced vision AI capabilities", "Proven safety implementations"]
       },
       "technology_components": [
         {
@@ -399,7 +399,7 @@
       ],
       "vendor_evaluation": {
         "selected_vendor": "IIoT Solutions (with KACST)",
-        "selection_reasons": "End-to-end energy management expertise and proven ROI track record"
+        "selection_reasons": ["End-to-end energy management expertise", "Proven ROI track record"]
       },
       "technology_components": [
         {

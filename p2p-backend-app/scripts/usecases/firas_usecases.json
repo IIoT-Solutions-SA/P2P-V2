@@ -1,0 +1,625 @@
+[
+  {
+    "title": "Real-Time Production Visibility Dashboard",
+    "description": "Centralized real-time machine status visibility improves efficiency and responsiveness",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.559903,
+    "longitude": 46.869228,
+    "category": "Process Optimization",
+    "implementationTime": "2 months",
+    "roiPercentage": "185% 3-year ROI",
+    "contactPerson": "Firas Al-Siddiqi",
+    "contactTitle": "Business Development",
+    "benefits": [
+      "98% real-time machine utilization visibility",
+      "67% faster response time to idle machines",
+      "20% improvement in productivity"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1593642634367-d91a135587b5?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "This use case provides real-time visibility into the operational status of all CNC machines on a centralized screen. The system tracks and displays the status of each machine — running, idle, or offline — enabling operators and supervisors to monitor the entire shop floor at a glance. By consolidating this information into a single dashboard, the factory improves efficiency, identifies bottlenecks, and ensures timely interventions when needed.",
+    "business_challenge": {
+      "industry_context": "CNC machines are critical to production workflows, and downtime directly affects productivity. Without centralized visibility, operators must manually check machine status, which wastes time and causes delays in detecting issues. This leads to inefficiencies, miscommunication, and slower response to shop floor disruptions.",
+      "specific_problems": [
+        "Lack of centralized view of CNC machine status",
+        "Delays in identifying idle or offline machines",
+        "Reduced productivity due to late interventions"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 600,000 annual impact from lost productivity, delays, and underutilized machine capacity"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "Real-time tracking of machine operating status",
+        "Centralized dashboard accessible by operators and supervisors",
+        "Scalable to additional CNC machines and production assets"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "IoT-enabled machine status sensors",
+          "details": "Real-time status detection"
+        },
+        {
+          "component": "Centralized monitoring dashboard",
+          "details": "Live machine states visualization"
+        },
+        {
+          "component": "Shop floor displays",
+          "details": "Real-time visualization integration"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Rapid deployment with sensor installation, dashboard setup, and operator training. Phased rollout ensured stable integration before full shop floor deployment.",
+      "total_budget": "SAR 300,000",
+      "total_duration": "2 months",
+      "phases": [
+        {
+          "phase": "System Design & Setup",
+          "duration": "3 weeks",
+          "budget": "SAR 90,000",
+          "objectives": [
+            "Define machine status categories and dashboard design"
+          ],
+          "keyActivities": [
+            "Hardware procurement",
+            "software setup",
+            "integration planning"
+          ]
+        },
+        {
+          "phase": "Pilot Deployment",
+          "duration": "3 weeks",
+          "budget": "SAR 80,000",
+          "objectives": [
+            "Test real-time machine tracking on a subset of CNCs"
+          ],
+          "keyActivities": [
+            "Install sensors",
+            "configure dashboard",
+            "validate accuracy"
+          ]
+        },
+        {
+          "phase": "Full Rollout",
+          "duration": "2 weeks",
+          "budget": "SAR 130,000",
+          "objectives": [
+            "Deploy across all CNC machines and integrate with supervisor screens"
+          ],
+          "keyActivities": [
+            "Factory-wide installation",
+            "operator training",
+            "performance testing"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Business Strategy Lead",
+            "name": "Firas Al-Siddiqi",
+            "title": "Business Development"
+          },
+          {
+            "role": "Technical Operations Manager",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Shop Floor Integration Specialist",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          },
+          {
+            "role": "Vendor Data Visualization Developer",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Machine Utilization Visibility",
+          "baseline": "60% (manual checks)",
+          "current": "98% (real-time dashboard)",
+          "improvement": "63% improvement"
+        },
+        {
+          "metric": "Response Time to Idle Machines",
+          "baseline": "30 min",
+          "current": "10 min",
+          "improvement": "67% faster"
+        },
+        {
+          "metric": "Productivity Impact",
+          "baseline": "75% efficiency",
+          "current": "90% efficiency",
+          "improvement": "20% improvement"
+        }
+      ],
+      "qualitative_impacts": [
+        "Improved shop floor awareness",
+        "Stronger communication between operators and supervisors",
+        "Reduced bottlenecks"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 300,000",
+        "roi_percentage": "185% 3-year ROI",
+        "three_year_roi": "SAR 900,000"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "IoT-enabled status tracking system capturing machine activity states (running, idle, offline) and displaying them on centralized dashboards for real-time monitoring.",
+      "architecture_components": [
+        {
+          "layer_name": "Data Layer",
+          "components": "IoT machine status sensors, edge devices",
+          "specifications": "Real-time data capture"
+        },
+        {
+          "layer_name": "Application Layer",
+          "components": "Centralized monitoring software, data preprocessing engine",
+          "specifications": "Data processing and analysis"
+        },
+        {
+          "layer_name": "Presentation Layer",
+          "components": "Shop floor dashboards, supervisor workstations",
+          "specifications": "Visual display and monitoring"
+        }
+      ],
+      "security_measures": [
+        "Encrypted communication between sensors and dashboards",
+        "Role-based access for supervisors and operators",
+        "Regular system maintenance and network audits"
+      ],
+      "scalability_design": [
+        "Modular sensor installation for additional CNCs",
+        "Dashboard expansion to other machine categories",
+        "Cloud backup for historical machine utilization analysis"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q1 2027",
+        "initiative": "Predictive Idle Time Analysis",
+        "description": "Add predictive analytics to identify patterns in idle/offline time for efficiency improvements",
+        "expected_benefit": "Additional 10% productivity gain and optimized scheduling"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Process",
+        "lesson": "Visual simplicity drives adoption",
+        "description": "Initial dashboards were too complex, slowing operator adoption. Simplified visual indicators improved usability significantly",
+        "recommendation": "Prioritize clear, color-coded dashboards for quick shop floor interpretation"
+      }
+    ]
+  },
+  {
+    "title": "Smart Energy Analytics for Sustainable Manufacturing",
+    "description": "Granular real-time energy cost tracking improves budgeting and operational planning",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.559903,
+    "longitude": 46.869228,
+    "category": "Energy Efficiency",
+    "implementationTime": "2 months",
+    "roiPercentage": "190% 3-year ROI",
+    "contactPerson": "Firas Al-Siddiqi",
+    "contactTitle": "Business Development",
+    "benefits": [
+      "100% asset-level SAR/hour visibility",
+      "33% reduction in energy overspending",
+      "75% improvement in budget forecast accuracy"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "This use case provides detailed insights into energy consumption for each connected asset. The platform monitors real-time energy usage and calculates the cost in Saudi Riyals per hour for every asset. This granular visibility enables users to identify high-consumption equipment, evaluate operational efficiency, and take corrective actions to optimize energy expenditures. By offering clear cost analysis, the system improves budgeting accuracy and supports proactive operational planning.",
+    "business_challenge": {
+      "industry_context": "Energy costs are a significant component of overall production expenses. Without accurate monitoring of asset-level consumption, facilities risk overspending and misallocating resources. Traditional utility bills provide aggregate data, but lack the detail needed to optimize specific machines or processes.",
+      "specific_problems": [
+        "No visibility into energy consumption per individual machine",
+        "Inability to track real-time energy costs in SAR/hour",
+        "Inefficient budgeting due to reliance on monthly utility summaries"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 675,000 annual overspending from inefficient energy usage and lack of asset-level insights"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "Real-time energy usage monitoring at machine level",
+        "Automatic calculation of SAR/hour cost for each asset",
+        "Dashboards with actionable insights for operators and managers"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "IoT-enabled smart energy meters",
+          "details": "Per-asset energy monitoring"
+        },
+        {
+          "component": "Cloud analytics platform",
+          "details": "Cost calculation in SAR/hour"
+        },
+        {
+          "component": "Dashboards and reporting tools",
+          "details": "Real-time energy insights"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Phased deployment with installation of smart meters, data validation, and integration into energy dashboards. Agile testing cycles ensured accuracy in real-time cost calculation.",
+      "total_budget": "SAR 250,000",
+      "total_duration": "2 months",
+      "phases": [
+        {
+          "phase": "Requirement Definition & Setup",
+          "duration": "2 weeks",
+          "budget": "SAR 60,000",
+          "objectives": [
+            "Identify critical assets and define energy monitoring framework"
+          ],
+          "keyActivities": [
+            "Asset mapping",
+            "meter selection",
+            "dashboard design"
+          ]
+        },
+        {
+          "phase": "Pilot Deployment",
+          "duration": "4 weeks",
+          "budget": "SAR 90,000",
+          "objectives": [
+            "Monitor energy usage of selected high-consumption machines"
+          ],
+          "keyActivities": [
+            "Meter installation",
+            "data capture testing",
+            "SAR/hour cost validation"
+          ]
+        },
+        {
+          "phase": "Full Deployment",
+          "duration": "2 weeks",
+          "budget": "SAR 100,000",
+          "objectives": [
+            "Scale system to all production assets"
+          ],
+          "keyActivities": [
+            "Facility-wide meter installation",
+            "dashboard integration",
+            "operator training"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Cost Optimization Lead",
+            "name": "Firas Al-Siddiqi",
+            "title": "Business Development"
+          },
+          {
+            "role": "Energy Systems Architect",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Analytics Developer",
+            "name": "Hamza Feroze",
+            "title": "AI Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Energy Cost Visibility",
+          "baseline": "0 SAR/hour per machine",
+          "current": "100% asset-level SAR/hour visibility",
+          "improvement": "Complete visibility achieved"
+        },
+        {
+          "metric": "Energy Overspending Reduction",
+          "baseline": "SAR 675,000/year",
+          "current": "SAR 450,000/year",
+          "improvement": "33% savings"
+        },
+        {
+          "metric": "Budget Forecast Accuracy",
+          "baseline": "±20% variance",
+          "current": "±5% variance",
+          "improvement": "75% improvement"
+        }
+      ],
+      "qualitative_impacts": [
+        "Improved transparency in energy consumption",
+        "Enhanced accountability for machine operators",
+        "Stronger alignment with sustainability targets"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 250,000",
+        "roi_percentage": "190% 3-year ROI",
+        "three_year_roi": "SAR 750,000"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "IoT-enabled energy monitoring architecture that collects per-asset consumption data and converts it into SAR/hour costs for real-time display and analysis.",
+      "architecture_components": [
+        {
+          "layer_name": "Data Layer",
+          "components": "IoT smart energy meters on connected assets",
+          "specifications": "Real-time energy data capture"
+        },
+        {
+          "layer_name": "Application Layer",
+          "components": "Cloud analytics engine for consumption and cost calculation",
+          "specifications": "SAR/hour cost processing"
+        },
+        {
+          "layer_name": "Presentation Layer",
+          "components": "Dashboards, mobile reports, and supervisor notifications",
+          "specifications": "Cost visualization and alerts"
+        }
+      ],
+      "security_measures": [
+        "Encrypted transmission of energy data from meters to cloud",
+        "Role-based access to dashboards and reports",
+        "Regular audits of meter calibration and system performance"
+      ],
+      "scalability_design": [
+        "Modular meter deployment for additional machines",
+        "Cloud scalability for high-frequency energy data",
+        "Expandable dashboards to include multiple facilities"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q4 2026",
+        "initiative": "AI-Based Energy Forecasting",
+        "description": "Implement AI algorithms to predict future energy consumption patterns based on production schedules",
+        "expected_benefit": "10% additional savings through predictive load balancing and optimized production planning"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Process",
+        "lesson": "Real-time cost visibility changes behavior",
+        "description": "Operators began proactively shutting down idle machines once they saw cost per hour displayed in SAR, leading to immediate savings",
+        "recommendation": "Displaying financial impact in real time encourages accountability and faster adoption of energy-saving practices"
+      }
+    ]
+  },
+  {
+    "title": "Digital Bridge: Modernizing Legacy Manufacturing Systems",
+    "description": "Connecting legacy and 3D printing machines to enable real-time data streaming and monitoring",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.559903,
+    "longitude": 46.869228,
+    "category": "Factory Automation",
+    "implementationTime": "5 months",
+    "roiPercentage": "170% 3-year ROI",
+    "contactPerson": "Firas Al-Siddiqi",
+    "contactTitle": "Business Development",
+    "benefits": [
+      "100% machine connectivity including legacy systems",
+      "95% continuous data streaming from legacy equipment",
+      "87% faster downtime detection"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "This use case focuses on integrating legacy machines and 3D printers into the Smart Factory's digital infrastructure. By connecting older systems to the network and streaming their data to an MQTT broker, the factory achieved real-time monitoring, improved visibility, and the ability to include non-digital assets in predictive analytics. This integration modernized outdated equipment without costly replacements.",
+    "business_challenge": {
+      "industry_context": "Many manufacturing facilities operate a mix of modern and legacy equipment. While newer machines often provide native connectivity, legacy systems typically run in isolation, limiting visibility, integration with ERP/MES, and predictive analytics capabilities. This creates a barrier to achieving a fully connected and efficient production environment.",
+      "specific_problems": [
+        "Legacy machines produced no real-time data for monitoring",
+        "3D printers lacked integration with the factory's MES and ERP systems",
+        "Manual logging from operators was time-consuming and error-prone"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 750,000 annual inefficiencies from downtime, unplanned stoppages, and missed optimization opportunities"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "Non-intrusive connectivity method for older equipment",
+        "Standard protocol support (MQTT) for easy integration",
+        "Scalable solution covering both legacy machines and 3D printers"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "Retrofit IoT sensor kits and gateways",
+          "details": "Legacy machine connectivity"
+        },
+        {
+          "component": "MQTT broker",
+          "details": "Real-time data streaming"
+        },
+        {
+          "component": "Middleware APIs",
+          "details": "MES/ERP dashboard integration"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Stepwise integration with initial pilots, network testing, and staged rollout across multiple legacy machines and 3D printers",
+      "total_budget": "SAR 487,500",
+      "total_duration": "5 months",
+      "phases": [
+        {
+          "phase": "Assessment & Design",
+          "duration": "4 weeks",
+          "budget": "SAR 75,000",
+          "objectives": [
+            "Identify connectivity gaps",
+            "design retrofit solutions"
+          ],
+          "keyActivities": [
+            "Equipment survey",
+            "interface design",
+            "integration planning"
+          ]
+        },
+        {
+          "phase": "Pilot Integration",
+          "duration": "6 weeks",
+          "budget": "SAR 110,000",
+          "objectives": [
+            "Connect one CNC and one 3D printer to MQTT broker"
+          ],
+          "keyActivities": [
+            "Sensor installation",
+            "gateway configuration",
+            "streaming validation"
+          ]
+        },
+        {
+          "phase": "Full Rollout",
+          "duration": "10 weeks",
+          "budget": "SAR 302,500",
+          "objectives": [
+            "Connect all targeted legacy and 3D printing machines"
+          ],
+          "keyActivities": [
+            "Retrofit deployment",
+            "MES/ERP integration",
+            "operator training"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Digital Transformation Lead",
+            "name": "Firas Al-Siddiqi",
+            "title": "Business Development"
+          },
+          {
+            "role": "Legacy Systems Architect",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Integration Specialist",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          },
+          {
+            "role": "Vendor MQTT Developer",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Machine Connectivity",
+          "baseline": "65% (only modern machines connected)",
+          "current": "100% (legacy + 3D printers included)",
+          "improvement": "54% increase"
+        },
+        {
+          "metric": "Data Availability",
+          "baseline": "0% real-time visibility for legacy systems",
+          "current": "95% continuous streaming",
+          "improvement": "Complete transformation"
+        },
+        {
+          "metric": "Downtime Detection Speed",
+          "baseline": "2 hrs average",
+          "current": "< 15 min",
+          "improvement": "87% faster detection"
+        }
+      ],
+      "qualitative_impacts": [
+        "Improved confidence in older machines",
+        "Reduced manual logging",
+        "Extended asset life by digitally enabling legacy equipment"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 487,500",
+        "roi_percentage": "170% 3-year ROI",
+        "three_year_roi": "SAR 1,312,500"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "A retrofit IoT solution enabling non-digital machines to communicate with modern digital infrastructure using MQTT for real-time data streaming and integration with MES/ERP.",
+      "architecture_components": [
+        {
+          "layer_name": "Data Layer",
+          "components": "Retrofit IoT sensors, gateways, MQTT broker",
+          "specifications": "Legacy machine data acquisition"
+        },
+        {
+          "layer_name": "Application Layer",
+          "components": "Middleware APIs, integration with MES/ERP, data preprocessing engine",
+          "specifications": "Data transformation and routing"
+        },
+        {
+          "layer_name": "Presentation Layer",
+          "components": "Real-time dashboards, MES/ERP analytics modules",
+          "specifications": "Unified visibility across all assets"
+        }
+      ],
+      "security_measures": [
+        "End-to-end encryption for MQTT data streams",
+        "Secure gateway authentication and role-based access",
+        "Routine vulnerability assessments and firmware updates"
+      ],
+      "scalability_design": [
+        "Modular gateway design to support additional legacy machines",
+        "Auto-scaling cloud infrastructure for growing data volume",
+        "Load balancing to manage high data throughput"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q3 2026",
+        "initiative": "Predictive Analytics Integration",
+        "description": "Use real-time data from retrofitted legacy machines to train predictive models for maintenance forecasting",
+        "expected_benefit": "Reduce unplanned downtime by an additional 15% and improve asset utilization"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Technical",
+        "lesson": "Retrofitting requires tailored solutions",
+        "description": "A one-size-fits-all approach failed during early pilots, as machines varied in interfaces and compatibility",
+        "recommendation": "Plan for modular retrofit kits and allow flexibility in gateway configurations"
+      }
+    ]
+  }
+]

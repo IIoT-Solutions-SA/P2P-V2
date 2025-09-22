@@ -1,0 +1,678 @@
+[
+  {
+    "title": "Robotic 3D Printer Farm for Drone Arm Production",
+    "description": "A lights-out manufacturing cell featuring a central robotic arm that automatically tends multiple 3D printers and places finished drone arms onto a conveyor system for the next stage of quality control.",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.7136,
+    "longitude": 46.6753,
+    "category": "Factory Automation",
+    "implementationTime": "5 Months",
+    "roiPercentage": "100% ROI in first year",
+    "contactPerson": "Aadil Feroze",
+    "contactTitle": "CTO",
+    "benefits": [
+      "58% increase in printer utilization rate",
+      "275% increase in daily output",
+      "87.5% reduction in manual labor"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1563520238-8c5de19cfbda?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "The KACST Industry 4.0 Capability Center implemented a fully automated 3D printing cell for producing drone arms. The system features a fleet of 3D printers surrounding a central 6-axis robotic arm. The robot automatically unloads finished parts from each printer and places them onto an integrated conveyor belt, which transports them directly to the downstream robotic inspection station.",
+    "business_challenge": {
+      "industry_context": "Scaling additive manufacturing requires overcoming the bottleneck of manual labor. Operators manually unloading printers, cleaning build plates, and transferring parts is inefficient, introduces variability, and limits production to manned shifts.",
+      "specific_problems": [
+        "Significant printer idle time waiting for a human operator to unload a completed print job",
+        "Manual handling of freshly printed parts occasionally led to cosmetic damage or contamination",
+        "Lack of a consistent, paced flow of parts from the printer farm to the quality control station",
+        "Inability to run the printer farm at full capacity overnight or during weekends"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 400,000 in lost production capacity annually"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "The robotic system must be able to service at least ten 3D printers in a circular cell",
+        "The robot's end-of-arm-tooling must be versatile enough to handle delicate parts without causing damage",
+        "The system must integrate with a conveyor to automatically hand-off parts to the next station",
+        "The entire cell must be able to operate autonomously for at least 8 hours without human intervention"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "6-axis collaborative robotic arm",
+          "details": "Central robot for unloading and transferring parts"
+        },
+        {
+          "component": "Custom pneumatic gripper",
+          "details": "Soft-jaw design to handle delicate 3D printed parts"
+        },
+        {
+          "component": "Flat-belt conveyor system",
+          "details": "Integrated system for part transportation"
+        },
+        {
+          "component": "Raspberry Pi with Node-RED",
+          "details": "Orchestrating the workflow between the printers and the robot"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Digital twin approach with simulation and validation before physical implementation",
+      "total_budget": "SAR 400,000",
+      "total_duration": "5 Months",
+      "phases": [
+        {
+          "phase": "Simulation & Gripper Design",
+          "duration": "6 weeks",
+          "budget": "SAR 80,000",
+          "objectives": [
+            "Create a digital twin of the cell",
+            "design and prototype the end-of-arm tool"
+          ],
+          "keyActivities": [
+            "3D modeling",
+            "robotic simulation",
+            "gripper prototyping and testing"
+          ]
+        },
+        {
+          "phase": "Hardware Installation & Safety",
+          "duration": "4 weeks",
+          "budget": "SAR 180,000",
+          "objectives": [
+            "Install the robot",
+            "conveyor",
+            "and printer farm",
+            "implement safety fencing and sensors"
+          ],
+          "keyActivities": [
+            "Mechanical and electrical installation",
+            "safety system commissioning"
+          ]
+        },
+        {
+          "phase": "System Integration & Workflow Automation",
+          "duration": "8 weeks",
+          "budget": "SAR 100,000",
+          "objectives": [
+            "Connect printers to the network",
+            "develop the Node-RED workflow for robotic control"
+          ],
+          "keyActivities": [
+            "Network setup",
+            "Node-RED flow development",
+            "robot programming"
+          ]
+        },
+        {
+          "phase": "Final Commissioning & Optimization",
+          "duration": "2 weeks",
+          "budget": "SAR 40,000",
+          "objectives": [
+            "Perform end-to-end testing of the entire cell",
+            "optimize cycle times"
+          ],
+          "keyActivities": [
+            "System testing",
+            "performance tuning",
+            "user training"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Automation Lead",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          },
+          {
+            "role": "Robotics Engineer",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Vision System Developer",
+            "name": "Hamza Feroze",
+            "title": "AI Developer"
+          },
+          {
+            "role": "Vendor Integration Specialist",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Printer Utilization Rate",
+          "baseline": "60%",
+          "current": "95%",
+          "improvement": "58% increase in productive uptime"
+        },
+        {
+          "metric": "Throughput",
+          "baseline": "40 arms/day",
+          "current": "150 arms/day",
+          "improvement": "275% increase in daily output"
+        },
+        {
+          "metric": "Manual Labor (Printer Tending)",
+          "baseline": "8 hours/day",
+          "current": "1 hour/day",
+          "improvement": "87.5% reduction in manual labor"
+        }
+      ],
+      "qualitative_impacts": [
+        "Enabled true 'lights-out' manufacturing, allowing the printer farm to run 24/7 without supervision",
+        "Created a continuous, predictable flow of parts to the quality control station",
+        "Improved part consistency and quality by eliminating damage from manual handling"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 400,000",
+        "roi_percentage": "100% ROI in first year",
+        "three_year_roi": "550% ROI over three years"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "A circular cell of 3D printers is orchestrated by a central 6-axis robot. A Raspberry Pi running Node-RED monitors each printer's status via power monitoring.",
+      "architecture_components": [
+        {
+          "layer_name": "Physical Automation Layer",
+          "components": "6-axis Collaborative Robot, Custom Gripper, Flat-Belt Conveyor, Smart Plugs",
+          "specifications": "Robot is centrally mounted for maximum reach"
+        },
+        {
+          "layer_name": "Edge Control Layer",
+          "components": "Raspberry Pi, Node-RED, MQTT Broker",
+          "specifications": "Orchestrates the entire cell's operation based on real-time data"
+        },
+        {
+          "layer_name": "Data Layer",
+          "components": "MES Connector",
+          "specifications": "Logs production data for each cycle"
+        }
+      ],
+      "security_measures": [
+        "The automation cell operates on an isolated network to prevent unauthorized access"
+      ],
+      "scalability_design": [
+        "Additional printers can be easily added to the cell with simple Node-RED configuration"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q1 2027",
+        "initiative": "Automated Build Plate Cleaning",
+        "description": "Equip the robot with a secondary tool for automatic build plate preparation",
+        "expected_benefit": "Achieve a fully closed-loop, autonomous printing cycle"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Robotics",
+        "lesson": "Simulation Saves Weeks of Physical Rework",
+        "description": "Digital twin simulation identified and fixed reachability issues virtually",
+        "recommendation": "Always invest in upfront simulation for complex robotics cells"
+      }
+    ]
+  },
+  {
+    "title": "Digital Simulation for Drone Production Line Optimization",
+    "description": "Creating a virtual twin of the drone line to validate flow, cycle time, and resources, reducing commissioning time by 40% and de-risking capital investment.",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.7136,
+    "longitude": 46.6753,
+    "category": "Process Optimization",
+    "implementationTime": "4 Months",
+    "roiPercentage": "564% ROI in first year",
+    "contactPerson": "Aadil Feroze",
+    "contactTitle": "CTO",
+    "benefits": [
+      "40% reduction in commissioning time",
+      "23% increase in production throughput",
+      "25% reduction in AMR fleet cost"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1593642634367-d91a135587b5?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "The Smart Factory Drone Line implemented a comprehensive digital simulation to model its entire production system, including machines, workers, buffers, and robots. This virtual twin allowed the team to test various scenarios, identify and remove bottlenecks, and accurately estimate throughput before any physical equipment was installed.",
+    "business_challenge": {
+      "industry_context": "In advanced drone manufacturing, production lines are complex, capital-intensive systems with numerous interdependencies. Commissioning a new line without prior validation carries significant financial risks.",
+      "specific_problems": [
+        "High risk of undiscovered bottlenecks in the complex production flow",
+        "Inability to accurately predict throughput and cycle times under variable conditions",
+        "Excessive costs and project delays associated with physical layout changes after commissioning",
+        "Uncertainty in determining optimal resource allocation"
+      ],
+      "business_impact": {
+        "financial_loss": "Potential for over SAR 750,000 in commissioning delays and inefficient capital expenditure"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "Ability to model the complete end-to-end production process",
+        "Powerful 'what-if' scenario analysis to rigorously compare different operational configurations",
+        "Native integration with control systems (PLC/MES) for high-fidelity virtual commissioning",
+        "Advanced 2D/3D visualization to allow engineers and stakeholders to easily identify flow issues"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "Process and layout builder",
+          "details": "Library of pre-built manufacturing assets (conveyors, AMRs, etc.)"
+        },
+        {
+          "component": "KPI analysis engine",
+          "details": "Calculating and reporting on cycle time, station utilization, and WIP levels"
+        },
+        {
+          "component": "Scenario management module",
+          "details": "A/B testing different layouts, machine counts, and staffing models"
+        },
+        {
+          "component": "High-fidelity 2D/3D animation engine",
+          "details": "Visualizing material flow, queues, and robot paths"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Five-step simulation cycle: Define scope & collect data, Build baseline model, Connect and validate logic, Run optimization scenarios, Deploy validated changes",
+      "total_budget": "SAR 250,000",
+      "total_duration": "4 Months",
+      "phases": [
+        {
+          "phase": "Planning & Data Collection",
+          "duration": "3 weeks",
+          "budget": "SAR 28,000",
+          "objectives": [
+            "Finalize scope",
+            "gather all process times and equipment specs"
+          ],
+          "keyActivities": [
+            "Stakeholder workshops",
+            "vendor data requests"
+          ]
+        },
+        {
+          "phase": "Baseline Model Development",
+          "duration": "5 weeks",
+          "budget": "SAR 90,000",
+          "objectives": [
+            "Create a functional model of the as-designed process"
+          ],
+          "keyActivities": [
+            "3D modeling",
+            "logic scripting",
+            "initial test runs"
+          ]
+        },
+        {
+          "phase": "Scenario Analysis & Optimization",
+          "duration": "6 weeks",
+          "budget": "SAR 104,000",
+          "objectives": [
+            "Test multiple layouts and resource levels",
+            "identify optimal configuration"
+          ],
+          "keyActivities": [
+            "Running simulation experiments",
+            "KPI analysis",
+            "stakeholder reviews"
+          ]
+        },
+        {
+          "phase": "Final Report & Handover",
+          "duration": "2 weeks",
+          "budget": "SAR 28,000",
+          "objectives": [
+            "Document final recommendations",
+            "provide model training"
+          ],
+          "keyActivities": [
+            "Final report generation",
+            "team training sessions"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Simulation Architect",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          },
+          {
+            "role": "Process Analyst",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Modeling Engineer",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Commissioning Time",
+          "baseline": "20 weeks (Estimate)",
+          "current": "12 weeks (Actual)",
+          "improvement": "40% reduction"
+        },
+        {
+          "metric": "Production Throughput",
+          "baseline": "65 units/hour",
+          "current": "80 units/hour",
+          "improvement": "23% increase"
+        },
+        {
+          "metric": "Capital Expenditure (AMRs)",
+          "baseline": "8 AMRs",
+          "current": "6 AMRs",
+          "improvement": "25% reduction in AMR fleet cost"
+        }
+      ],
+      "qualitative_impacts": [
+        "Improved alignment and decision-making between engineering, operations, and management teams",
+        "Dramatically reduced project risk by validating all process changes virtually",
+        "Increased institutional knowledge by creating a dynamic, reusable model"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 1.2M in value from increased throughput",
+        "roi_percentage": "564% ROI in first year",
+        "three_year_roi": "1524% ROI over three years"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "High-performance desktop application that imports CAD layouts and connects to staging MES/PLC environment via OPC-UA interface for hardware-in-the-loop virtual commissioning",
+      "architecture_components": [
+        {
+          "layer_name": "Simulation Core",
+          "components": "Discrete-event simulation engine, 3D visualization renderer, physics engine",
+          "specifications": "Multi-threaded, capable of running 100x real-time speed"
+        },
+        {
+          "layer_name": "Data Integration Layer",
+          "components": "OPC-UA connector, MES database adapter, CAD importers (STEP, DWG)",
+          "specifications": "Real-time data handshake for virtual commissioning"
+        },
+        {
+          "layer_name": "Analysis & Reporting",
+          "components": "KPI dashboard, scenario comparison tool, automatic report generator",
+          "specifications": "Exportable reports to PDF and Excel"
+        }
+      ],
+      "security_measures": [
+        "Role-based user authentication and isolated network for staging control systems"
+      ],
+      "scalability_design": [
+        "Fully modular simulation with multi-core processing for complex runs"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q3 2026",
+        "initiative": "Connect to Real-Time Data for a Persistent Twin",
+        "description": "Integrate with live MES and IIoT platform for continuous validation",
+        "expected_benefit": "True persistent digital twin for operational decision-making"
+      },
+      {
+        "timeline": "Q1 2027",
+        "initiative": "Expansion to New Assembly Line",
+        "description": "Leverage existing model as template for Drone-Plus assembly line",
+        "expected_benefit": "Reduce simulation development time by over 50%"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Process",
+        "lesson": "Invest Heavily in Data Validation Upfront",
+        "description": "The success of a simulation is entirely dependent on the quality of the input data",
+        "recommendation": "Dedicate first 15-20% of project timeline to data gathering and validation"
+      },
+      {
+        "category": "Team",
+        "lesson": "A Simulation is a Team Sport",
+        "description": "The model is only as good as the collective knowledge it contains",
+        "recommendation": "Schedule mandatory weekly reviews with cross-functional team"
+      }
+    ]
+  },
+  {
+    "title": "Smart Locker for Raw Material Tracking",
+    "description": "IoT-enabled smart locker with weight scales automates raw material tracking and notifications",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.559903,
+    "longitude": 46.869228,
+    "category": "Supply Chain",
+    "implementationTime": "3 months",
+    "roiPercentage": "178% 3-year ROI",
+    "contactPerson": "Aadil Feroze",
+    "contactTitle": "CTO",
+    "benefits": [
+      "19% improvement in material availability",
+      "40% increase in inventory accuracy",
+      "83% faster replenishment response time"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1565373679580-fc0cb538c49a?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "The Smart Factory implemented an IoT-enabled Smart Locker to manage raw materials with real-time weight detection. Each compartment is equipped with a digital scale to track withdrawals. When an operator removes material, the system records the exact time, material type, and weight, and instantly sends a notification.",
+    "business_challenge": {
+      "industry_context": "In manufacturing environments, raw materials are critical for uninterrupted production. Traditional material tracking relies on manual logs or periodic inventory checks, which are error-prone and delay replenishment.",
+      "specific_problems": [
+        "No real-time tracking of raw material withdrawals",
+        "High dependency on manual logging by operators",
+        "Frequent material shortages disrupting production"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 400,000 annual cost impact due to downtime and excess stock"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "Accurate, automated tracking of raw material withdrawals",
+        "Instant notifications to supervisors and inventory systems",
+        "Seamless integration with ERP/MES for inventory updates"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "Smart locker compartments",
+          "details": "IoT-enabled weight scales in each compartment"
+        },
+        {
+          "component": "Edge gateway",
+          "details": "Local data processing and validation"
+        },
+        {
+          "component": "Cloud dashboard",
+          "details": "Inventory management with notifications"
+        },
+        {
+          "component": "Mobile app integration",
+          "details": "Real-time alerts for supervisors"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Agile development with hardware integration sprints and staged rollout",
+      "total_budget": "SAR 280,000",
+      "total_duration": "3 months",
+      "phases": [
+        {
+          "phase": "Planning & Hardware Setup",
+          "duration": "3 weeks",
+          "budget": "SAR 60,000",
+          "objectives": [
+            "Define locker capacity",
+            "install weight scales"
+          ],
+          "keyActivities": [
+            "Hardware procurement",
+            "calibration",
+            "baseline testing"
+          ]
+        },
+        {
+          "phase": "Pilot Deployment",
+          "duration": "5 weeks",
+          "budget": "SAR 110,000",
+          "objectives": [
+            "Deploy Smart Locker for critical raw materials"
+          ],
+          "keyActivities": [
+            "Edge integration",
+            "mobile app testing",
+            "notification triggers"
+          ]
+        },
+        {
+          "phase": "Full Rollout",
+          "duration": "4 weeks",
+          "budget": "SAR 110,000",
+          "objectives": [
+            "Scale system to cover all raw material types"
+          ],
+          "keyActivities": [
+            "Factory-wide locker deployment",
+            "ERP/MES integration",
+            "operator training"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "IoT Project Lead",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          },
+          {
+            "role": "Hardware Integration Lead",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Sensor Integration Engineer",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Material Availability",
+          "baseline": "80%",
+          "current": "99%",
+          "improvement": "19% improvement"
+        },
+        {
+          "metric": "Inventory Accuracy",
+          "baseline": "70%",
+          "current": "98%",
+          "improvement": "40% increase"
+        },
+        {
+          "metric": "Replenishment Response Time",
+          "baseline": "24 hrs",
+          "current": "4 hrs",
+          "improvement": "83% faster"
+        }
+      ],
+      "qualitative_impacts": [
+        "Improved trust in inventory accuracy",
+        "Stronger coordination between production and supply chain",
+        "Reduced operator workload"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 280,000",
+        "roi_percentage": "178% 3-year ROI",
+        "three_year_roi": "SAR 840,000"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "IoT-enabled smart locker system with integrated weight sensors, edge computing for data validation, and cloud-based dashboards for real-time visibility and alerts",
+      "architecture_components": [
+        {
+          "layer_name": "Data Layer",
+          "components": "Weight scales, IoT sensors, edge gateway",
+          "specifications": "High-precision weight sensors with auto-calibration"
+        },
+        {
+          "layer_name": "Application Layer",
+          "components": "Cloud analytics, ERP/MES integration",
+          "specifications": "Real-time data processing and inventory updates"
+        },
+        {
+          "layer_name": "Presentation Layer",
+          "components": "Dashboards, mobile notifications",
+          "specifications": "Web and mobile interfaces for monitoring"
+        }
+      ],
+      "security_measures": [
+        "Encrypted communication",
+        "role-based access control",
+        "regular system audits"
+      ],
+      "scalability_design": [
+        "Modular lockers",
+        "expandable edge/cloud architecture",
+        "multi-site scalability"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q2 2026",
+        "initiative": "Predictive Material Replenishment",
+        "description": "Use AI to predict material consumption rates and trigger auto-replenishment",
+        "expected_benefit": "Eliminate shortages, reduce safety stock by 20%"
+      },
+      {
+        "timeline": "Q1 2027",
+        "initiative": "Integration with Supplier Systems",
+        "description": "Connect Smart Locker directly to supplier platforms for automated purchase orders",
+        "expected_benefit": "Reduce procurement lead time by 30%"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Technical",
+        "lesson": "Calibration is key for accuracy",
+        "description": "Early phases revealed that sensor drift could cause significant errors if not addressed",
+        "recommendation": "Always include auto-calibration features and monitoring in IoT sensor-based systems"
+      }
+    ]
+  }
+]

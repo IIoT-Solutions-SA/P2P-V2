@@ -1,0 +1,711 @@
+[
+  {
+    "title": "Assembly Workstation",
+    "description": "Step-by-step digital work instructions with tool interlocks reduce errors and cycle time on the assembly line",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.559903,
+    "longitude": 46.869228,
+    "category": "Process Optimization",
+    "implementationTime": "3 months",
+    "roiPercentage": "200% 3-year ROI",
+    "contactPerson": "Amro Abouzied",
+    "contactTitle": "Solutions Architect",
+    "benefits": [
+      "6-pt improvement in First-Pass Yield to 99%",
+      "73% reduction in Defects per Unit",
+      "19% faster assembly cycle time"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "This use case implements a guided assembly workstation that provides operators with step-by-step digital work instructions, integrated tool verification (e.g., smart torque wrenches), barcode/RFID checks for parts, and pick-to-light guidance. The system enforces process order, validates each critical step (poka-yoke), and logs traceability to MES.",
+    "business_challenge": {
+      "industry_context": "Drone assembly involves numerous precise steps, torque specs, variant BOMs, and quality checkpoints. Paper instructions and manual sign-offs lead to variability, longer training time, and higher rework risk—especially during product updates and shift handovers.",
+      "specific_problems": [
+        "Inconsistent assembly quality due to manual instructions and human error",
+        "Long operator training/onboarding time for complex builds",
+        "Limited traceability of who did what step, with which part/tool, and when"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 650,000 annually from rework, scrap, delayed orders, and extended changeover/training time"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "Step-by-step digital work instructions with version control and e-signoff",
+        "Tool interlocks/verification (smart torque, barcode/RFID checks, pick-to-light)",
+        "Seamless MES/ERP integration for traceability and production reporting"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "Touchscreen workstation",
+          "details": "Industrial PC with barcode/RFID readers and pick-to-light modules"
+        },
+        {
+          "component": "Smart torque tools",
+          "details": "Programmatic torque/angle verification"
+        },
+        {
+          "component": "Edge gateway",
+          "details": "Rule engine with MES integration and electronic traveler"
+        },
+        {
+          "component": "Digital Work Instruction software",
+          "details": "Media-rich instructions with images/video/3D and e-signoff"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Agile rollout across a pilot cell followed by phased expansion",
+      "total_budget": "SAR 320,000",
+      "total_duration": "3 months",
+      "phases": [
+        {
+          "phase": "Process Mapping & Content Authoring",
+          "duration": "3 weeks",
+          "budget": "SAR 70,000",
+          "objectives": [
+            "Map assembly steps",
+            "capture torque specs",
+            "author digital work instructions"
+          ],
+          "keyActivities": [
+            "SOP review",
+            "media capture",
+            "e-sign workflow setup"
+          ]
+        },
+        {
+          "phase": "Pilot Cell Deployment",
+          "duration": "5 weeks",
+          "budget": "SAR 120,000",
+          "objectives": [
+            "Integrate tools and validation in one assembly cell"
+          ],
+          "keyActivities": [
+            "Pick-to-light setup",
+            "torque interlocks",
+            "barcode/RFID checks",
+            "operator training"
+          ]
+        },
+        {
+          "phase": "Line-Wide Rollout & Optimization",
+          "duration": "4 weeks",
+          "budget": "SAR 130,000",
+          "objectives": [
+            "Scale to all stations",
+            "refine UI and takt alignment"
+          ],
+          "keyActivities": [
+            "Station replication",
+            "MES reports",
+            "KPI tuning"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Manufacturing Lead",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          },
+          {
+            "role": "Quality Systems Lead",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor UI/UX Developer",
+            "name": "Hamza Feroze",
+            "title": "AI Developer"
+          },
+          {
+            "role": "Vendor Systems Integrator",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "First-Pass Yield (FPY)",
+          "baseline": "93%",
+          "current": "99%",
+          "improvement": "6-pt improvement"
+        },
+        {
+          "metric": "Defects per Unit (DPU)",
+          "baseline": "0.45",
+          "current": "0.12",
+          "improvement": "73% reduction"
+        },
+        {
+          "metric": "Average Assembly Cycle Time",
+          "baseline": "18 min",
+          "current": "14.5 min",
+          "improvement": "19% faster"
+        }
+      ],
+      "qualitative_impacts": [
+        "Standardized build quality across shifts",
+        "Faster onboarding for new operators",
+        "Improved confidence during engineering changes"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 320,000",
+        "roi_percentage": "200% 3-year ROI",
+        "three_year_roi": "SAR 960,000"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "A DWI (Digital Work Instruction) platform running on industrial workstations with connected tools and sensors. The edge rule engine enforces step order and collects traceability, while MES integration logs production history and e-signoffs.",
+      "architecture_components": [
+        {
+          "layer_name": "Data Layer",
+          "components": "Barcode/RFID readers, pick-to-light, smart torque tools, I/O modules",
+          "specifications": "Real-time I/O with millisecond timestamps"
+        },
+        {
+          "layer_name": "Application Layer",
+          "components": "DWI engine, edge rule engine, MES/ERP connector",
+          "specifications": "Step gating, electronic traveler, API/webhook integrations"
+        },
+        {
+          "layer_name": "Presentation Layer",
+          "components": "Operator UI (touchscreen), supervisor dashboards, e-sign portal",
+          "specifications": "Media-rich steps with role-based views"
+        }
+      ],
+      "security_measures": [
+        "Role-based access",
+        "encrypted data in transit and at rest",
+        "signed e-records for audits"
+      ],
+      "scalability_design": [
+        "Template-based instruction library",
+        "add-station replication",
+        "multi-line support"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q4 2026",
+        "initiative": "AR Overlay for Critical Steps",
+        "description": "Add optional AR guidance for complex sub-assemblies and torque locations",
+        "expected_benefit": "Additional 10% error reduction on high-risk steps"
+      },
+      {
+        "timeline": "Q2 2027",
+        "initiative": "AI-Assisted Instruction Optimization",
+        "description": "Analyze station history to recommend step reordering and media improvements",
+        "expected_benefit": "5-8% cycle-time reduction and faster onboarding"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Process",
+        "lesson": "Pictures beat paragraphs",
+        "description": "Photo/diagram-heavy steps outperformed text-only instructions in speed and accuracy",
+        "recommendation": "Prioritize visual content and short captions"
+      }
+    ]
+  },
+  {
+    "title": "Demanufacturing Workstation",
+    "description": "Guided teardown and diagnostics recover usable parts, reduce waste, and speed repairs",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.559903,
+    "longitude": 46.869228,
+    "category": "Sustainability",
+    "implementationTime": "4 months",
+    "roiPercentage": "210% 3-year ROI",
+    "contactPerson": "Amro Abouzied",
+    "contactTitle": "Solutions Architect",
+    "benefits": [
+      "35-pt increase in parts recovery yield to 80%",
+      "62% faster mean time to diagnose",
+      "35% reduction in spare-parts procurement cost"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "This use case introduces a demanufacturing workstation that supports structured drone disassembly, fault isolation, and parts grading. Operators follow step-by-step digital instructions on an ESD-safe bench while vision checks, barcode/RFID capture, and functional test fixtures identify failed components. Usable parts are graded (A/B/C), labeled, and returned to stock.",
+    "business_challenge": {
+      "industry_context": "Repair, returns, and non-conforming builds create a steady flow of units needing teardown and triage. Without standardized disassembly and diagnostics, shops over-scrap assemblies, buy unnecessary spares, and extend turnaround time.",
+      "specific_problems": [
+        "Unstructured teardown causing damaged recoverable parts",
+        "Limited traceability of what failed, why, and which lots were affected",
+        "High spare-parts procurement spend due to low reuse rate",
+        "Long mean time to diagnose (MTTD) and repair due to manual checks"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 900,000 annually from excess scrap, avoidable spare-parts purchases, and extended repair cycles"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "Step-by-step digital teardown instructions with poka-yoke and e-signoff",
+        "Integrated electrical/functional test fixtures for key modules",
+        "Parts identification via barcode/RFID + vision to prevent mix-ups",
+        "Automatic grading (A/B/C), labeling, and return-to-stock workflow"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "ESD-safe benches",
+          "details": "Grounded mats, wrist straps, and ionizers"
+        },
+        {
+          "component": "Smart torque drivers",
+          "details": "Data capture for fastener removal/installation"
+        },
+        {
+          "component": "Vision camera",
+          "details": "Part presence/ID and cosmetic checks"
+        },
+        {
+          "component": "Modular test rigs",
+          "details": "Power, communication, sensor, motor/ESC testing with automated pass/fail"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Iterative deployment: define teardown flows, stand up fixtures, validate tests, then roll out line-wide",
+      "total_budget": "SAR 420,000",
+      "total_duration": "4 months",
+      "phases": [
+        {
+          "phase": "Process Design & Fixture Specification",
+          "duration": "4 weeks",
+          "budget": "SAR 90,000",
+          "objectives": [
+            "Map teardown flows",
+            "specify electrical and mechanical tests"
+          ],
+          "keyActivities": [
+            "SOP authoring",
+            "fixture design",
+            "sample library creation"
+          ]
+        },
+        {
+          "phase": "Pilot Bench & Test Development",
+          "duration": "6 weeks",
+          "budget": "SAR 150,000",
+          "objectives": [
+            "Build one bench",
+            "develop/validate test scripts and grading rules"
+          ],
+          "keyActivities": [
+            "Fixture build",
+            "vision & barcode setup",
+            "MES integration",
+            "operator trials"
+          ]
+        },
+        {
+          "phase": "Scale-Up & Training",
+          "duration": "6 weeks",
+          "budget": "SAR 180,000",
+          "objectives": [
+            "Add benches",
+            "standardize grading/labeling",
+            "train operators & QA"
+          ],
+          "keyActivities": [
+            "Multi-bench install",
+            "label templates",
+            "dashboards",
+            "kaizen cycles"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Sustainability Lead",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          },
+          {
+            "role": "Process Engineer",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Testing Specialist",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Parts Recovery Yield",
+          "baseline": "45%",
+          "current": "80%",
+          "improvement": "35-pt increase"
+        },
+        {
+          "metric": "Mean Time to Diagnose (MTTD)",
+          "baseline": "120 min",
+          "current": "45 min",
+          "improvement": "62% faster"
+        },
+        {
+          "metric": "Spare-Parts Procurement Cost",
+          "baseline": "100%",
+          "current": "65%",
+          "improvement": "35% year-over-year reduction"
+        },
+        {
+          "metric": "Scrap Weight",
+          "baseline": "100%",
+          "current": "60%",
+          "improvement": "40% reduction for teardown population"
+        }
+      ],
+      "qualitative_impacts": [
+        "Higher confidence in repair decisions",
+        "Better supplier feedback via defect evidence",
+        "Improved sustainability through reuse"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 420,000",
+        "roi_percentage": "210% 3-year ROI",
+        "three_year_roi": "SAR 1,260,000"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "An ESD-compliant workstation ecosystem combining guided instructions, automated tests, vision/ID capture, and grading workflows. The edge rule engine enforces steps and compiles a digital teardown record synced to MES/ERP.",
+      "architecture_components": [
+        {
+          "layer_name": "Data Layer",
+          "components": "Vision camera, barcode/RFID, smart torque, electrical testers, scales",
+          "specifications": "Millisecond timestamps with test data streamed over MQTT/OPC-UA"
+        },
+        {
+          "layer_name": "Application Layer",
+          "components": "Teardown DWI, rules engine, test sequencer, MES/ERP connector",
+          "specifications": "Step gating, automatic pass/fail, grading & labeling, RMA linkage"
+        },
+        {
+          "layer_name": "Presentation Layer",
+          "components": "Operator UI, QA dashboard, salvage/return-to-stock reports",
+          "specifications": "Photo evidence storage, serial/lot traceability, analytics"
+        }
+      ],
+      "security_measures": [
+        "Role-based access",
+        "encrypted data",
+        "tamper-evident audit logs with attachments"
+      ],
+      "scalability_design": [
+        "Additional benches via template cloning",
+        "modular fixtures for new SKUs"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q1 2027",
+        "initiative": "Automated Defect Classification",
+        "description": "Train ML models on teardown images + test traces to auto-suggest root causes",
+        "expected_benefit": "20% additional reduction in MTTD and faster triage"
+      },
+      {
+        "timeline": "Q3 2027",
+        "initiative": "Closed-Loop CMMS Integration",
+        "description": "Push failure modes to maintenance for design/process feedback and preventive actions",
+        "expected_benefit": "Fewer repeats of systemic failures; higher first-time repair rate"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Process",
+        "lesson": "Clear grading drives reuse",
+        "description": "Formal A/B/C criteria tied to objective tests removed debate and sped return-to-stock",
+        "recommendation": "Publish visual rubrics and auto-link grading to test thresholds"
+      }
+    ]
+  },
+  {
+    "title": "Robotic Inspection Station for Drone Arm Dimensional Accuracy",
+    "description": "An automated quality cell where a robotic arm picks parts from a conveyor, verifies dimensional accuracy with laser scanners, and dispatches approved parts to assembly via Autonomous Mobile Robots (AMRs).",
+    "factoryName": "KACST Industry 4.0 Capability Center",
+    "city": "Riyadh",
+    "latitude": 24.7136,
+    "longitude": 46.6753,
+    "category": "Quality Control",
+    "implementationTime": "4 Months",
+    "roiPercentage": "40% ROI in first year",
+    "contactPerson": "Aadil Feroze",
+    "contactTitle": "CTO",
+    "benefits": [
+      "97.5% reduction in defective parts reaching assembly",
+      "1100% increase in inspection capacity",
+      "100% elimination of fitment-related rework"
+    ],
+    "images": [
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1563520238-8c5de19cfbda?w=800&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=400&fit=crop"
+    ],
+    "executive_summary": "The KACST Industry 4.0 Capability Center implemented a fully automated quality inspection station that serves as the critical link between manufacturing and assembly. The system's robotic arm picks a 3D-printed drone arm from an incoming conveyor belt and places it into a high-precision fixture. Laser sensors scan the component's geometry, which is compared against the source CAD file.",
+    "business_challenge": {
+      "industry_context": "For high-performance drones, the precise geometry of components is critical. Even minor warping from the 3D printing process can lead to assembly failures or stress fractures. A robust, automated, and integrated quality check is essential.",
+      "specific_problems": [
+        "Manual transfer of parts between manufacturing and QC created delays, bottlenecks, and risk of damage",
+        "Manual dimensional checks using calipers were too slow and inconsistent",
+        "No automated way to sort passed and failed parts, leading to potential mix-ups",
+        "Inability to provide customers with quantitative quality assurance reports"
+      ],
+      "business_impact": {
+        "financial_loss": "SAR 350,000 annually in scrapped materials, wasted assembly labor, and warranty claims"
+      }
+    },
+    "solution_details": {
+      "selection_criteria": [
+        "The system must measure dimensional accuracy with a tolerance of ±0.05mm",
+        "The entire inspection cycle must be under 30 seconds",
+        "Must integrate seamlessly with upstream conveyor and downstream AMR fleet",
+        "Must use non-contact measurement to avoid cosmetic damage"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IIoT Solutions (with KACST)"
+      },
+      "technology_components": [
+        {
+          "component": "6-axis collaborative robotic arm",
+          "details": "Handles all part picking and placing tasks"
+        },
+        {
+          "component": "3D laser scanner",
+          "details": "High-resolution surface geometry and concavity data capture"
+        },
+        {
+          "component": "Conveyor tracking system",
+          "details": "Optical sensors to signal part arrival"
+        },
+        {
+          "component": "AMR dispatch integration",
+          "details": "Node-RED based robot calling and confirmation"
+        },
+        {
+          "component": "Dual safety laser scanners",
+          "details": "270-degree coverage for fenceless collaborative workspace"
+        }
+      ]
+    },
+    "implementation_details": {
+      "methodology": "Phased systems engineering approach with modular development and testing, using Node-RED as central messaging bus",
+      "total_budget": "SAR 250,000",
+      "total_duration": "4 Months",
+      "phases": [
+        {
+          "phase": "Hardware Procurement & Cell Layout",
+          "duration": "4 weeks",
+          "budget": "SAR 120,000",
+          "objectives": [
+            "Procure robot and sensors",
+            "design inspection fixture",
+            "install safety systems"
+          ],
+          "keyActivities": [
+            "Vendor negotiation",
+            "mechanical design",
+            "hardware installation",
+            "safety configuration"
+          ]
+        },
+        {
+          "phase": "Robotics & Vision Programming",
+          "duration": "5 weeks",
+          "budget": "SAR 50,000",
+          "objectives": [
+            "Program robot pick-and-place sequence",
+            "develop vision system"
+          ],
+          "keyActivities": [
+            "Robot path planning",
+            "vision model training",
+            "gripper calibration"
+          ]
+        },
+        {
+          "phase": "Scanner Integration & Data Analysis",
+          "duration": "4 weeks",
+          "budget": "SAR 50,000",
+          "objectives": [
+            "Integrate laser scanner",
+            "develop CAD comparison algorithm"
+          ],
+          "keyActivities": [
+            "Driver development",
+            "3D data processing",
+            "statistical analysis"
+          ]
+        },
+        {
+          "phase": "Final Integration & Commissioning",
+          "duration": "3 weeks",
+          "budget": "SAR 30,000",
+          "objectives": [
+            "Link all systems via Node-RED",
+            "perform end-to-end testing"
+          ],
+          "keyActivities": [
+            "Workflow development",
+            "full-cycle testing",
+            "production handover"
+          ]
+        }
+      ],
+      "project_team": {
+        "internal": [
+          {
+            "role": "Robotics Lead",
+            "name": "Amro Abouzied",
+            "title": "Solutions Architect"
+          },
+          {
+            "role": "3D Vision Specialist",
+            "name": "Hamza Feroze",
+            "title": "AI Developer"
+          }
+        ],
+        "vendor": [
+          {
+            "role": "Vendor Automation Engineer",
+            "name": "Aadil Feroze",
+            "title": "CTO"
+          },
+          {
+            "role": "Vendor Calibration Engineer",
+            "name": "Abdulrahman Bajabir",
+            "title": "Junior Developer"
+          }
+        ]
+      }
+    },
+    "results": {
+      "quantitative_metrics": [
+        {
+          "metric": "Dimensional Defect Escape Rate",
+          "baseline": "8%",
+          "current": "0.2%",
+          "improvement": "97.5% reduction"
+        },
+        {
+          "metric": "Inspection Throughput",
+          "baseline": "10 parts/hour",
+          "current": "120 parts/hour",
+          "improvement": "1100% increase"
+        },
+        {
+          "metric": "Assembly Failure Rate (due to part fit)",
+          "baseline": "4%",
+          "current": "0%",
+          "improvement": "100% elimination"
+        }
+      ],
+      "qualitative_impacts": [
+        "Guaranteed 100% geometric compliance for every drone arm",
+        "Enabled creation of detailed Quality Certificates for each batch",
+        "Vastly improved ability to trace defects back to specific 3D printers"
+      ],
+      "roi_analysis": {
+        "annual_savings": "SAR 350,000",
+        "roi_percentage": "40% ROI in first year",
+        "three_year_roi": "420% ROI over three years"
+      }
+    },
+    "technical_architecture": {
+      "system_overview": "The system forms a bridge in the production line. A drone arm arrives on conveyor, triggering a sensor. A 6-axis robot picks the part and places it in a scanning fixture. The 3D laser scanner captures geometry. Node-RED workflow determines Pass/Fail and commands robot to place part in reject bin or AMR.",
+      "architecture_components": [
+        {
+          "layer_name": "Physical Automation Layer",
+          "components": "6-axis Robot, Custom Gripper, Fixture, Conveyor, Dual Safety Scanners",
+          "specifications": "270-degree safety monitoring with immediate stop capability"
+        },
+        {
+          "layer_name": "Perception Layer",
+          "components": "3D Laser Scanner, Conveyor Part-Present Sensor",
+          "specifications": "Sub-millimeter accuracy scanning"
+        },
+        {
+          "layer_name": "Edge Control Layer",
+          "components": "Raspberry Pi, Node-RED, MQTT Broker",
+          "specifications": "Orchestrates operations and communicates with line systems"
+        },
+        {
+          "layer_name": "Material Handling Layer",
+          "components": "AMR Fleet Integration",
+          "specifications": "REST API dispatch commands to fleet manager"
+        }
+      ],
+      "security_measures": [
+        "Isolated control network",
+        "encrypted MES communication",
+        "dedicated service account"
+      ],
+      "scalability_design": [
+        "Modular design with exportable Node-RED flows for rapid replication"
+      ]
+    },
+    "future_roadmap": [
+      {
+        "timeline": "Q4 2026",
+        "initiative": "Closed-Loop 3D Printer Feedback",
+        "description": "Analyze dimensional deviation trends and auto-adjust printing parameters",
+        "expected_benefit": "Move from defect detection to prevention with self-correcting process"
+      },
+      {
+        "timeline": "Q2 2027",
+        "initiative": "AI-Powered Surface Defect Analysis",
+        "description": "Incorporate AI model to detect cosmetic surface defects in addition to dimensions",
+        "expected_benefit": "Single station for 100% geometric and cosmetic inspection"
+      }
+    ],
+    "lessons_learned": [
+      {
+        "category": "Safety",
+        "lesson": "Integrate Safety Systems Early in the Design Phase",
+        "description": "Initially planned physical fencing, but operator feedback highlighted need for easier access",
+        "recommendation": "Treat safety systems as core component from day one, not as add-on"
+      },
+      {
+        "category": "Robotics",
+        "lesson": "Fixture Design is as Critical as Robot Programming",
+        "description": "Initial fixture didn't hold part rigidly enough, causing inconsistent scan results",
+        "recommendation": "Invest heavily in part-holding fixture design for measurement repeatability"
+      },
+      {
+        "category": "Process",
+        "lesson": "Define Go/No-Go Tolerances with Manufacturing and Design Engineers",
+        "description": "Software could measure to micron level, but acceptable deviation wasn't initially defined",
+        "recommendation": "Establish cross-functional team to define quality standards before coding"
+      }
+    ]
+  }
+]

@@ -4,8 +4,8 @@
     "description": "Automated quality testing station with AI-powered defect detection for enhanced product reliability",
     "factoryName": "KACST Industry 4.0 Capability Center",
     "city": "Riyadh",
-    "latitude": 24.774265,
-    "longitude": 46.738586,
+    "latitude": 24.559903,
+    "longitude": 46.869228,
     "category": "Quality Management",
     "implementationTime": "3 months",
     "roiPercentage": "220% 2-year ROI",
@@ -43,7 +43,11 @@
       ],
       "vendor_evaluation": {
         "selected_vendor": "IIoT Solutions (with KACST)",
-        "selection_reasons": ["Proven AI vision expertise", "Local support", "Successful implementations"]
+        "selection_reasons": [
+          "Proven AI vision expertise",
+          "Local support",
+          "Successful implementations"
+        ]
       },
       "technology_components": [
         {
@@ -182,8 +186,8 @@
     "description": "Smart safety equipment monitoring system ensuring worker protection and compliance",
     "factoryName": "KACST Industry 4.0 Capability Center",
     "city": "Riyadh",
-    "latitude": 24.774265,
-    "longitude": 46.738586,
+    "latitude": 24.559903,
+    "longitude": 46.869228,
     "category": "Safety & Compliance",
     "implementationTime": "2 months",
     "roiPercentage": "180% 3-year ROI",
@@ -221,7 +225,10 @@
       ],
       "vendor_evaluation": {
         "selected_vendor": "IIoT Solutions (with KACST)",
-        "selection_reasons": ["Advanced vision AI capabilities", "Proven safety implementations"]
+        "selection_reasons": [
+          "Advanced vision AI capabilities",
+          "Proven safety implementations"
+        ]
       },
       "technology_components": [
         {
@@ -360,8 +367,8 @@
     "description": "Intelligent energy management system optimizing consumption and reducing carbon footprint",
     "factoryName": "KACST Industry 4.0 Capability Center",
     "city": "Riyadh",
-    "latitude": 24.774265,
-    "longitude": 46.738586,
+    "latitude": 24.559903,
+    "longitude": 46.869228,
     "category": "Energy Efficiency",
     "implementationTime": "4 months",
     "roiPercentage": "250% 2-year ROI",
@@ -399,7 +406,10 @@
       ],
       "vendor_evaluation": {
         "selected_vendor": "IIoT Solutions (with KACST)",
-        "selection_reasons": ["End-to-end energy management expertise", "Proven ROI track record"]
+        "selection_reasons": [
+          "End-to-end energy management expertise",
+          "Proven ROI track record"
+        ]
       },
       "technology_components": [
         {

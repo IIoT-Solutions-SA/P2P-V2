@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { buildApiUrl } from '@/config/environment'
 import type { UpdateProfileData } from '@/types/auth'
+import { ProfilePictureEditor } from '@/components/ui/ProfilePictureEditor'
 
 interface EditProfilePanelProps {
   isOpen: boolean
@@ -183,6 +184,27 @@ export function EditProfilePanel({ isOpen, onClose, onSave }: EditProfilePanelPr
     }
   }
 
+  const handleProfilePictureUpload = async (file: File) => {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to upload profile picture')
+      }
+
+      await refreshProfile()
+      setSuccessMessage('Profile picture updated successfully!')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload profile picture')
+    }
+  }
 
   if (!isOpen) return null
 
@@ -243,6 +265,20 @@ export function EditProfilePanel({ isOpen, onClose, onSave }: EditProfilePanelPr
           {/* Profile Tab */}
           {activeTab === 'profile' && (
             <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Profile Picture Section */}
+            <div className="text-center py-6 border-b border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Profile Picture
+              </label>
+              <ProfilePictureEditor
+                currentImageUrl={user?.profilePictureUrl || undefined}
+                onImageUpload={handleProfilePictureUpload}
+                size="lg"
+                disabled={loading}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

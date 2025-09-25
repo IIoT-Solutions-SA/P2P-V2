@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, Send, MessageSquare, Tag, FileText, Sparkles, X, Save } from "lucide-react";
+import { Loader2, Send, MessageSquare, Tag, FileText, Sparkles, X, Save, Upload } from "lucide-react";
 import { buildApiUrl } from '@/config/environment';
+import { FileDropZone } from '@/components/ui/FileDropZone';
 
 interface Category {
   id: string;
@@ -29,6 +30,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,16 +101,56 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     setError(null);
     setIsLoading(true);
     try {
+      // First create the post without attachments
       const response = await fetch(buildApiUrl("/api/v1/forum/posts"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ title, content, category_id: categoryId })
+        body: JSON.stringify({
+          title,
+          content,
+          category_id: categoryId
+        })
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to create post.");
+      }
+
+      const postResult = await response.json()
+      const postId = postResult.id
+
+      // Then upload any attachments with the post ID
+      const attachmentUrls = []
+      if (attachments.length > 0) {
+        for (const file of attachments) {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('post_id', postId)
+
+          const uploadResponse = await fetch(buildApiUrl('/api/v1/media/forum-attachment'), {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          })
+
+          if (uploadResponse.ok) {
+            const result = await uploadResponse.json()
+            attachmentUrls.push({
+              url: result.attachment.url,
+              filename: result.attachment.filename,
+              type: result.attachment.type,
+              size: result.attachment.size
+            })
+          } else {
+            const errorData = await uploadResponse.json().catch(() => ({}))
+            throw new Error(errorData.detail || `Failed to upload attachment: ${file.name}`)
+          }
+        }
+
+        // NOTE: Attachments are already linked to the post via post_id in the media table
+        // No need to update the post document since the association is handled at the database level
       }
 
       onPostSuccess();
@@ -162,7 +204,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[700px] bg-white rounded-2xl border-0 shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] bg-white rounded-2xl border-0 shadow-2xl p-0 overflow-hidden">
         <div className="relative">
           {/* Beautiful header with gradient */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 text-white relative overflow-hidden">
@@ -190,8 +232,8 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
           </div>
 
           {/* Form content */}
-          <div className="p-8">
-            <div className="space-y-6">
+          <div className="p-8 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4">
               {/* Title field */}
               <div className="space-y-3">
                 <Label htmlFor="title" className="text-base font-semibold text-slate-800 flex items-center space-x-2">
@@ -251,6 +293,20 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
                   </div>
                   <span className="text-slate-400">{content.length}/2000</span>
                 </div>
+              </div>
+
+              {/* Media Attachments */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold text-slate-800 flex items-center space-x-2">
+                  <Upload className="h-4 w-4 text-green-600" />
+                  <span>Attachments (Optional)</span>
+                </Label>
+                <FileDropZone
+                  onFilesSelect={setAttachments}
+                  maxFiles={5}
+                  acceptedTypes={['image/*', 'video/*']}
+                  maxSize={50 * 1024 * 1024}
+                />
               </div>
 
               {/* Error message */}

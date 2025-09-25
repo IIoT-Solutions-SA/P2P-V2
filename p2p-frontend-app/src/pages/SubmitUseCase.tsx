@@ -39,7 +39,7 @@ import {
   Users
 } from "lucide-react"
 import LocationPicker from '@/components/LocationPicker'
-import ImageUpload from '@/components/ImageUpload'
+import { FileDropZone } from '@/components/ui/FileDropZone'
 
 // Enhanced form validation schema matching the detailed use case structure
 const formSchema = z.object({
@@ -439,9 +439,7 @@ export default function SubmitUseCase() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
     try {
-      // TODO: upload images and get URLs. For now, fake URLs using filenames
-      const imageUrls = uploadedImages.map(file => `https://cdn.example.com/${encodeURIComponent(file.name)}`)
-
+      // First, create the use case WITHOUT images to get the ID
       const payload = {
         // Basic Information
         title: data.title,
@@ -491,17 +489,17 @@ export default function SubmitUseCase() {
         // Contact & Media
         contactPerson: data.contactPerson || undefined,
         contactTitle: data.contactTitle || undefined,
-        images: imageUrls,
+        images: [], // Start with empty images
         // Tags
         industryTags,
         technologyTags,
       }
 
       // Use PUT for edit mode, POST for create mode
-      const url = isEditMode 
+      const url = isEditMode
         ? buildApiUrl(`/api/v1/use-cases/${editUseCaseId}`)
         : buildApiUrl('/api/v1/use-cases')
-      
+
       const method = isEditMode ? 'PUT' : 'POST'
 
       const res = await fetch(url, {
@@ -514,6 +512,45 @@ export default function SubmitUseCase() {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.detail || `${isEditMode ? 'Update' : 'Submission'} failed`)
       }
+
+      const useCaseResult = await res.json()
+      const useCaseId = useCaseResult.id || useCaseResult._id || editUseCaseId
+
+      // Now upload media files with the use case ID
+      const mediaUrls = []
+      if (uploadedImages.length > 0 && useCaseId) {
+        const uploadFormData = new FormData()
+
+        // Add all files to the form data
+        for (const file of uploadedImages) {
+          uploadFormData.append('files', file)
+        }
+
+        // Add the use case ID
+        uploadFormData.append('usecase_id', useCaseId)
+
+        const uploadResponse = await fetch(buildApiUrl('/api/v1/media/usecase-media'), {
+          method: 'POST',
+          body: uploadFormData,
+          credentials: 'include'
+        })
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json()
+          // Extract URLs from the response
+          if (uploadResult.files) {
+            for (const file of uploadResult.files) {
+              mediaUrls.push(file.url)
+            }
+          }
+          console.log(`Successfully uploaded ${uploadResult.files?.length || 0} media files`)
+        } else {
+          console.error('Failed to upload media files, but use case was created successfully')
+          const errorData = await uploadResponse.json().catch(() => ({}))
+          console.error('Upload error:', errorData.detail || 'Unknown error')
+        }
+      }
+
       setIsSubmitted(true)
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'submitting'} use case:`, error)
@@ -1888,9 +1925,11 @@ export default function SubmitUseCase() {
                       Images
                     </h2>
                     
-                    <ImageUpload 
-                      onImagesUpdate={handleImagesUpdate}
-                      maxImages={5}
+                    <FileDropZone
+                      onFilesSelect={handleImagesUpdate}
+                      maxFiles={10}
+                      acceptedTypes={['image/*', 'video/*']}
+                      maxSize={50 * 1024 * 1024}
                     />
                     {/* Show validation error for images */}
                     {form.formState.errors.images && (

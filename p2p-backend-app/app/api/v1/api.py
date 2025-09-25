@@ -6,7 +6,8 @@ from app.api.v1.endpoints import (
     dashboard,
     forum,
     usecases,
-    invites
+    invites,
+    media
 )
 
 api_router = APIRouter()
@@ -21,3 +22,4 @@ api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboar
 api_router.include_router(forum.router, prefix="/forum", tags=["Forum"])
 api_router.include_router(usecases.router, prefix="/use-cases", tags=["Use Cases"])
 api_router.include_router(invites.router, prefix="/invites", tags=["Invitations"])
+api_router.include_router(media.router, prefix="/media", tags=["Media Upload"])

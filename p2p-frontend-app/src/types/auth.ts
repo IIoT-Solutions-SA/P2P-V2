@@ -7,6 +7,7 @@ export interface User {
   title: string
   organizationId: string
   avatar?: string
+  profilePictureUrl?: string
   isActive: boolean
   lastLogin?: Date
   createdAt: Date

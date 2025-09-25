@@ -161,6 +161,7 @@ async def get_forum_posts(
                 "authorTitle": "Community Member",  # Can be enhanced later
                 "category": _normalize_category_name(post.category),
                 "content": post.content,
+                "attachments": post.attachments or [],  # Include attachments
                 "replies": reply_count,
                 "views": post.views,
                 "likes": post.upvotes,
@@ -367,6 +368,7 @@ async def get_forum_post(
             "authorTitle": "Community Member",
             "category": post.category,
             "content": post.content,
+            "attachments": post.attachments or [],  # Include attachments
             "replies": len(reply_data),
             "views": post.views,
             "likes": post.upvotes,

@@ -4,13 +4,13 @@ import { CreatePostModal } from "@/components/ui/CreatePostModal"
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  MessageSquare, 
-  Users, 
-  Clock, 
+import {
+  Search,
+  Filter,
+  Plus,
+  MessageSquare,
+  Users,
+  Clock,
   Eye,
   ThumbsUp,
   Pin,
@@ -25,11 +25,14 @@ import {
   ChevronRight,
   Edit,
   Trash2,
-  Lightbulb
+  Lightbulb,
+  Image,
+  Video
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useLocation } from 'react-router-dom'
 import { buildApiUrl } from '@/config/environment'
+import { MediaGallery } from '@/components/ui/MediaGallery'
 
 interface Category {
   id: string
@@ -58,6 +61,12 @@ interface ForumPost {
   authorTitle: string
   category: string
   content?: string
+  attachments?: Array<{
+    url: string
+    filename: string
+    type: string
+    size: number
+  }>
   replies: number
   views: number
   likes: number
@@ -548,6 +557,21 @@ export default function Forum() {
               <div className="whitespace-pre-line text-slate-700">
                 {selectedPost.content || selectedPost.excerpt}
               </div>
+
+              {/* Display attachments using MediaGallery */}
+              {selectedPost.attachments && selectedPost.attachments.length > 0 && (
+                <div className="mt-6">
+                  <MediaGallery
+                    items={selectedPost.attachments.map(att => ({
+                      url: att.url,
+                      filename: att.filename,
+                      type: att.type,
+                      size: att.size,
+                      isVideo: att.type.startsWith('video/')
+                    }))}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between pt-6 border-t border-slate-200">
               <div className="flex items-center space-x-6">
@@ -935,6 +959,28 @@ export default function Forum() {
                             {post.title}
                           </h3>
                           <p className="text-sm text-slate-600">{post.excerpt}</p>
+
+                          {/* Display attachment indicators only */}
+                          {post.attachments && post.attachments.length > 0 && (
+                            <div className="flex items-center space-x-2 mt-2">
+                              {post.attachments.some(att => att.type.startsWith('image/')) && (
+                                <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                                  <Image className="h-3 w-3" />
+                                  <span>
+                                    {post.attachments.filter(att => att.type.startsWith('image/')).length} image(s)
+                                  </span>
+                                </div>
+                              )}
+                              {post.attachments.some(att => att.type.startsWith('video/')) && (
+                                <div className="flex items-center space-x-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                                  <Video className="h-3 w-3" />
+                                  <span>
+                                    {post.attachments.filter(att => att.type.startsWith('video/')).length} video(s)
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between pt-4 border-t border-slate-200">

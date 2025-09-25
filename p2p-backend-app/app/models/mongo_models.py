@@ -18,6 +18,7 @@ class User(Document):
     title: Optional[str] = None
     role: str = "user"
     language_preference: str = "en"
+    profile_picture_url: Optional[str] = None  # S3 URL for profile picture
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     class Settings:
@@ -49,7 +50,7 @@ class ForumPost(Document):
     content: str
     category: str
     tags: List[str] = Field(default_factory=list)
-    attachments: List[Dict[str, str]] = Field(default_factory=list)
+    attachments: List[Dict] = Field(default_factory=list)  # [{"url": "...", "filename": "...", "type": "image/jpeg", "size": 123456}]
     best_answer_id: Optional[str] = None
     status: str = "open"
     view_count: int = 0
@@ -75,7 +76,7 @@ class ForumReply(Document):
     author_id: str
     content: str
     parent_reply_id: Optional[str] = None
-    attachments: List[Dict[str, str]] = Field(default_factory=list)
+    attachments: List[Dict] = Field(default_factory=list)  # [{"url": "...", "filename": "...", "type": "image/jpeg", "size": 123456}]
     upvotes: int = 0
     liked_by: List[str] = Field(default_factory=list)
     is_best_answer: bool = False
@@ -188,7 +189,8 @@ class UseCase(Document):
     # Contact & Metadata
     contact_person: Optional[str] = None
     contact_title: Optional[str] = None
-    images: List[str] = Field(default_factory=list)
+    images: List[str] = Field(default_factory=list)  # S3 URLs for images
+    videos: List[Dict[str, str]] = Field(default_factory=list)  # [{"url": "...", "thumbnail": "...", "filename": "..."}]
     
     # Rich Content Sections
     executive_summary: Optional[str] = None

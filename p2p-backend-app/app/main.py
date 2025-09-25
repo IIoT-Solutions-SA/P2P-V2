@@ -52,7 +52,7 @@ if settings.BACKEND_CORS_ORIGINS:
         CORSMiddleware,
         allow_origins=settings.BACKEND_CORS_ORIGINS,  # Use settings instead of hardcoded
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type"] + get_all_cors_headers(),
     )
 

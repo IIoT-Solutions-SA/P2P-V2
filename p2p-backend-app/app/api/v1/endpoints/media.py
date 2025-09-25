@@ -1,0 +1,484 @@
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
+from sqlalchemy.ext.asyncio import AsyncSession
+from supertokens_python.recipe.session import SessionContainer
+from supertokens_python.recipe.session.framework.fastapi import verify_session
+from datetime import datetime
+from typing import List, Optional
+import logging
+
+from app.core.database import get_db
+from app.services.s3_service import s3_service
+from app.models.pg_models import User, UserMedia
+from app.models.mongo_models import User as MongoUser, ForumPost
+from sqlalchemy import select
+from bson import ObjectId
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB for images
+MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB for videos
+
+@router.post("/profile-picture")
+async def upload_profile_picture(
+    file: UploadFile = File(...),
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Upload profile picture for the current user
+
+    Supports: JPEG, PNG, WebP
+    Max size: 5MB
+    """
+    try:
+        # Validate file
+        if file.content_type not in ['image/jpeg', 'image/png', 'image/webp']:
+            raise HTTPException(400, "Invalid file type. Only JPEG, PNG, WebP allowed.")
+
+        if file.size and file.size > MAX_FILE_SIZE:
+            raise HTTPException(400, f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB.")
+
+        # Get user from session
+        supertokens_user_id = session.get_user_id()
+        result = await db.execute(
+            select(User).where(User.supertokens_id == supertokens_user_id)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        # Read file content
+        file_content = await file.read()
+        if len(file_content) > MAX_FILE_SIZE:
+            raise HTTPException(400, f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB.")
+
+        # Delete old profile picture if exists
+        if user.profile_picture_url:
+            await s3_service.delete_file(
+                user.profile_picture_url,
+                s3_service._get_bucket_from_key("profile-pictures/")
+            )
+
+            # Delete old media record
+            old_media = await db.execute(
+                select(UserMedia).where(
+                    UserMedia.user_id == user.id,
+                    UserMedia.file_type == "profile_picture"
+                )
+            )
+            old_media_record = old_media.scalar_one_or_none()
+            if old_media_record:
+                await db.delete(old_media_record)
+
+        # Upload new profile picture
+        cdn_url = await s3_service.upload_profile_picture(
+            user_id=str(user.id),
+            file_content=file_content,
+            filename=file.filename or "profile.jpg",
+            content_type=file.content_type
+        )
+
+        # Update PostgreSQL user record
+        user.profile_picture_url = cdn_url
+        user.updated_at = datetime.utcnow()
+
+        # Create media tracking record
+        media_record = UserMedia(
+            user_id=user.id,
+            file_type="profile_picture",
+            original_filename=file.filename or "profile.jpg",
+            s3_key=s3_service._extract_s3_key_from_url(cdn_url),
+            s3_url=cdn_url,
+            file_size=len(file_content),
+            mime_type=file.content_type,
+            context_id=str(user.id)
+        )
+        db.add(media_record)
+        await db.commit()
+
+        # Update MongoDB user profile too
+        mongo_user = await MongoUser.find_one(MongoUser.email == user.email)
+        if mongo_user:
+            mongo_user.profile_picture_url = cdn_url
+            mongo_user.updated_at = datetime.utcnow()
+            await mongo_user.save()
+
+        return {
+            "success": True,
+            "message": "Profile picture uploaded successfully",
+            "profile_picture_url": cdn_url,
+            "file_size": len(file_content)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading profile picture: {e}")
+        raise HTTPException(500, "Internal server error during upload")
+
+@router.post("/forum-attachment")
+async def upload_forum_attachment(
+    file: UploadFile = File(...),
+    post_id: str = Form(...),
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Upload attachment for forum post
+
+    Supports: Images (JPEG, PNG, WebP, GIF) and Videos (MP4, WebM)
+    Max size: 5MB for images, 50MB for videos
+    """
+    try:
+        # Validate file type
+        allowed_image_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        allowed_video_types = ['video/mp4', 'video/webm']
+        allowed_types = allowed_image_types + allowed_video_types
+
+        if file.content_type not in allowed_types:
+            raise HTTPException(400, "Invalid file type. Allowed: images (JPEG, PNG, WebP, GIF) and videos (MP4, WebM)")
+
+        # Check file size based on type
+        max_size = MAX_VIDEO_SIZE if file.content_type in allowed_video_types else MAX_FILE_SIZE
+        if file.size and file.size > max_size:
+            max_mb = max_size // (1024 * 1024)
+            raise HTTPException(400, f"File too large. Maximum size is {max_mb}MB for this file type.")
+
+        # Get user from session
+        supertokens_user_id = session.get_user_id()
+        result = await db.execute(
+            select(User).where(User.supertokens_id == supertokens_user_id)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        # Read file content
+        file_content = await file.read()
+        if len(file_content) > max_size:
+            max_mb = max_size // (1024 * 1024)
+            raise HTTPException(400, f"File too large. Maximum size is {max_mb}MB for this file type.")
+
+        # Upload to S3
+        file_url, s3_key = await s3_service.upload_forum_attachment(
+            post_id=post_id,
+            user_id=str(user.id),
+            file_content=file_content,
+            filename=file.filename or "attachment",
+            content_type=file.content_type
+        )
+
+        # Create media tracking record
+        media_record = UserMedia(
+            user_id=user.id,
+            file_type="forum_attachment",
+            original_filename=file.filename or "attachment",
+            s3_key=s3_key,
+            s3_url=file_url,
+            file_size=len(file_content),
+            mime_type=file.content_type,
+            context_id=post_id
+        )
+        db.add(media_record)
+        await db.commit()
+
+        # Update MongoDB ForumPost to include the attachment
+        try:
+            forum_post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+            if forum_post:
+                attachment_data = {
+                    "url": file_url,
+                    "filename": file.filename or "attachment",
+                    "type": file.content_type,
+                    "size": len(file_content)
+                }
+
+                # Add to attachments array (initialize if empty)
+                if not forum_post.attachments:
+                    forum_post.attachments = []
+                forum_post.attachments.append(attachment_data)
+
+                # Save the updated post
+                await forum_post.save()
+                logger.info(f"Added attachment to MongoDB ForumPost {post_id}: {file.filename}")
+            else:
+                logger.warning(f"ForumPost {post_id} not found in MongoDB when trying to add attachment")
+        except Exception as e:
+            logger.error(f"Error updating MongoDB ForumPost {post_id} with attachment: {e}")
+            # Don't fail the whole request if MongoDB update fails
+
+        return {
+            "success": True,
+            "message": "Attachment uploaded successfully",
+            "attachment": {
+                "url": file_url,
+                "filename": file.filename or "attachment",
+                "type": file.content_type,
+                "size": len(file_content)
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading forum attachment: {e}")
+        raise HTTPException(500, "Internal server error during upload")
+
+@router.post("/usecase-media")
+async def upload_usecase_media(
+    files: List[UploadFile] = File(...),
+    usecase_id: str = Form(...),
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Upload multiple media files (images/videos) for use case
+
+    Supports: Images (JPEG, PNG, WebP) and Videos (MP4, WebM)
+    Max size: 5MB for images, 50MB for videos
+    Max files: 10 per request
+    """
+    try:
+        if len(files) > 10:
+            raise HTTPException(400, "Too many files. Maximum 10 files per request.")
+
+        # Get user from session
+        supertokens_user_id = session.get_user_id()
+        result = await db.execute(
+            select(User).where(User.supertokens_id == supertokens_user_id)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        uploaded_files = []
+
+        for file in files:
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']
+            if file.content_type not in allowed_types:
+                raise HTTPException(400, f"Invalid file type for {file.filename}. Allowed: images and videos")
+
+            # Check file size
+            is_video = file.content_type.startswith('video/')
+            max_size = MAX_VIDEO_SIZE if is_video else MAX_FILE_SIZE
+
+            if file.size and file.size > max_size:
+                max_mb = max_size // (1024 * 1024)
+                raise HTTPException(400, f"File {file.filename} too large. Maximum size is {max_mb}MB.")
+
+            # Read file content
+            file_content = await file.read()
+            if len(file_content) > max_size:
+                max_mb = max_size // (1024 * 1024)
+                raise HTTPException(400, f"File {file.filename} too large. Maximum size is {max_mb}MB.")
+
+            # Upload to S3
+            file_url, s3_key = await s3_service.upload_usecase_media(
+                usecase_id=usecase_id,
+                user_id=str(user.id),
+                file_content=file_content,
+                filename=file.filename or "media",
+                content_type=file.content_type
+            )
+
+            # Create media tracking record
+            media_record = UserMedia(
+                user_id=user.id,
+                file_type="usecase_media",
+                original_filename=file.filename or "media",
+                s3_key=s3_key,
+                s3_url=file_url,
+                file_size=len(file_content),
+                mime_type=file.content_type,
+                context_id=usecase_id
+            )
+            db.add(media_record)
+
+            uploaded_files.append({
+                "url": file_url,
+                "filename": file.filename or "media",
+                "type": file.content_type,
+                "size": len(file_content),
+                "is_video": is_video
+            })
+
+        await db.commit()
+
+        # Update MongoDB UseCase to include the media URLs
+        try:
+            from app.models.mongo_models import UseCase
+            from bson import ObjectId
+
+            logger.info(f"Attempting to update UseCase {usecase_id} with media")
+            use_case = await UseCase.find_one(UseCase.id == ObjectId(usecase_id))
+            if use_case:
+                logger.info(f"Found UseCase {usecase_id}. Current images: {len(use_case.images) if use_case.images else 0}")
+
+                # Add new media URLs to the images list
+                if not use_case.images:
+                    use_case.images = []
+
+                initial_image_count = len(use_case.images)
+                for file_info in uploaded_files:
+                    if not file_info["is_video"]:  # Only add images, not videos
+                        use_case.images.append(file_info["url"])
+                        logger.info(f"Added image URL to use case: {file_info['url']}")
+                    else:
+                        # For videos, add to the videos array with metadata
+                        if not use_case.videos:
+                            use_case.videos = []
+                        use_case.videos.append({
+                            "url": file_info["url"],
+                            "filename": file_info["filename"],
+                            "type": file_info["type"]
+                        })
+                        logger.info(f"Added video URL to use case: {file_info['url']}")
+
+                await use_case.save()
+                logger.info(f"Successfully saved UseCase {usecase_id}. Images: {initial_image_count} -> {len(use_case.images)}")
+            else:
+                logger.warning(f"UseCase {usecase_id} not found in MongoDB when trying to add media")
+        except Exception as e:
+            logger.error(f"Error updating MongoDB UseCase {usecase_id} with media: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Don't fail the whole request if MongoDB update fails
+
+        return {
+            "success": True,
+            "message": f"Successfully uploaded {len(uploaded_files)} files",
+            "files": uploaded_files
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading use case media: {e}")
+        raise HTTPException(500, "Internal server error during upload")
+
+@router.delete("/{media_id}")
+async def delete_media_file(
+    media_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a media file by ID
+    Only the owner can delete their media files
+    """
+    try:
+        # Get user from session
+        supertokens_user_id = session.get_user_id()
+        result = await db.execute(
+            select(User).where(User.supertokens_id == supertokens_user_id)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        # Find media record
+        media_result = await db.execute(
+            select(UserMedia).where(
+                UserMedia.id == media_id,
+                UserMedia.user_id == user.id
+            )
+        )
+        media_record = media_result.scalar_one_or_none()
+
+        if not media_record:
+            raise HTTPException(404, "Media file not found or not owned by user")
+
+        # Delete from S3
+        bucket = s3_service._get_bucket_from_key(media_record.s3_key)
+        await s3_service.delete_file(media_record.s3_url, bucket)
+
+        # Delete database record
+        await db.delete(media_record)
+
+        # If it was a profile picture, update user record
+        if media_record.file_type == "profile_picture":
+            user.profile_picture_url = None
+
+            # Update MongoDB too
+            mongo_user = await MongoUser.find_one(MongoUser.email == user.email)
+            if mongo_user:
+                mongo_user.profile_picture_url = None
+                await mongo_user.save()
+
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": "Media file deleted successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting media file: {e}")
+        raise HTTPException(500, "Internal server error during deletion")
+
+@router.get("/user/{user_id}")
+async def get_user_media(
+    user_id: str,
+    file_type: Optional[str] = None,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get media files for a user
+    Users can only access their own media files
+    """
+    try:
+        # Get user from session
+        supertokens_user_id = session.get_user_id()
+        result = await db.execute(
+            select(User).where(User.supertokens_id == supertokens_user_id)
+        )
+        current_user = result.scalar_one_or_none()
+
+        if not current_user:
+            raise HTTPException(404, "User not found")
+
+        # Check if requesting own media or if admin
+        if str(current_user.id) != user_id and current_user.role != "admin":
+            raise HTTPException(403, "Access denied")
+
+        # Build query
+        query = select(UserMedia).where(UserMedia.user_id == user_id)
+        if file_type:
+            query = query.where(UserMedia.file_type == file_type)
+
+        query = query.order_by(UserMedia.created_at.desc())
+
+        result = await db.execute(query)
+        media_files = result.scalars().all()
+
+        return {
+            "success": True,
+            "media_files": [
+                {
+                    "id": str(media.id),
+                    "file_type": media.file_type,
+                    "filename": media.original_filename,
+                    "url": media.s3_url,
+                    "size": media.file_size,
+                    "mime_type": media.mime_type,
+                    "context_id": media.context_id,
+                    "created_at": media.created_at.isoformat()
+                }
+                for media in media_files
+            ]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving user media: {e}")
+        raise HTTPException(500, "Internal server error")

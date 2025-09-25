@@ -24,6 +24,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import type { SignupData } from '@/types/auth'
+import { ProfilePictureEditor } from '@/components/ui/ProfilePictureEditor'
+import { buildApiUrl } from '@/config/environment'
 
 export default function Signup() {
   const navigate = useNavigate()
@@ -32,6 +34,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [profilePicture, setProfilePicture] = useState<File | null>(null)
   
   const [formData, setFormData] = useState<SignupData>({
     firstName: '',
@@ -82,7 +85,30 @@ export default function Signup() {
     setIsLoading(true)
 
     try {
+      // Step 1: Create account
       await signup(formData)
+
+      // Step 2: Upload profile picture if provided
+      if (profilePicture) {
+        try {
+          const formData = new FormData()
+          formData.append('file', profilePicture)
+
+          const response = await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
+            method: 'POST',
+            body: formData,
+            credentials: 'include' // Include session cookies
+          })
+
+          if (!response.ok) {
+            console.warn('Profile picture upload failed, but account was created')
+          }
+        } catch (uploadError) {
+          console.warn('Profile picture upload failed:', uploadError)
+          // Don't fail the entire signup process
+        }
+      }
+
       navigate('/dashboard')
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Signup failed')
@@ -262,6 +288,22 @@ export default function Signup() {
                         className="pl-10"
                       />
                     </div>
+                  </div>
+
+                  <div className="text-center py-6">
+                    <label className="block text-sm font-medium text-slate-700 mb-4">
+                      Profile Picture (Optional)
+                    </label>
+                    <ProfilePictureEditor
+                      onImageUpload={async (file: File) => {
+                        setProfilePicture(file)
+                      }}
+                      size="lg"
+                      disabled={isLoading}
+                    />
+                    <p className="text-xs text-slate-500 mt-2">
+                      You can add or change this later in your profile settings
+                    </p>
                   </div>
                 </div>
               )}

@@ -23,7 +23,6 @@ import {
   Wrench,
   Shield,
   Lightbulb,
-  ImageIcon,
   Loader2,
   Edit,
   Trash2,
@@ -592,33 +591,128 @@ export default function UseCaseDetail() {
                 )}
                 
                 {useCase.implementation_details.phases && useCase.implementation_details.phases.length > 0 && (
-                  <div><h3 className="text-lg font-semibold text-gray-900 mb-4">Implementation Phases</h3><div className="space-y-4">{useCase.implementation_details.phases.map((phase, index) => (<div key={index} className="border border-gray-200 rounded-lg p-4"><div className="flex items-center justify-between mb-3"><h4 className="font-semibold text-gray-900">{phase.phase}</h4><div className="flex items-center space-x-4 text-sm text-gray-600">{phase.duration && <span className="bg-blue-100 px-2 py-1 rounded">{phase.duration}</span>}{phase.budget && <span className="bg-green-100 px-2 py-1 rounded"><SaudiRiyalCurrency amount={phase.budget.replace(/[^\d,]/g, '')} /></span>}</div></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">{phase.objectives && phase.objectives.length > 0 && <div><h5 className="font-medium text-gray-800 mb-1">Objectives:</h5><ul className="space-y-1">{phase.objectives.map((obj, i) => (<li key={i} className="flex items-start space-x-1"><div className="w-1 h-1 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div><span className="text-gray-600">{obj}</span></li>))}</ul></div>}{phase.keyActivities && phase.keyActivities.length > 0 && <div><h5 className="font-medium text-gray-800 mb-1">Key Activities:</h5><ul className="space-y-1">{phase.keyActivities.map((activity, i) => (<li key={i} className="flex items-start space-x-1"><div className="w-1 h-1 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div><span className="text-gray-600">{activity}</span></li>))}</ul></div>}</div></div>))}</div></div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Implementation Phases</h3>
+                    <div className="space-y-4">
+                      {useCase.implementation_details.phases.map((phase, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-gray-900">{phase.phase}</h4>
+                            <div className="flex items-center space-x-4 text-sm text-gray-600">
+                              {phase.duration && <span className="bg-blue-100 px-2 py-1 rounded">{phase.duration}</span>}
+                              {phase.budget && <span className="bg-green-100 px-2 py-1 rounded"><SaudiRiyalCurrency amount={phase.budget.replace(/[^\d,]/g, '')} /></span>}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            {phase.objectives && phase.objectives.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-gray-800 mb-1">Objectives:</h5>
+                                <ul className="space-y-1">
+                                  {phase.objectives.map((obj, i) => (
+                                    <li key={i} className="flex items-start space-x-1">
+                                      <div className="w-1 h-1 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-600">{obj}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {phase.keyActivities && phase.keyActivities.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-gray-800 mb-1">Key Activities:</h5>
+                                <ul className="space-y-1">
+                                  {phase.keyActivities.map((activity, i) => (
+                                    <li key={i} className="flex items-start space-x-1">
+                                      <div className="w-1 h-1 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                                      <span className="text-gray-600">{activity}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
           )}
-          
+
           {/* Images Gallery */}
-          {useCase.images && useCase.images.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <ImageIcon className="h-6 w-6 mr-3 text-purple-600" />
+          {useCase && useCase.images && useCase.images.length > 0 && (
+            <div style={{
+              backgroundColor: 'white',
+              border: '1px solid #e5e7eb',
+              padding: '32px',
+              marginBottom: '32px',
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                color: '#111827'
+              }}>
+                <svg className="h-6 w-6 mr-3" style={{width: '24px', height: '24px', marginRight: '12px', color: '#9333ea'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
                 Implementation Gallery
               </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: window.innerWidth > 1024 ? 'repeat(3, 1fr)' : window.innerWidth > 768 ? 'repeat(2, 1fr)' : '1fr',
+                gap: '24px'
+              }}>
                 {useCase.images.map((image, index) => (
-                  <div key={index} className="group relative overflow-hidden rounded-xl border border-gray-200">
-                    <img 
-                      src={image} 
+                  <div key={index} style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}>
+                    <img
+                      src={image}
                       alt={`${useCase.title} - Image ${index + 1}`}
-                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                      style={{
+                        width: '100%',
+                        height: '200px',
+                        objectFit: 'cover'
+                      }}
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                          <Eye className="h-5 w-5 text-gray-600" />
-                        </div>
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(0,0,0,0)',
+                      transition: 'background-color 0.3s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0)'}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        backgroundColor: 'white',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: 0,
+                        transition: 'opacity 0.3s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
+                        <Eye className="h-5 w-5 text-gray-600" />
                       </div>
                     </div>
                   </div>

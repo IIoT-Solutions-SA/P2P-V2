@@ -311,8 +311,12 @@ export default function SubmitUseCase() {
               form.setValue('city', cityValue)
             }, 100)
           }
-          form.setValue('latitude', data.location?.lat || data.latitude || 24.7136)
-          form.setValue('longitude', data.location?.lng || data.longitude || 46.6753)
+          // Load location coordinates - check multiple possible fields
+          const lat = data.location?.lat || data.latitude || 24.7136
+          const lng = data.location?.lng || data.longitude || 46.6753
+          form.setValue('latitude', lat)
+          form.setValue('longitude', lng)
+          console.log('Location loaded for edit:', { lat, lng })
           
           // Business Challenge
           form.setValue('industryContext', data.business_challenge?.industry_context || '')
@@ -2305,20 +2309,76 @@ export default function SubmitUseCase() {
 
                     <div className="mb-6">
                       <h3 className="text-lg font-semibold text-slate-900 mb-3">Pin Your Factory Location</h3>
-                      <p className="text-slate-600 mb-4">Click on the map to set your factory's location</p>
-                      <LocationPicker 
-                        onLocationSelect={handleLocationSelect}
-                        defaultLat={form.watch('latitude')}
-                        defaultLng={form.watch('longitude')}
-                      />
+                      <p className="text-slate-600 mb-4">Click on the map or enter coordinates manually</p>
+
+                      {/* Manual coordinate inputs */}
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Latitude</label>
+                          <Input
+                            type="number"
+                            step="0.000001"
+                            value={form.watch('latitude')}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value)
+                              if (!isNaN(value) && value >= -90 && value <= 90) {
+                                form.setValue('latitude', value)
+                              }
+                            }}
+                            placeholder="e.g., 24.713552"
+                            className="w-full"
+                          />
+                          <span className="text-xs text-gray-500">Range: -90 to 90</span>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Longitude</label>
+                          <Input
+                            type="number"
+                            step="0.000001"
+                            value={form.watch('longitude')}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value)
+                              if (!isNaN(value) && value >= -180 && value <= 180) {
+                                form.setValue('longitude', value)
+                              }
+                            }}
+                            placeholder="e.g., 46.675267"
+                            className="w-full"
+                          />
+                          <span className="text-xs text-gray-500">Range: -180 to 180</span>
+                        </div>
+                      </div>
+
+                      {/* Show loading state in edit mode until coordinates are loaded */}
+                      {isEditMode && isLoadingExistingData ? (
+                        <div className="h-[400px] bg-gray-100 rounded-xl flex items-center justify-center border border-slate-200">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                            <p className="text-gray-600">Loading location data...</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <LocationPicker
+                          onLocationSelect={handleLocationSelect}
+                          defaultLat={form.watch('latitude')}
+                          defaultLng={form.watch('longitude')}
+                          key={`map-${form.watch('latitude')}-${form.watch('longitude')}`} // Force re-render when coords change
+                        />
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-sm text-slate-600">
-                      <div>
-                        <span className="font-medium">Latitude:</span> {form.watch('latitude').toFixed(6)}
-                      </div>
-                      <div>
-                        <span className="font-medium">Longitude:</span> {form.watch('longitude').toFixed(6)}
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <div className="grid grid-cols-2 gap-4 text-sm text-slate-700">
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-2 text-blue-600" />
+                          <span className="font-medium">Current Latitude:</span>
+                          <span className="ml-2 font-mono">{form.watch('latitude').toFixed(6)}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-2 text-blue-600" />
+                          <span className="font-medium">Current Longitude:</span>
+                          <span className="ml-2 font-mono">{form.watch('longitude').toFixed(6)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -156,12 +156,41 @@ class ForumService:
         if post.author_id != str(mongo_user.id):
             raise HTTPException(status_code=403, detail="User not authorized to delete this post")
 
-        # SOFT DELETE: Update status instead of permanently deleting
-        await post.update({"$set": {"status": "deleted", "updated_at": datetime.utcnow()}})
-        
+        # PERMANENT DELETE: Remove post from database
+        await post.delete()
+
+        # Clean up S3 attachments if any
+        if post.attachments:
+            import boto3
+            from app.core.config import settings
+            import logging
+
+            logger = logging.getLogger(__name__)
+            s3_client = boto3.client(
+                "s3",
+                region_name=settings.AWS_REGION,
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            )
+
+            for attachment in post.attachments:
+                try:
+                    # Extract S3 key from the URL
+                    s3_url = attachment.get("url", "")
+                    if s3_url and "amazonaws.com/" in s3_url:
+                        s3_key = s3_url.split("amazonaws.com/")[-1]
+                        s3_client.delete_object(
+                            Bucket=settings.S3_FORUM_MEDIA_BUCKET,
+                            Key=s3_key
+                        )
+                        logger.info(f"Deleted S3 attachment: {s3_key}")
+                except Exception as e:
+                    logger.error(f"Failed to delete S3 attachment {attachment}: {e}")
+                    # Continue with deletion even if S3 cleanup fails
+
         # Update user stats to reflect the deletion
         await UserActivityService.recalculate_user_stats(str(mongo_user.id))
-        
+
         return {"status": "deleted"}
 
 

@@ -125,6 +125,7 @@ async def get_use_cases(
     category: Optional[str] = Query(None, description="Filter by category"),
     search: Optional[str] = Query(None, description="Search query"),
     limit: int = Query(20, description="Number of use cases to return"),
+    skip: int = Query(0, description="Number of use cases to skip for pagination"),
     sort_by: str = Query("newest", description="Sort by: newest, most_viewed, most_liked"),
     session: SessionContainer = Depends(verify_session())
 ):
@@ -140,13 +141,31 @@ async def get_use_cases(
         sort_map = { "newest": ("_id", SortDirection.DESCENDING), "most_viewed": ("view_count", SortDirection.DESCENDING), "most_liked": ("like_count", SortDirection.DESCENDING) }
         sort_field, sort_direction = sort_map.get(sort_by, ("_id", SortDirection.DESCENDING))
 
-        use_cases = await UseCase.find(query).sort((sort_field, sort_direction)).limit(limit).to_list()
+        # Get total count for pagination
+        total_count = await UseCase.find(query).count()
+
+        # Get paginated results
+        use_cases = await UseCase.find(query).sort((sort_field, sort_direction)).skip(skip).limit(limit).to_list()
         
-        user_ids = {ObjectId(case.submitted_by) for case in use_cases if case.submitted_by}
+        # Handle both old MongoDB ObjectIds and new SuperTokens IDs
         user_map = {}
-        if user_ids:
-            users_list = await MongoUser.find(In(MongoUser.id, list(user_ids))).to_list()
-            user_map = {str(user.id): user for user in users_list}
+        for case in use_cases:
+            if case.submitted_by and case.submitted_by not in user_map:
+                try:
+                    # First try as MongoDB ObjectId (for existing use cases)
+                    if ObjectId.is_valid(case.submitted_by):
+                        mongo_user = await MongoUser.find_one(MongoUser.id == ObjectId(case.submitted_by))
+                        if mongo_user:
+                            user_map[case.submitted_by] = mongo_user
+                    else:
+                        # Try as SuperTokens ID (for new use cases)
+                        pg_user = await UserService.get_user_by_supertokens_id(db, case.submitted_by)
+                        if pg_user:
+                            mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+                            if mongo_user:
+                                user_map[case.submitted_by] = mongo_user
+                except Exception:
+                    pass  # Will use fallback values in response
 
         response_data = []
         for case in use_cases:
@@ -209,7 +228,14 @@ async def get_use_cases(
                 "image": image_url,
                 "benefits_list": benefits_list,
             })
-        return response_data
+        # Return with pagination metadata
+        return {
+            "items": response_data,
+            "total": total_count,
+            "limit": limit,
+            "skip": skip,
+            "has_more": skip + limit < total_count
+        }
 
     except Exception as e:
         logger.error(f"Error getting use cases: {e}")

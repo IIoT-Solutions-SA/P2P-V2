@@ -245,6 +245,21 @@
         "description": "Operator feedback led to simplified interface with larger status indicators and manual override",
         "recommendation": "Treat end-users as key stakeholders throughout entire development process"
       }
+    ],
+    "subtitle": "AI/ML Solution: AI-Powered Drone Arm Color Verification Station",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Variable Lighting Conditions",
+        "description": "Changes in ambient factory lighting throughout the day and between shifts affected the camera's perception of colors, leading to inconsistent model performance.",
+        "solution": "We implemented data augmentation techniques during training, including random brightness, contrast, and saturation adjustments. We also installed a small, dedicated LED light source at the QC station to ensure consistent illumination.",
+        "outcome": "The model is now robust and performs reliably regardless of external lighting conditions, achieving consistent accuracy."
+      },
+      {
+        "challenge": "AMR API Instability",
+        "description": "The AMR's REST API endpoint would occasionally become unresponsive, causing the QC station to hang while waiting for a status update.",
+        "solution": "We implemented robust error handling with timeouts in our API polling script. If the API fails to respond after a set number of retries, the system logs an error and alerts an operator via the dashboard.",
+        "outcome": "The system is now resilient to network hiccups and can gracefully handle temporary AMR connectivity issues without crashing."
+      }
     ]
   },
   {
@@ -464,6 +479,21 @@
         "lesson": "Standardize Your API Calls Early",
         "description": "Created standardized library of commands in Node-RED that all systems use",
         "recommendation": "Treat internal factory communication as formal API with clear, consistent commands"
+      }
+    ],
+    "subtitle": "Automation Solution: ROS2-Based Autonomous Mobile Robot (AMR) Fleet for Factory Logistics",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Wi-Fi Coverage Blackouts",
+        "description": "During initial testing, the AMRs would occasionally stop in certain areas of the factory due to weak Wi-Fi signals, causing them to lose connection with the central Node-RED dispatcher.",
+        "solution": "A Wi-Fi site survey was conducted, and three industrial-grade wireless access points were added to eliminate the dead zones. The AMR's software was also updated to have a more robust reconnection protocol.",
+        "outcome": "The AMRs now have 100% reliable network connectivity throughout the entire operational area."
+      },
+      {
+        "challenge": "Standardizing the 'Docking' Handshake",
+        "description": "Defining the precise location and signal for the AMR to successfully receive a part from the robotic QC station required very tight integration.",
+        "solution": "The team used a physical docking guide on the floor for alignment and an MQTT-based digital handshake. The QC station's Node-RED instance publishes a 'Ready_to_Load' message. The AMR moves into position, and upon successful docking, its onboard system publishes a 'Ready_to_Receive' message, which then triggers the QC robot.",
+        "outcome": "A highly reliable and repeatable automated transfer process between the fixed robotic cell and the mobile robot."
       }
     ]
   },
@@ -694,6 +724,21 @@
         "description": "Precise master images and tight weight tolerances were critical to prevent false accepts",
         "recommendation": "Maintain golden-sample images per SKU/revision and review weight windows when BOMs change"
       }
+    ],
+    "subtitle": "AI/ML Solution: Vision-Assisted Packing Workstation",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Lighting Variability Affecting Vision Accuracy",
+        "description": "Changing ambient light caused false fails/passes on reflective parts.",
+        "solution": "Installed controlled diffused lighting and glare shields; retrained model with augmented images.",
+        "outcome": ">98% vision detection accuracy across SKUs."
+      },
+      {
+        "challenge": "Operator Flow Disruption",
+        "description": "Early UI required extra clicks and slowed packing.",
+        "solution": "Introduced hands-free triggers (foot pedal/auto-scan), simplified screens, and pick-to-light sequences.",
+        "outcome": "Pack time cut by 23% with 100% operator adoption in 4 weeks."
+      }
     ]
   },
   {
@@ -915,6 +960,21 @@
         "lesson": "Collaborative Safety Requires a Risk Assessment",
         "description": "While Cobots are inherently safer, they are not inherently safe. A formal risk assessment was still required to validate speeds, payload, and potential pinch points to ensure it was truly safe for operators to work alongside.",
         "recommendation": "Always perform a thorough risk assessment when deploying any robot, even a collaborative one. Safety is a system property, not just a product feature."
+      }
+    ],
+    "subtitle": "Manufacturing Innovation: Cobot Palletizing Station for Packaged Drones",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Suction Reliability on Cardboard",
+        "description": "Cardboard dust and minor surface imperfections on the boxes occasionally caused the suction cups to fail to achieve a secure vacuum seal, leading to dropped boxes.",
+        "solution": "We switched to multi-bellows suction cups, which are more compliant to surface variations. We also programmed the robot to perform a 'vacuum check' immediately after picking; if the vacuum sensor reports a weak seal, the robot places the box back and retries the pick.",
+        "outcome": "The pick-and-place success rate is now greater than 99.9%, with the robot able to self-correct on the rare occasion of a failed grip."
+      },
+      {
+        "challenge": "Precise Box Positioning for Pickup",
+        "description": "The robot requires the box to be in a consistent position every time, but boxes sometimes shifted slightly after being taped.",
+        "solution": "Simple physical guides were added to the pickup surface to create a V-shaped 'nest'. This ensures that every box settles into the exact same final position and orientation, ready for the robot to pick.",
+        "outcome": "The need for a more complex and expensive vision-guidance system was eliminated, providing a simple and robust solution."
       }
     ]
   }

@@ -67,7 +67,7 @@ class S3Service:
                 Body=file_content,
                 ContentType=content_type,
                 CacheControl="max-age=31536000",  # 1 year cache
-                ACL='private',  # Private by default
+                # ACL removed - bucket access controlled via bucket policy
                 Metadata={
                     'user_id': user_id,
                     'original_filename': filename,
@@ -117,7 +117,7 @@ class S3Service:
                 Body=file_content,
                 ContentType=content_type,
                 CacheControl="max-age=86400",  # 1 day cache
-                ACL='private',
+                # ACL removed - bucket has public access configured via bucket policy
                 Metadata={
                     'post_id': post_id,
                     'user_id': user_id,
@@ -168,7 +168,7 @@ class S3Service:
                 Body=file_content,
                 ContentType=content_type,
                 CacheControl="max-age=31536000",  # 1 year cache
-                ACL='private',
+                # ACL removed - bucket has public access configured via bucket policy
                 Metadata={
                     'usecase_id': usecase_id,
                     'user_id': user_id,
@@ -270,6 +270,34 @@ class S3Service:
 
         except ClientError:
             return None
+
+    def generate_presigned_url(self, s3_url: str, expiration: int = 3600) -> str:
+        """
+        Generate a presigned URL for a private S3 object
+
+        Args:
+            s3_url: The S3 URL of the object
+            expiration: URL expiration time in seconds (default 1 hour)
+
+        Returns:
+            str: Presigned URL or original URL if generation fails
+        """
+        if not self.s3_client:
+            return s3_url
+
+        try:
+            s3_key = self._extract_s3_key_from_url(s3_url)
+            bucket = self._get_bucket_from_key(s3_key)
+
+            presigned_url = self.s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket, 'Key': s3_key},
+                ExpiresIn=expiration
+            )
+            return presigned_url
+        except Exception as e:
+            logger.error(f"Failed to generate presigned URL: {e}")
+            return s3_url
 
 # Global instance
 s3_service = S3Service()

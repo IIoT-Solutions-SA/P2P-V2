@@ -18,7 +18,7 @@ class ChallengeSolution(BaseModel):
 
 class TechnicalArchitecture(BaseModel):
     system_overview: Optional[str] = None
-    components: Optional[List[dict]] = None  # {layer, components: List[str], specifications}
+    architecture_components: Optional[List[dict]] = None  # {layer, components: List[str], specifications}
     security_measures: Optional[List[str]] = None
     scalability_design: Optional[List[str]] = None
 

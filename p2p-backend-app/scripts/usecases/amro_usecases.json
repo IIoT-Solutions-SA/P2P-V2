@@ -220,6 +220,21 @@
         "description": "Photo/diagram-heavy steps outperformed text-only instructions in speed and accuracy",
         "recommendation": "Prioritize visual content and short captions"
       }
+    ],
+    "subtitle": "Manufacturing Innovation: Assembly Workstation",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Instruction Version Control",
+        "description": "Operators sometimes followed outdated paper SOPs during early transition.",
+        "solution": "Enforced 'single source of truth' with digital release workflow and QR access per station.",
+        "outcome": "100% adherence to latest instructions; paper eliminated."
+      },
+      {
+        "challenge": "Tool Communication Reliability",
+        "description": "Intermittent connectivity between smart torque tools and the workstation.",
+        "solution": "Hardened industrial Wi-Fi, local edge cache, and automatic retry logic.",
+        "outcome": "99.8% tool data capture rate; all critical fasteners tracked."
+      }
     ]
   },
   {
@@ -446,6 +461,21 @@
         "lesson": "Clear grading drives reuse",
         "description": "Formal A/B/C criteria tied to objective tests removed debate and sped return-to-stock",
         "recommendation": "Publish visual rubrics and auto-link grading to test thresholds"
+      }
+    ],
+    "subtitle": "Manufacturing Innovation: Demanufacturing Workstation",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Damage During Teardown",
+        "description": "Early teardowns occasionally damaged connectors and flex cables.",
+        "solution": "Added tool-specific steps, torque/sequence guidance, and connector fixtures.",
+        "outcome": "Secondary damage incidents reduced by 85%."
+      },
+      {
+        "challenge": "Inconsistent Grading Criteria",
+        "description": "Different shifts graded parts differently.",
+        "solution": "Standardized A/B/C rubric with photos, auto-linked to test results.",
+        "outcome": "98% grading consistency across operators."
       }
     ]
   },
@@ -705,6 +735,21 @@
         "lesson": "Define Go/No-Go Tolerances with Manufacturing and Design Engineers",
         "description": "Software could measure to micron level, but acceptable deviation wasn't initially defined",
         "recommendation": "Establish cross-functional team to define quality standards before coding"
+      }
+    ],
+    "subtitle": "Automation Solution: Robotic Inspection Station for Drone Arm Dimensional Accuracy",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Model Accuracy Requirements",
+        "description": "Achieving the required detection accuracy while maintaining real-time processing speeds for production line integration",
+        "solution": "Implemented extensive model training with augmented datasets and optimized inference pipeline using edge computing",
+        "outcome": "Achieved 99%+ accuracy with sub-second processing time, meeting all production requirements"
+      },
+      {
+        "challenge": "Variable Environmental Conditions",
+        "description": "Factory lighting variations and environmental factors affected vision system performance throughout different shifts",
+        "solution": "Installed dedicated lighting systems and implemented adaptive algorithms that adjust to environmental changes",
+        "outcome": "Consistent performance across all operating conditions with minimal false positives"
       }
     ]
   }

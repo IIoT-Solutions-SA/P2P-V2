@@ -179,7 +179,22 @@
         "Cloud-based model training",
         "Horizontal scaling capability"
       ]
-    }
+    },
+    "subtitle": "AI/ML Solution: AI-Powered Quality Assurance Revolution",
+    "challenges_and_solutions": [
+      {
+        "challenge": "False Positive Rate",
+        "description": "Initial vision system flagged 30% good products as defective, causing unnecessary rework.",
+        "solution": "Implemented ensemble learning with multiple AI models voting on defects, plus continuous learning from operator feedback.",
+        "outcome": "Reduced false positive rate to 2%, saving 120 hours monthly in unnecessary inspections."
+      },
+      {
+        "challenge": "Multi-Surface Inspection",
+        "description": "Single camera couldn't detect defects on all surfaces of complex 3D parts.",
+        "solution": "Designed multi-angle camera array with synchronized capture and 3D reconstruction for complete surface coverage.",
+        "outcome": "100% surface inspection coverage, detecting previously missed underside defects."
+      }
+    ]
   },
   {
     "title": "Intelligent Safety Monitoring & Compliance System",
@@ -360,7 +375,22 @@
         "Cloud-based analytics",
         "API-based integrations"
       ]
-    }
+    },
+    "subtitle": "Manufacturing Innovation: Intelligent Safety Monitoring & Compliance System",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Privacy Concerns",
+        "description": "Workers worried about constant video surveillance affecting their privacy and job security.",
+        "solution": "Implemented edge AI processing with no video storage - only safety events recorded, with transparent policies and worker council involvement.",
+        "outcome": "95% worker acceptance rate with union endorsement of the system."
+      },
+      {
+        "challenge": "Environmental False Alarms",
+        "description": "System triggered false safety alerts from shadows, reflections, and normal work movements.",
+        "solution": "Trained models on 6 months of annotated footage specific to our facility, including various lighting conditions and typical work patterns.",
+        "outcome": "Reduced false alarms by 94%, maintaining high sensitivity for real safety violations."
+      }
+    ]
   },
   {
     "title": "Comprehensive Energy Optimization Platform",
@@ -586,6 +616,21 @@
         "initiative": "Carbon Trading Platform",
         "timeline": "Q1 2026",
         "expected_impact": "New revenue stream from carbon credits"
+      }
+    ],
+    "subtitle": "Manufacturing Innovation: Comprehensive Energy Optimization Platform",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Change Management",
+        "description": "Getting buy-in from operators and management for new technology implementation",
+        "solution": "Conducted comprehensive training programs and demonstrated quick wins through pilot implementation",
+        "outcome": "Full adoption achieved with positive feedback from all stakeholders"
+      },
+      {
+        "challenge": "ROI Justification",
+        "description": "Demonstrating clear return on investment to secure project funding and support",
+        "solution": "Developed detailed business case with phased implementation showing incremental benefits",
+        "outcome": "Achieved projected ROI within first year, exceeding initial estimates by 20%"
       }
     ]
   }

@@ -226,6 +226,21 @@
         "description": "Digital twin simulation identified and fixed reachability issues virtually",
         "recommendation": "Always invest in upfront simulation for complex robotics cells"
       }
+    ],
+    "subtitle": "Automation Solution: Robotic 3D Printer Farm for Drone Arm Production",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Universal Gripper Design",
+        "description": "Designing a single robotic gripper that could reliably pick finished parts from different models of 3D printers and place them accurately on the conveyor without causing damage.",
+        "solution": "A custom, 3D-printed soft-jaw gripper with integrated pressure sensors was developed. The soft jaws prevent cosmetic damage, while the sensors confirm a successful grip before the robot moves.",
+        "outcome": "A single, universal gripper now services the entire farm, providing reliable, damage-free part handling."
+      },
+      {
+        "challenge": "Printer Status Integration",
+        "description": "Getting reliable 'print complete' signals from a mix of different 3D printer brands and models was challenging.",
+        "solution": "Instead of relying on native APIs, each printer was connected to a smart plug monitored by the Raspberry Pi. The Node-RED workflow monitors the power consumption of each printer; a significant drop in power indicates a finished print, triggering the robot.",
+        "outcome": "A universal and reliable method for detecting print completion across a heterogeneous fleet of printers."
+      }
     ]
   },
   {
@@ -458,6 +473,21 @@
         "description": "The model is only as good as the collective knowledge it contains",
         "recommendation": "Schedule mandatory weekly reviews with cross-functional team"
       }
+    ],
+    "subtitle": "Digital Transformation: Digital Simulation for Drone Production Line Optimization",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Inaccurate Initial Data",
+        "description": "Gathering accurate cycle time and failure rate data from all equipment vendors proved difficult, as initial estimates were often overly optimistic.",
+        "solution": "We conducted workshops with each vendor to establish realistic performance ranges and used industry benchmark data as a starting point. The model was designed to easily update these parameters as real-world data became available.",
+        "outcome": "The final model had a high degree of fidelity, predicting actual throughput within 5% of the real-world results."
+      },
+      {
+        "challenge": "Scope Creep",
+        "description": "Stakeholders continuously requested adding more detail and secondary processes to the model, which threatened the project timeline.",
+        "solution": "A strict gating process was established by the Project Lead. All change requests had to be submitted with a clear business justification and were evaluated based on their impact on the project's primary objectives.",
+        "outcome": "The project remained focused on the most critical path, allowing it to be completed on time and within budget."
+      }
     ]
   },
   {
@@ -672,6 +702,21 @@
         "lesson": "Calibration is key for accuracy",
         "description": "Early phases revealed that sensor drift could cause significant errors if not addressed",
         "recommendation": "Always include auto-calibration features and monitoring in IoT sensor-based systems"
+      }
+    ],
+    "subtitle": "Manufacturing Innovation: Smart Locker for Raw Material Tracking",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Change Management",
+        "description": "Getting buy-in from operators and management for new technology implementation",
+        "solution": "Conducted comprehensive training programs and demonstrated quick wins through pilot implementation",
+        "outcome": "Full adoption achieved with positive feedback from all stakeholders"
+      },
+      {
+        "challenge": "ROI Justification",
+        "description": "Demonstrating clear return on investment to secure project funding and support",
+        "solution": "Developed detailed business case with phased implementation showing incremental benefits",
+        "outcome": "Achieved projected ROI within first year, exceeding initial estimates by 20%"
       }
     ]
   }

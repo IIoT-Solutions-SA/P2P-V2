@@ -129,6 +129,8 @@ async def seed_firas_usecases():
                     db_case["contact_person"] = case_json.get("contactPerson")
                 if case_json.get("contactTitle"):
                     db_case["contact_title"] = case_json.get("contactTitle")
+                if case_json.get("challenges_and_solutions"):
+                    db_case["challenges_and_solutions"] = case_json.get("challenges_and_solutions")
 
                 # Create the use case
                 await UseCaseService.create_use_case(db_case)

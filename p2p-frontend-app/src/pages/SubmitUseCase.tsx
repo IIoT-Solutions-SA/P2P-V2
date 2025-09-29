@@ -27,7 +27,7 @@ import {
   Factory, 
   MapPin, 
   Upload, 
-  CheckCircle, 
+  CheckCircle,
   Plus,
   X,
   Save,
@@ -36,7 +36,9 @@ import {
   Wrench,
   Shield,
   BarChart3,
-  Users
+  Users,
+  Lightbulb,
+  Calendar
 } from "lucide-react"
 import LocationPicker from '@/components/LocationPicker'
 import { FileDropZone } from '@/components/ui/FileDropZone'
@@ -87,7 +89,7 @@ const formSchema = z.object({
     .min(2, "Vendor name is required"),
   technologyComponents: z.array(z.string().min(20, "Component description must be at least 20 characters"))
     .min(1, "Please add at least 1 technology component")
-    .max(4, "Maximum 4 components allowed"),
+    .max(15, "Maximum 15 components allowed"),
     
   // Implementation
   implementationTime: z.string()
@@ -100,8 +102,8 @@ const formSchema = z.object({
   // Results
   quantitativeResults: z.array(z.object({
     metric: z.string().min(5, "Metric name required"),
-    baseline: z.string().min(2, "Baseline value required"),
-    current: z.string().min(2, "Current value required"),
+    baseline: z.string().min(1, "Baseline value required"),
+    current: z.string().min(1, "Current value required"),
     improvement: z.string().min(2, "Improvement value required")
   })).min(2, "Please add at least 2 quantitative results").max(4, "Maximum 4 results allowed"),
   
@@ -120,8 +122,8 @@ const formSchema = z.object({
   contactPerson: z.string().optional(),
   contactTitle: z.string().optional(),
   images: z.array(z.instanceof(File))
-    .min(1, "Please upload at least 1 image")
     .max(5, "Maximum 5 images allowed")
+    .optional()
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -146,6 +148,7 @@ export default function SubmitUseCase() {
 
   const [currentStep, setCurrentStep] = useState(1)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
+  const [existingImages, setExistingImages] = useState<string[]>([])  // Store existing image URLs
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoadingExistingData, setIsLoadingExistingData] = useState(false)
@@ -181,6 +184,23 @@ export default function SubmitUseCase() {
   ])
   const [securityMeasures, setSecurityMeasures] = useState<string[]>([""])
   const [scalabilityDesign, setScalabilityDesign] = useState<string[]>([""])
+
+  // Lessons Learned (optional) - Start with one empty item
+  const [lessonsLearned, setLessonsLearned] = useState<Array<{
+    category: string
+    lesson: string
+    description: string
+    recommendation: string
+  }>>([{ category: "", lesson: "", description: "", recommendation: "" }])
+
+  // Future Roadmap (optional) - Start with one empty item
+  const [futureRoadmap, setFutureRoadmap] = useState<Array<{
+    timeline: string
+    initiative: string
+    description: string
+    expected_benefit: string
+  }>>([{ timeline: "", initiative: "", description: "", expected_benefit: "" }])
+
   // ROI extras (optional)
   const [roiTotalInvestment, setRoiTotalInvestment] = useState<string>("")
   const [roiThreeYearRoi, setRoiThreeYearRoi] = useState<string>("")
@@ -189,7 +209,7 @@ export default function SubmitUseCase() {
     baseline: string
     current: string
     improvement: string
-  }>>([
+  }>>(isEditMode ? [] : [
     { metric: "", baseline: "", current: "", improvement: "" },
     { metric: "", baseline: "", current: "", improvement: "" }
   ])
@@ -233,7 +253,7 @@ export default function SubmitUseCase() {
       methodology: "",
       
       // Results
-      quantitativeResults: [
+      quantitativeResults: isEditMode ? [] : [
         { metric: "", baseline: "", current: "", improvement: "" },
         { metric: "", baseline: "", current: "", improvement: "" }
       ],
@@ -265,16 +285,34 @@ export default function SubmitUseCase() {
             throw new Error('Failed to fetch use case data')
           }
           const data = await response.json()
-          
+
+          console.log('Edit Mode - Loaded use case data:', data)
+
           // Pre-populate form fields with existing data
           form.setValue('title', data.title || '')
           form.setValue('subtitle', data.subtitle || '')
-          form.setValue('description', data.executive_summary || '')
+          form.setValue('description', data.executive_summary || data.description || '')
           form.setValue('category', data.category || '')
-          form.setValue('factoryName', data.factory_name || '')
-          form.setValue('city', data.location?.city || '')
-          form.setValue('latitude', data.location?.lat || 24.7136)
-          form.setValue('longitude', data.location?.lng || 46.6753)
+          form.setValue('factoryName', data.factory_name || data.factoryName || '')
+          // Set city - backend stores city as "region"
+          const cityValue = data.region || data.city || data.location?.city || ''
+          console.log('City Debug:', {
+            'data.region': data.region,
+            'data.city': data.city,
+            'data.location': data.location,
+            'cityValue set to': cityValue
+          })
+          form.setValue('city', cityValue)
+
+          // Force the Select to update by setting it after a small delay
+          if (cityValue) {
+            setTimeout(() => {
+              console.log('Setting city again after delay to:', cityValue)
+              form.setValue('city', cityValue)
+            }, 100)
+          }
+          form.setValue('latitude', data.location?.lat || data.latitude || 24.7136)
+          form.setValue('longitude', data.location?.lng || data.longitude || 46.6753)
           
           // Business Challenge
           form.setValue('industryContext', data.business_challenge?.industry_context || '')
@@ -308,29 +346,141 @@ export default function SubmitUseCase() {
           form.setValue('totalBudget', data.implementation_details?.total_budget || '')
           form.setValue('methodology', data.implementation_details?.methodology || '')
           
-          // Results
+          // Results - Load quantitative metrics/results
           if (data.results?.quantitative_results?.length > 0) {
             const results = data.results.quantitative_results
-            setQuantitativeResults(results.length < 2 ? [...results, { metric: "", baseline: "", current: "", improvement: "" }] : results)
-            form.setValue('quantitativeResults', results.length < 2 ? [...results, { metric: "", baseline: "", current: "", improvement: "" }] : results)
+            setQuantitativeResults(results)
+            form.setValue('quantitativeResults', results)
+          } else if (data.results?.quantitative_metrics?.length > 0) {
+            const metrics = data.results.quantitative_metrics
+            setQuantitativeResults(metrics)
+            form.setValue('quantitativeResults', metrics)
           }
           
           form.setValue('roiPercentage', data.roi_percentage || '')
-          form.setValue('annualSavings', data.results?.annual_savings || '')
+          // Check multiple possible locations for annual savings
+          form.setValue('annualSavings', data.results?.annual_savings || data.annualSavings || data.results?.roi_analysis?.annual_savings || '')
           
           // Challenges & Solutions
           if (data.results?.challenges_solutions?.length > 0) {
             const challenges = data.results.challenges_solutions
             setChallengesSolutions(challenges)
             form.setValue('challengesSolutions', challenges)
+          } else if (data.challenges_and_solutions?.length > 0) {
+            // Alternative field name
+            setChallengesSolutions(data.challenges_and_solutions)
+            form.setValue('challengesSolutions', data.challenges_and_solutions)
+          } else {
+            // If no challenges exist, set to empty array (not the default with one empty item)
+            setChallengesSolutions([{ challenge: "", description: "", solution: "", outcome: "" }])
+            form.setValue('challengesSolutions', [{ challenge: "", description: "", solution: "", outcome: "" }])
           }
-          
+
           // Contact
           form.setValue('contactPerson', data.contact_person || '')
           form.setValue('contactTitle', data.contact_title || '')
-          
-          // Note: Images would need special handling for edit mode since they're already uploaded
-          // For now, we'll show them but won't pre-populate the file upload
+
+          // Load ALL optional fields that might exist
+          // Vendor evaluation details
+          if (data.solution_details?.vendor_evaluation) {
+            const vendorEval = data.solution_details.vendor_evaluation
+            if (vendorEval.process) setVendorProcess(vendorEval.process)
+            if (vendorEval.selection_reasons) setVendorSelectionReasons(vendorEval.selection_reasons)
+          }
+
+          // Implementation phases
+          if (data.implementation_details?.phases?.length > 0) {
+            setPhases(data.implementation_details.phases)
+          }
+
+          // Project team
+          if (data.implementation_details?.project_team) {
+            const team = data.implementation_details.project_team
+            if (team.internal) setProjectTeamInternal(team.internal)
+            if (team.vendor) setProjectTeamVendor(team.vendor)
+          }
+
+          // Qualitative impacts
+          if (data.results?.qualitative_impacts?.length > 0) {
+            setQualitativeImpacts(data.results.qualitative_impacts)
+          }
+
+          // ROI details (check multiple possible field locations)
+          if (data.results?.roi_details || data.results?.roi_analysis) {
+            const roi = data.results.roi_details || data.results.roi_analysis
+            if (roi.total_investment) setRoiTotalInvestment(roi.total_investment)
+            if (roi.three_year_roi) setRoiThreeYearRoi(roi.three_year_roi)
+          }
+          // Also check if ROI fields are at the root level
+          if (data.roiTotalInvestment) setRoiTotalInvestment(data.roiTotalInvestment)
+          if (data.roiThreeYearRoi) setRoiThreeYearRoi(data.roiThreeYearRoi)
+
+          // Tags
+          if (data.industry_tags?.length > 0) {
+            setIndustryTags(data.industry_tags)
+          }
+          if (data.technology_tags?.length > 0) {
+            setTechnologyTags(data.technology_tags)
+          }
+
+          // Images - store existing images separately
+          if (data.images?.length > 0) {
+            console.log('Existing images found:', data.images)
+            console.log('Image URLs:', JSON.stringify(data.images, null, 2))
+            // Validate and clean up image URLs
+            const validImages = data.images.filter((img: any) => {
+              if (typeof img === 'string' && img.length > 0) {
+                console.log('Valid image URL:', img)
+                return true
+              }
+              console.warn('Invalid image:', img)
+              return false
+            })
+            setExistingImages(validImages)  // Store existing image URLs
+          }
+
+          // Technical Architecture (if it exists)
+          if (data.technical_architecture) {
+            console.log('Technical architecture found:', data.technical_architecture)
+            const techArch = data.technical_architecture
+
+            if (techArch.system_overview) {
+              setSystemOverview(techArch.system_overview)
+            }
+
+            if (techArch.architecture_components?.length > 0) {
+              // Ensure components is always an array
+              const formattedComponents = techArch.architecture_components.map((comp: any) => ({
+                layer: comp.layer || "",
+                components: Array.isArray(comp.components) ? comp.components :
+                            (typeof comp.components === 'string' ? [comp.components] : []),
+                specifications: comp.specifications || ""
+              }))
+              setArchitectureComponents(formattedComponents)
+            }
+
+            if (techArch.security_measures?.length > 0) {
+              setSecurityMeasures(techArch.security_measures)
+            }
+
+            if (techArch.scalability_design?.length > 0) {
+              setScalabilityDesign(techArch.scalability_design)
+            }
+          }
+
+          // Lessons Learned (if exists, otherwise keep default)
+          if (data.lessons_learned?.length > 0) {
+            setLessonsLearned(data.lessons_learned)
+          }
+
+          // Future Roadmap (if exists, otherwise keep default)
+          if (data.future_roadmap?.length > 0) {
+            setFutureRoadmap(data.future_roadmap)
+          }
+
+          // NOTE: Removed duplicate check for quantitative_metrics - already handled above
+
+          console.log('All form data loaded successfully for edit mode')
           
         } catch (error) {
           console.error('Error fetching existing use case:', error)
@@ -341,7 +491,15 @@ export default function SubmitUseCase() {
       
       fetchExistingUseCase()
     }
-  }, [isEditMode, editUseCaseId, form])
+  }, [isEditMode, editUseCaseId])
+
+  // Predefined cities for dropdown
+  const SAUDI_CITIES = [
+    "Riyadh", "Jeddah", "Makkah", "Madinah", "Dammam", "Khobar",
+    "Dhahran", "Jubail", "Yanbu", "Tabuk", "Taif", "Buraydah",
+    "Khamis Mushait", "Abha", "Najran", "Jizan", "Hail", "Al-Kharj",
+    "Hofuf", "Qatif", "Unaizah", "Arar", "Sakaka", "Al-Bahah"
+  ].sort()
 
   const steps = [
     { number: 1, title: "Basic Information", icon: Factory },
@@ -404,7 +562,7 @@ export default function SubmitUseCase() {
   }
 
   const addTechnologyComponent = () => {
-    if (technologyComponents.length < 4) {
+    if (technologyComponents.length < 15) {
       const updated = [...technologyComponents, ""]
       setTechnologyComponents(updated)
       form.setValue('technologyComponents', updated)
@@ -489,10 +647,27 @@ export default function SubmitUseCase() {
         // Contact & Media
         contactPerson: data.contactPerson || undefined,
         contactTitle: data.contactTitle || undefined,
-        images: [], // Start with empty images
+        images: isEditMode ? existingImages : [], // In edit mode, keep existing images by default
         // Tags
         industryTags,
         technologyTags,
+        // Technical Architecture (optional)
+        ...(systemOverview || architectureComponents.some(c => c.layer) || securityMeasures.some(s => s) || scalabilityDesign.some(s => s) ? {
+          technical_architecture: {
+            system_overview: systemOverview || undefined,
+            architecture_components: architectureComponents.filter(c => c.layer).length > 0 ? architectureComponents.filter(c => c.layer) : undefined,
+            security_measures: securityMeasures.filter(s => s).length > 0 ? securityMeasures.filter(s => s) : undefined,
+            scalability_design: scalabilityDesign.filter(s => s).length > 0 ? scalabilityDesign.filter(s => s) : undefined
+          }
+        } : {}),
+        // Lessons Learned (optional)
+        ...(lessonsLearned.length > 0 && lessonsLearned.some(l => l.lesson) ? {
+          lessons_learned: lessonsLearned.filter(l => l.lesson)
+        } : {}),
+        // Future Roadmap (optional)
+        ...(futureRoadmap.length > 0 && futureRoadmap.some(r => r.initiative) ? {
+          future_roadmap: futureRoadmap.filter(r => r.initiative)
+        } : {}),
       }
 
       // Use PUT for edit mode, POST for create mode
@@ -516,8 +691,8 @@ export default function SubmitUseCase() {
       const useCaseResult = await res.json()
       const useCaseId = useCaseResult.id || useCaseResult._id || editUseCaseId
 
-      // Now upload media files with the use case ID
-      const mediaUrls = []
+      // Now upload NEW media files with the use case ID
+      const newMediaUrls = []
       if (uploadedImages.length > 0 && useCaseId) {
         const uploadFormData = new FormData()
 
@@ -540,10 +715,24 @@ export default function SubmitUseCase() {
           // Extract URLs from the response
           if (uploadResult.files) {
             for (const file of uploadResult.files) {
-              mediaUrls.push(file.url)
+              newMediaUrls.push(file.url)
             }
           }
-          console.log(`Successfully uploaded ${uploadResult.files?.length || 0} media files`)
+          console.log(`Successfully uploaded ${uploadResult.files?.length || 0} new media files`)
+
+          // If in edit mode, we need to update the use case with ALL images (existing + new)
+          if (isEditMode) {
+            const allImages = [...existingImages, ...newMediaUrls]
+            const updatePayload = { ...payload, images: allImages }
+
+            await fetch(buildApiUrl(`/api/v1/use-cases/${useCaseId}`), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(updatePayload)
+            })
+            console.log('Updated use case with all images:', allImages)
+          }
         } else {
           console.error('Failed to upload media files, but use case was created successfully')
           const errorData = await uploadResponse.json().catch(() => ({}))
@@ -663,10 +852,10 @@ export default function SubmitUseCase() {
     
     if (currentStep === 5) {
       // Validate quantitative results
-      const validResults = quantitativeResults.filter(r => 
-        r.metric.trim().length >= 5 && 
-        r.baseline.trim().length >= 2 && 
-        r.current.trim().length >= 2 && 
+      const validResults = quantitativeResults.filter(r =>
+        r.metric.trim().length >= 5 &&
+        r.baseline.trim().length >= 1 &&
+        r.current.trim().length >= 1 &&
         r.improvement.trim().length >= 2
       ).length >= 2
       if (!validResults) {
@@ -733,9 +922,12 @@ export default function SubmitUseCase() {
     }
 
     if (currentStep === 6) {
-      // Validate images
-      if (uploadedImages.length < 1) {
-        form.setError('images', { 
+      // Validate images - check for either existing or new images
+      const hasExistingImages = isEditMode && existingImages.length > 0
+      const hasNewImages = uploadedImages.length > 0
+
+      if (!hasExistingImages && !hasNewImages) {
+        form.setError('images', {
           type: 'manual',
           message: "Please upload at least 1 image"
         })
@@ -749,11 +941,19 @@ export default function SubmitUseCase() {
     if (!valid || hasValidationErrors) {
       return
     }
-    if (currentStep < 7) setCurrentStep(currentStep + 1)
+    if (currentStep < 7) {
+      setCurrentStep(currentStep + 1)
+      // Scroll to top when moving to next step
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+      // Scroll to top when moving to previous step
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   if (isSubmitted) {
@@ -1232,7 +1432,7 @@ export default function SubmitUseCase() {
                             </div>
                           ))}
                           
-                          {technologyComponents.length < 4 && (
+                          {technologyComponents.length < 15 && (
                             <Button
                               type="button"
                               variant="outline"
@@ -1456,7 +1656,7 @@ export default function SubmitUseCase() {
                               <label className="text-sm font-medium text-slate-700">Components (comma-separated)</label>
                               <Textarea
                                 placeholder="List the components in this layer..."
-                                value={component.components.join(", ")}
+                                value={Array.isArray(component.components) ? component.components.join(", ") : ""}
                                 onChange={(e) => {
                                   const updated = [...architectureComponents]
                                   updated[index].components = e.target.value.split(",").map(c => c.trim()).filter(Boolean)
@@ -1594,8 +1794,9 @@ export default function SubmitUseCase() {
                           {quantitativeResults.map((result, index) => (
                             <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border border-gray-200 rounded-lg">
                               <Input
+                                key={`metric-${index}-${result.metric}`}
                                 placeholder="Metric Name (e.g., Defect Rate Reduction)"
-                                value={result.metric}
+                                value={result.metric || ''}
                                 onChange={(e) => {
                                   const updated = [...quantitativeResults]
                                   updated[index].metric = e.target.value
@@ -1626,7 +1827,7 @@ export default function SubmitUseCase() {
                               <div className="flex items-center space-x-2">
                                 <Input
                                   placeholder="Improvement (e.g., 85% reduction)"
-                                  value={result.improvement}
+                                  value={result.improvement || ''}
                                   onChange={(e) => {
                                     const updated = [...quantitativeResults]
                                     updated[index].improvement = e.target.value
@@ -1868,6 +2069,198 @@ export default function SubmitUseCase() {
                       )}
                     </div>
                   </div>
+
+                  {/* Lessons Learned (Optional) */}
+                  <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                      <Lightbulb className="h-6 w-6 mr-3 text-yellow-600" />
+                      Lessons Learned (Optional)
+                    </h2>
+                    <p className="text-slate-600 mb-6">
+                      Share key insights and recommendations from your implementation experience.
+                    </p>
+
+                    <div className="space-y-4">
+                      {lessonsLearned.map((lesson, index) => (
+                        <div key={index} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                            <div>
+                              <label className="text-sm font-medium text-slate-700">Category</label>
+                              <select
+                                value={lesson.category}
+                                onChange={(e) => {
+                                  const updated = [...lessonsLearned]
+                                  updated[index].category = e.target.value
+                                  setLessonsLearned(updated)
+                                }}
+                                className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md"
+                              >
+                                <option value="">Select category</option>
+                                <option value="Technical">Technical</option>
+                                <option value="Process">Process</option>
+                                <option value="People">People</option>
+                                <option value="Budget">Budget</option>
+                                <option value="Timeline">Timeline</option>
+                                <option value="Vendor">Vendor</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-slate-700">Lesson Title</label>
+                              <Input
+                                placeholder="Key lesson learned"
+                                value={lesson.lesson}
+                                onChange={(e) => {
+                                  const updated = [...lessonsLearned]
+                                  updated[index].lesson = e.target.value
+                                  setLessonsLearned(updated)
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="mb-3">
+                            <label className="text-sm font-medium text-slate-700">Description</label>
+                            <Textarea
+                              placeholder="Detailed description of the lesson..."
+                              value={lesson.description}
+                              onChange={(e) => {
+                                const updated = [...lessonsLearned]
+                                updated[index].description = e.target.value
+                                setLessonsLearned(updated)
+                              }}
+                              className="min-h-[80px]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-slate-700">Recommendation</label>
+                            <Textarea
+                              placeholder="What would you recommend to others..."
+                              value={lesson.recommendation}
+                              onChange={(e) => {
+                                const updated = [...lessonsLearned]
+                                updated[index].recommendation = e.target.value
+                                setLessonsLearned(updated)
+                              }}
+                              className="min-h-[60px]"
+                            />
+                          </div>
+                          {lessonsLearned.length > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setLessonsLearned(lessonsLearned.filter((_, i) => i !== index))}
+                              className="mt-3 text-red-600 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Remove Lesson
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setLessonsLearned([...lessonsLearned, { category: "", lesson: "", description: "", recommendation: "" }])}
+                        className="flex items-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Lesson Learned</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Future Roadmap (Optional) */}
+                  <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                      <Calendar className="h-6 w-6 mr-3 text-purple-600" />
+                      Future Roadmap (Optional)
+                    </h2>
+                    <p className="text-slate-600 mb-6">
+                      Outline planned improvements and future initiatives.
+                    </p>
+
+                    <div className="space-y-4">
+                      {futureRoadmap.map((item, index) => (
+                        <div key={index} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                            <div>
+                              <label className="text-sm font-medium text-slate-700">Timeline</label>
+                              <Input
+                                placeholder="e.g., Q2 2025, Next 6 months"
+                                value={item.timeline}
+                                onChange={(e) => {
+                                  const updated = [...futureRoadmap]
+                                  updated[index].timeline = e.target.value
+                                  setFutureRoadmap(updated)
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-slate-700">Initiative</label>
+                              <Input
+                                placeholder="Name of the initiative"
+                                value={item.initiative}
+                                onChange={(e) => {
+                                  const updated = [...futureRoadmap]
+                                  updated[index].initiative = e.target.value
+                                  setFutureRoadmap(updated)
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="mb-3">
+                            <label className="text-sm font-medium text-slate-700">Description</label>
+                            <Textarea
+                              placeholder="Detailed description of the initiative..."
+                              value={item.description}
+                              onChange={(e) => {
+                                const updated = [...futureRoadmap]
+                                updated[index].description = e.target.value
+                                setFutureRoadmap(updated)
+                              }}
+                              className="min-h-[80px]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-slate-700">Expected Benefit</label>
+                            <Textarea
+                              placeholder="What benefits are expected..."
+                              value={item.expected_benefit}
+                              onChange={(e) => {
+                                const updated = [...futureRoadmap]
+                                updated[index].expected_benefit = e.target.value
+                                setFutureRoadmap(updated)
+                              }}
+                              className="min-h-[60px]"
+                            />
+                          </div>
+                          {futureRoadmap.length > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setFutureRoadmap(futureRoadmap.filter((_, i) => i !== index))}
+                              className="mt-3 text-red-600 hover:text-red-700"
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Remove Item
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setFutureRoadmap([...futureRoadmap, { timeline: "", initiative: "", description: "", expected_benefit: "" }])}
+                        className="flex items-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Roadmap Item</span>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1885,16 +2278,28 @@ export default function SubmitUseCase() {
                       <FormField
                         control={form.control}
                         name="city"
-                        render={({ field }) => (
+                        render={({ field }) => {
+                          console.log('City Select field value:', field.value)
+                          return (
                           <FormItem>
-                            <FormLabel>City <span className="text-gray-500">(2-50 chars)</span></FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Riyadh" {...field} />
-                            </FormControl>
-                            <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/50 characters</div>
+                            <FormLabel>City</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a city" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="z-[9999] bg-white">
+                                {SAUDI_CITIES.map((city) => (
+                                  <SelectItem key={city} value={city}>
+                                    {city}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
                           </FormItem>
-                        )}
+                        )}}
                       />
                     </div>
 
@@ -1924,13 +2329,72 @@ export default function SubmitUseCase() {
                       <Upload className="h-6 w-6 mr-3 text-blue-600" />
                       Images
                     </h2>
-                    
+
+                    {/* Display existing images in edit mode */}
+                    {isEditMode && existingImages.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-700 mb-3">Current Images</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                          {existingImages.map((imageUrl, index) => {
+                            // Ensure the URL is properly formatted
+                            const fullImageUrl = imageUrl.startsWith('http')
+                              ? imageUrl
+                              : `${imageUrl}`;
+
+                            console.log(`Image ${index + 1} URL:`, fullImageUrl);
+
+                            return (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={fullImageUrl}
+                                  alt={`Existing image ${index + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                                  onError={(e) => {
+                                    console.error(`Failed to load image ${index + 1}:`, fullImageUrl);
+                                    console.error('Error event:', e);
+                                  }}
+                                  onLoad={(e) => {
+                                    console.log(`Successfully loaded image ${index + 1}`);
+                                    const img = e.target as HTMLImageElement;
+                                    console.log('Image loaded with dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+                                    console.log('Display dimensions:', img.clientWidth, 'x', img.clientHeight);
+                                  }}
+                                />
+                                {/* Delete button for existing images */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updatedImages = existingImages.filter((_, i) => i !== index)
+                                    setExistingImages(updatedImages)
+                                    console.log(`Removed image ${index + 1}, remaining images:`, updatedImages)
+                                  }}
+                                  className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                  title="Remove this image"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                                <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                                  Image {index + 1}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-sm text-gray-500 mb-4">
+                          These images are already uploaded. Click the X button to remove any image. You can add more images below.
+                        </p>
+                      </div>
+                    )}
+
                     <FileDropZone
                       onFilesSelect={handleImagesUpdate}
                       maxFiles={10}
                       acceptedTypes={['image/*', 'video/*']}
                       maxSize={50 * 1024 * 1024}
                     />
+                    <p className="text-sm text-gray-500 mt-2">
+                      {isEditMode ? 'Add new images (existing images will be kept unless you upload new ones)' : 'Upload images for your use case'}
+                    </p>
                     {/* Show validation error for images */}
                     {form.formState.errors.images && (
                       <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">

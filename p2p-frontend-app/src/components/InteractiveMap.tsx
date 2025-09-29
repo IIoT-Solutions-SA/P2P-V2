@@ -57,7 +57,9 @@ export default function InteractiveMap({
         const res = await fetch(buildApiUrl('/api/v1/use-cases?limit=200'), { credentials: 'include' })
         if (!res.ok) throw new Error('Failed to load use cases')
         const data = await res.json()
-        setBackendUseCases(data)
+        // Handle both array and paginated response formats
+        const useCases = Array.isArray(data) ? data : (data.items || data.use_cases || [])
+        setBackendUseCases(useCases)
       } catch (err) {
         console.error('Failed to fetch use cases for map', err)
         setBackendUseCases([])
@@ -381,8 +383,9 @@ export default function InteractiveMap({
       `
     }
 
-    // Add markers for each use case
-    const rawMapped = (backendUseCases || []).filter(uc => typeof uc.latitude === 'number' && typeof uc.longitude === 'number')
+    // Add markers for each use case (ensure backendUseCases is always an array)
+    const useCasesArray = Array.isArray(backendUseCases) ? backendUseCases : []
+    const rawMapped = useCasesArray.filter(uc => typeof uc.latitude === 'number' && typeof uc.longitude === 'number')
       .map<PopupUseCase>(uc => ({
         id: uc.id as unknown as any, // popup accepts number|string for navigation usage
         title: uc.title || 'Untitled',

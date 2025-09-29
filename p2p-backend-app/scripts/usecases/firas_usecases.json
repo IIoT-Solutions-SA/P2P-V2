@@ -206,6 +206,21 @@
         "description": "Initial dashboards were too complex, slowing operator adoption. Simplified visual indicators improved usability significantly",
         "recommendation": "Prioritize clear, color-coded dashboards for quick shop floor interpretation"
       }
+    ],
+    "subtitle": "Manufacturing Innovation: Real-Time Production Visibility Dashboard",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Real-Time Data Latency",
+        "description": "Initial system had 30-second delays in data updates, missing critical production events.",
+        "solution": "Implemented edge computing with MQTT protocol for sub-second data transmission and local caching for network resilience.",
+        "outcome": "Achieved real-time updates with <500ms latency, capturing 100% of production events."
+      },
+      {
+        "challenge": "Cross-Shift Communication",
+        "description": "Important production issues were lost during shift changes, causing repeated problems.",
+        "solution": "Created digital shift handover module with mandatory acknowledgment and automated escalation for unresolved issues.",
+        "outcome": "Zero critical issues lost between shifts, 70% reduction in repeated problems."
+      }
     ]
   },
   {
@@ -409,6 +424,21 @@
         "lesson": "Real-time cost visibility changes behavior",
         "description": "Operators began proactively shutting down idle machines once they saw cost per hour displayed in SAR, leading to immediate savings",
         "recommendation": "Displaying financial impact in real time encourages accountability and faster adoption of energy-saving practices"
+      }
+    ],
+    "subtitle": "AI/ML Solution: Smart Energy Analytics for Sustainable Manufacturing",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Granular Energy Attribution",
+        "description": "Couldn't determine which specific processes consumed the most energy within shared production lines.",
+        "solution": "Installed sub-meters at process level and developed ML algorithms to disaggregate shared consumption based on production patterns.",
+        "outcome": "Achieved 95% accuracy in energy attribution, identifying top 3 energy waste sources."
+      },
+      {
+        "challenge": "Behavioral Change Resistance",
+        "description": "Operators continued energy-wasteful practices despite having data showing inefficiencies.",
+        "solution": "Gamified energy savings with team competitions, real-time scoreboards, and monthly recognition programs.",
+        "outcome": "67% increase in operator-initiated energy saving actions, 12% overall energy reduction."
       }
     ]
   },
@@ -619,6 +649,21 @@
         "lesson": "Retrofitting requires tailored solutions",
         "description": "A one-size-fits-all approach failed during early pilots, as machines varied in interfaces and compatibility",
         "recommendation": "Plan for modular retrofit kits and allow flexibility in gateway configurations"
+      }
+    ],
+    "subtitle": "Digital Transformation: Digital Bridge: Modernizing Legacy Manufacturing Systems",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Safety Compliance",
+        "description": "Ensuring robotic systems meet all safety standards while operating alongside human workers",
+        "solution": "Implemented comprehensive safety zones, sensors, and emergency stop systems with thorough testing protocols",
+        "outcome": "Achieved full safety certification with zero incidents during implementation and operation"
+      },
+      {
+        "challenge": "Process Synchronization",
+        "description": "Coordinating automated systems with existing manual processes and varying production speeds",
+        "solution": "Developed adaptive control algorithms and buffer systems to handle variable production rates",
+        "outcome": "Seamless integration with 95% efficiency improvement and flexible production capacity"
       }
     ]
   }

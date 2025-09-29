@@ -65,9 +65,11 @@ class UseCaseSubmissionService:
 
         # Map request to UseCase document
         use_case_doc = UseCase(
-            submitted_by=str(mongo_user.id),
+            submitted_by=str(mongo_user.id),  # Store MongoDB ID - more stable than SuperTokens session ID
             title=data.title,
-            problem_statement=data.description,
+            subtitle=data.subtitle,  # FIX: Now saving subtitle
+            problem_statement=data.description,  # This is the main description
+            executive_summary=data.description,  # FIX: Also save as executive_summary for compatibility
             solution_description=data.methodology,
             factory_name=data.factoryName,
             region=data.city,
@@ -133,13 +135,21 @@ class UseCaseSubmissionService:
         )
 
         # Optional extended sections
-        if data.technical_architecture and data.technical_architecture.system_overview:
-            use_case_doc.technical_architecture = {
-                "system_overview": data.technical_architecture.system_overview,
-                "components": data.technical_architecture.components,
-                "security_measures": data.technical_architecture.security_measures,
-                "scalability_design": data.technical_architecture.scalability_design,
-            }
+        if data.technical_architecture:
+            tech_arch = {}
+            if hasattr(data.technical_architecture, 'system_overview') and data.technical_architecture.system_overview:
+                tech_arch["system_overview"] = data.technical_architecture.system_overview
+            # Handle both 'components' and 'architecture_components' field names
+            if hasattr(data.technical_architecture, 'architecture_components') and data.technical_architecture.architecture_components:
+                tech_arch["architecture_components"] = data.technical_architecture.architecture_components
+            elif hasattr(data.technical_architecture, 'components') and data.technical_architecture.components:
+                tech_arch["architecture_components"] = data.technical_architecture.components
+            if hasattr(data.technical_architecture, 'security_measures') and data.technical_architecture.security_measures:
+                tech_arch["security_measures"] = data.technical_architecture.security_measures
+            if hasattr(data.technical_architecture, 'scalability_design') and data.technical_architecture.scalability_design:
+                tech_arch["scalability_design"] = data.technical_architecture.scalability_design
+            if tech_arch:
+                use_case_doc.technical_architecture = tech_arch
         if data.future_roadmap:
             use_case_doc.future_roadmap = [
                 {
@@ -237,7 +247,8 @@ class UseCaseSubmissionService:
         if "subtitle" in update_data:
             mapped_update["subtitle"] = update_data["subtitle"]
         if "description" in update_data:
-            mapped_update["problem_statement"] = update_data["description"]  # Frontend's description is executive summary
+            mapped_update["problem_statement"] = update_data["description"]  # Frontend's description
+            mapped_update["executive_summary"] = update_data["description"]  # Also save as executive_summary
         if "category" in update_data:
             mapped_update["category"] = update_data["category"]
         if "factoryName" in update_data:
@@ -328,6 +339,45 @@ class UseCaseSubmissionService:
                 for c in update_data["challengesSolutions"]
             ]
 
+        # Technical Architecture
+        if "technical_architecture" in update_data:
+            tech_arch = update_data["technical_architecture"]
+            if tech_arch:
+                mapped_tech = {}
+                if "system_overview" in tech_arch:
+                    mapped_tech["system_overview"] = tech_arch["system_overview"]
+                if "architecture_components" in tech_arch:
+                    mapped_tech["architecture_components"] = tech_arch["architecture_components"]
+                if "security_measures" in tech_arch:
+                    mapped_tech["security_measures"] = tech_arch["security_measures"]
+                if "scalability_design" in tech_arch:
+                    mapped_tech["scalability_design"] = tech_arch["scalability_design"]
+                if mapped_tech:
+                    mapped_update["technical_architecture"] = mapped_tech
+
+        # Lessons Learned
+        if "lessons_learned" in update_data:
+            mapped_update["lessons_learned"] = update_data["lessons_learned"]
+
+        # Future Roadmap
+        if "future_roadmap" in update_data:
+            mapped_update["future_roadmap"] = update_data["future_roadmap"]
+
+        # ROI fields
+        if "roiTotalInvestment" in update_data:
+            if "results" not in mapped_update:
+                mapped_update["results"] = {}
+            if "roi_analysis" not in mapped_update["results"]:
+                mapped_update["results"]["roi_analysis"] = {}
+            mapped_update["results"]["roi_analysis"]["total_investment"] = update_data["roiTotalInvestment"]
+
+        if "roiThreeYearRoi" in update_data:
+            if "results" not in mapped_update:
+                mapped_update["results"] = {}
+            if "roi_analysis" not in mapped_update["results"]:
+                mapped_update["results"]["roi_analysis"] = {}
+            mapped_update["results"]["roi_analysis"]["three_year_roi"] = update_data["roiThreeYearRoi"]
+
         # Optional fields
         if "industryTags" in update_data:
             mapped_update["industry_tags"] = update_data["industryTags"]
@@ -369,12 +419,40 @@ class UseCaseSubmissionService:
         if use_case.submitted_by != str(mongo_user.id):
             raise HTTPException(status_code=403, detail="User not authorized to delete this use case")
 
-        # SOFT DELETE: Update status instead of permanently deleting
-        await use_case.update({"$set": {"status": "deleted", "updated_at": datetime.utcnow()}})
-        
+        # PERMANENT DELETE: Remove use case from database
+        await use_case.delete()
+
+        # Clean up S3 images if any
+        if use_case.images:
+            import boto3
+            from app.core.config import settings
+            import logging
+
+            logger = logging.getLogger(__name__)
+            s3_client = boto3.client(
+                "s3",
+                region_name=settings.AWS_REGION,
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            )
+
+            for image_url in use_case.images:
+                try:
+                    # Extract S3 key from the URL
+                    if image_url and "amazonaws.com/" in image_url:
+                        s3_key = image_url.split("amazonaws.com/")[-1]
+                        s3_client.delete_object(
+                            Bucket=settings.S3_USECASE_MEDIA_BUCKET,
+                            Key=s3_key
+                        )
+                        logger.info(f"Deleted S3 use case image: {s3_key}")
+                except Exception as e:
+                    logger.error(f"Failed to delete S3 image {image_url}: {e}")
+                    # Continue with deletion even if S3 cleanup fails
+
         # Optional: Update user stats to reflect the deletion
         # This could be implemented later if needed
-        
+
         return {"status": "deleted"}
 
 

@@ -66,13 +66,17 @@ export default function UseCases() {
   const [sortBy, setSortBy] = useState("newest");
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalUseCasesCount, setTotalUseCasesCount] = useState(0);
+  const itemsPerPage = 20;
 
   useEffect(() => {
     const fetchUseCasesData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const useCasesUrl = buildApiUrl(`/api/v1/use-cases?category=${selectedCategory}&search=${searchQuery}&sort_by=${sortBy}`);
+        const skip = (currentPage - 1) * itemsPerPage;
+        const useCasesUrl = buildApiUrl(`/api/v1/use-cases?category=${selectedCategory}&search=${searchQuery}&sort_by=${sortBy}&limit=${itemsPerPage}&skip=${skip}`);
         const [categoriesRes, useCasesRes, statsRes, contributorsRes] = await Promise.all([
           fetch(buildApiUrl('/api/v1/use-cases/categories'), { credentials: 'include' }),
           fetch(useCasesUrl, { credentials: 'include' }),
@@ -83,7 +87,17 @@ export default function UseCases() {
             throw new Error('Failed to fetch data from the server.');
         }
         setCategories(await categoriesRes.json());
-        setUseCases(await useCasesRes.json());
+        const useCasesData = await useCasesRes.json();
+
+        // Handle both old format (array) and new format (object with items)
+        if (Array.isArray(useCasesData)) {
+          setUseCases(useCasesData);
+          setTotalUseCasesCount(useCasesData.length);
+        } else {
+          setUseCases(useCasesData.items || []);
+          setTotalUseCasesCount(useCasesData.total || 0);
+        }
+
         setStats(await statsRes.json());
         setContributors(await contributorsRes.json());
       } catch (err) {
@@ -93,7 +107,17 @@ export default function UseCases() {
       }
     };
     fetchUseCasesData();
+  }, [selectedCategory, searchQuery, sortBy, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
   }, [selectedCategory, searchQuery, sortBy]);
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   // Fetch saved use cases once to highlight bookmarks
   useEffect(() => {
@@ -311,6 +335,98 @@ export default function UseCases() {
                 </div>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {totalUseCasesCount > itemsPerPage && (
+              <div className="flex justify-center items-center space-x-2 mt-8 pb-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                <div className="flex items-center space-x-1">
+                  {(() => {
+                    const totalPages = Math.ceil(totalUseCasesCount / itemsPerPage);
+                    const pages = [];
+                    const maxVisiblePages = 5;
+
+                    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+                    if (endPage - startPage < maxVisiblePages - 1) {
+                      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                    }
+
+                    if (startPage > 1) {
+                      pages.push(
+                        <Button
+                          key={1}
+                          variant={currentPage === 1 ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(1)}
+                          className="min-w-[40px]"
+                        >
+                          1
+                        </Button>
+                      );
+                      if (startPage > 2) {
+                        pages.push(<span key="ellipsis1" className="px-2">...</span>);
+                      }
+                    }
+
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <Button
+                          key={i}
+                          variant={currentPage === i ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(i)}
+                          className="min-w-[40px]"
+                        >
+                          {i}
+                        </Button>
+                      );
+                    }
+
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pages.push(<span key="ellipsis2" className="px-2">...</span>);
+                      }
+                      pages.push(
+                        <Button
+                          key={totalPages}
+                          variant={currentPage === totalPages ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(totalPages)}
+                          className="min-w-[40px]"
+                        >
+                          {totalPages}
+                        </Button>
+                      );
+                    }
+
+                    return pages;
+                  })()}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalUseCasesCount / itemsPerPage), prev + 1))}
+                  disabled={currentPage >= Math.ceil(totalUseCasesCount / itemsPerPage)}
+                >
+                  Next
+                </Button>
+
+                <span className="text-sm text-slate-600 ml-4">
+                  Page {currentPage} of {Math.ceil(totalUseCasesCount / itemsPerPage)} ({totalUseCasesCount} total)
+                </span>
+              </div>
+            )}
           </main>
         </div>
       </div>

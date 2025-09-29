@@ -33,6 +33,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useLocation } from 'react-router-dom'
 import { buildApiUrl } from '@/config/environment'
 import { MediaGallery } from '@/components/ui/MediaGallery'
+import { FileDropZone } from '@/components/ui/FileDropZone'
 
 interface Category {
   id: string
@@ -57,7 +58,7 @@ interface ForumPost {
   id: number
   title: string
   author: string
-  author_id?: string
+  author_id?: string  // SuperTokens ID for authorization
   authorTitle: string
   category: string
   content?: string
@@ -117,6 +118,8 @@ export default function Forum() {
   const [editTitle, setEditTitle] = useState("")
   const [editContent, setEditContent] = useState("")
   const [editCategory, setEditCategory] = useState("")
+  const [editAttachments, setEditAttachments] = useState<File[]>([])
+  const [existingAttachments, setExistingAttachments] = useState<Array<{url: string, filename: string, type: string, size?: number}>>([])
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [postToDelete, setPostToDelete] = useState<ForumPost | null>(null)
 
@@ -202,6 +205,8 @@ export default function Forum() {
     setEditTitle(post.title)
     setEditContent(post.content || '')
     setEditCategory(post.category)
+    setExistingAttachments(post.attachments || [])
+    setEditAttachments([])
     setOpenDropdown(null)
   }
 
@@ -209,6 +214,7 @@ export default function Forum() {
     if (!editingPost) return
 
     try {
+      // First update the post content
       const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${editingPost}`), {
         method: 'PUT',
         headers: {
@@ -218,11 +224,37 @@ export default function Forum() {
         body: JSON.stringify({
           title: editTitle,
           content: editContent,
-          category: editCategory
+          category: editCategory,
+          attachments: existingAttachments
         })
       })
 
       if (response.ok) {
+        // Upload new attachments if any
+        if (editAttachments.length > 0) {
+          console.log('Uploading new attachments:', editAttachments)
+          for (const file of editAttachments) {
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('post_id', editingPost.toString())
+
+            const uploadResponse = await fetch(buildApiUrl('/api/v1/media/forum-attachment'), {
+              method: 'POST',
+              body: formData,
+              credentials: 'include'
+            })
+
+            if (uploadResponse.ok) {
+              const result = await uploadResponse.json()
+              console.log('Upload successful:', result)
+            } else {
+              const error = await uploadResponse.text()
+              console.error('Upload failed:', error)
+              alert(`Failed to upload ${file.name}: ${error}`)
+            }
+          }
+        }
+
         // Refresh posts to show updated content
         const categoryQueryParam = selectedCategoryId === 'all' 
           ? 'all' 
@@ -240,6 +272,8 @@ export default function Forum() {
         setEditTitle('')
         setEditContent('')
         setEditCategory('')
+        setEditAttachments([])
+        setExistingAttachments([])
         
         // Show success message
         const successMessage = document.createElement('div')
@@ -331,7 +365,32 @@ export default function Forum() {
   }
 
   const isPostAuthor = (post: ForumPost): boolean => {
-    return !!(user && post.author_id && user.id === post.author_id)
+    // Handle both old MongoDB ObjectIds and new SuperTokens IDs
+    if (!user || !post || !post.author_id) {
+      console.log('isPostAuthor check failed:', {
+        hasUser: !!user,
+        hasPost: !!post,
+        hasAuthorId: !!post?.author_id,
+        postId: post?.id,
+        postTitle: post?.title
+      })
+      return false
+    }
+
+    // Check both IDs:
+    // 1. For new posts: author_id will be SuperTokens ID
+    // 2. For old posts: author_id will be MongoDB ObjectId
+    const isAuthor = user.id === post.author_id || (user as any).mongo_id === post.author_id
+
+    console.log('Forum auth check:', {
+      postTitle: post.title,
+      postAuthorId: post.author_id,
+      userId: user.id,
+      userMongoId: (user as any).mongo_id,
+      isAuthor: isAuthor
+    })
+
+    return isAuthor
   }
 
   // Handle clicking outside dropdown to close it
@@ -376,6 +435,8 @@ export default function Forum() {
         })
         if (response.ok) {
           const data = await response.json()
+          console.log('Forum posts received:', data.posts)
+          console.log('Current user:', user)
           setForumPosts(data.posts || [])
         }
       } catch (error) {
@@ -912,6 +973,43 @@ export default function Forum() {
                         ))}
                       </select>
                     </div>
+
+                    {/* Display existing attachments */}
+                    {existingAttachments.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Current Attachments</label>
+                        <MediaGallery
+                          items={existingAttachments.map(att => ({
+                            url: att.url,
+                            filename: att.filename,
+                            type: att.type,
+                            size: att.size,
+                            isVideo: att.type.startsWith('video/')
+                          }))}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setExistingAttachments([])}
+                          className="mt-2 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove All Attachments
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Add new attachments */}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Add New Attachments</label>
+                      <FileDropZone
+                        onFilesSelect={setEditAttachments}
+                        maxFiles={5}
+                        maxSize={50 * 1024 * 1024}
+                        acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm']}
+                        allowMultiple={true}
+                      />
+                    </div>
                     <div className="flex gap-3 pt-2">
                       <Button 
                         onClick={handleSaveEdit} 
@@ -927,6 +1025,8 @@ export default function Forum() {
                           setEditTitle('')
                           setEditContent('')
                           setEditCategory('')
+                          setEditAttachments([])
+                          setExistingAttachments([])
                         }}
                         className="px-6 py-2.5 border-2 border-slate-300 hover:border-slate-400 transition-all rounded-xl"
                       >

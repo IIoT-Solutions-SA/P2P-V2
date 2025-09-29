@@ -209,6 +209,21 @@
         "description": "Initial rollout showed low operator engagement due to limited training and unfamiliarity with dashboards",
         "recommendation": "Invest in early operator workshops and real-time feedback sessions to ensure smooth adoption"
       }
+    ],
+    "subtitle": "IoT Integration: Smart Factory OEE Revolution with Real-Time IoT Analytics",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Legacy Machine Integration",
+        "description": "Connecting sensors to 30-year-old equipment without disrupting production or voiding warranties.",
+        "solution": "Developed non-invasive magnetic current sensors and optical encoders that attach externally without any machine modifications.",
+        "outcome": "Successfully integrated all legacy equipment with zero production downtime."
+      },
+      {
+        "challenge": "Data Accuracy Validation",
+        "description": "Initial sensor readings showed 15% variance from manual counts, creating trust issues with operators.",
+        "solution": "Implemented dual-sensor validation with machine learning algorithms to filter noise and detect anomalies.",
+        "outcome": "Achieved 99.7% accuracy in production counting, gaining full operator confidence."
+      }
     ]
   },
   {
@@ -416,6 +431,21 @@
         "lesson": "Alarm prioritization is critical",
         "description": "Without prioritization, the system initially created too much noise, making it hard for operators to focus on critical issues",
         "recommendation": "Build alarm logic early with input from operators to ensure actionable alerts"
+      }
+    ],
+    "subtitle": "AI/ML Solution: AI-Driven Performance Command Center for Manufacturing Excellence",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Information Overload",
+        "description": "Initial dashboards displayed too much data, overwhelming operators and managers.",
+        "solution": "Implemented role-based views with progressive disclosure - showing only critical KPIs first with drill-down capability.",
+        "outcome": "90% reduction in time to identify issues, with operators reporting improved focus."
+      },
+      {
+        "challenge": "Predictive Model Accuracy",
+        "description": "Early AI predictions had only 60% accuracy for equipment failures.",
+        "solution": "Collected 6 months of failure data and retrained models with domain-specific features including vibration patterns and temperature trends.",
+        "outcome": "Improved prediction accuracy to 92%, preventing 8 major breakdowns in first quarter."
       }
     ]
   },
@@ -626,6 +656,21 @@
         "lesson": "Granularity improves accountability",
         "description": "Tracking data per shift highlighted inefficiencies and frequent alarms that were previously overlooked in daily aggregated reports",
         "recommendation": "Always track performance at the most granular level possible to uncover hidden optimization opportunities"
+      }
+    ],
+    "subtitle": "Manufacturing Innovation: Next-Generation Shop Floor Intelligence System",
+    "challenges_and_solutions": [
+      {
+        "challenge": "Change Management",
+        "description": "Getting buy-in from operators and management for new technology implementation",
+        "solution": "Conducted comprehensive training programs and demonstrated quick wins through pilot implementation",
+        "outcome": "Full adoption achieved with positive feedback from all stakeholders"
+      },
+      {
+        "challenge": "ROI Justification",
+        "description": "Demonstrating clear return on investment to secure project funding and support",
+        "solution": "Developed detailed business case with phased implementation showing incremental benefits",
+        "outcome": "Achieved projected ROI within first year, exceeding initial estimates by 20%"
       }
     ]
   }

@@ -202,7 +202,25 @@ export default function UseCaseDetail() {
   };
 
   const isUseCaseAuthor = (): boolean => {
-    return !!(user && useCase && useCase.submitted_by && user.id === useCase.submitted_by);
+    // Handle both old MongoDB ObjectIds and new SuperTokens IDs
+    if (!user || !useCase) return false;
+
+    const submittedBy = (useCase as any).submitted_by;
+    if (!submittedBy) {
+      console.warn('No submitted_by field found on use case');
+      return false;
+    }
+
+    // Check both IDs:
+    // 1. For new use cases: submitted_by will be SuperTokens ID
+    // 2. For old use cases: submitted_by will be MongoDB ObjectId
+    const isAuthor = user.id === submittedBy || (user as any).mongo_id === submittedBy;
+
+    if (isAuthor) {
+      console.log('Use case auth check - User owns this use case');
+    }
+
+    return isAuthor;
   };
 
   // Handle clicking outside dropdown to close it
@@ -865,18 +883,19 @@ export default function UseCaseDetail() {
                   </div>
                 )}
                 
-                {useCase.technical_architecture.components && useCase.technical_architecture.components.length > 0 && (
+                {(useCase.technical_architecture.architecture_components || useCase.technical_architecture.components) &&
+                 (useCase.technical_architecture.architecture_components || useCase.technical_architecture.components).length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Architecture Components</h3>
                     <div className="space-y-4">
-                      {useCase.technical_architecture.components.map((component, index) => (
+                      {(useCase.technical_architecture.architecture_components || useCase.technical_architecture.components).map((component, index) => (
                         <div key={index} className="border border-gray-200 rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">{component.layer}</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="font-medium text-gray-800">Components:</span>
                               <ul className="mt-1 space-y-1">
-                                {component.components.map((comp, i) => (
+                                {(Array.isArray(component.components) ? component.components : []).map((comp, i) => (
                                   <li key={i} className="flex items-start space-x-1">
                                     <div className="w-1 h-1 bg-gray-500 rounded-full mt-2 flex-shrink-0"></div>
                                     <span className="text-gray-600">{comp}</span>

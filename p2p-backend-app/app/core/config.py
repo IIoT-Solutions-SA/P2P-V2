@@ -43,10 +43,16 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_REGION: str = "me-south-1"
-    S3_PROFILE_PICTURES_BUCKET: str = "p2p-dev-profile-images"
-    S3_FORUM_MEDIA_BUCKET: str = "p2p-dev-forum-media"
-    S3_USECASE_MEDIA_BUCKET: str = "p2p-dev-usecase-media"
-    S3_TEMP_BUCKET: str = "p2p-dev-temp-uploads"
+
+    # S3 Bucket Names - PRODUCTION
+    S3_PROFILE_PICTURES_BUCKET: str = "p2p-prod-profile-images"
+    S3_FORUM_MEDIA_BUCKET: str = "p2p-prod-forum-media"
+    S3_USECASE_MEDIA_BUCKET: str = "p2p-prod-usecase-media"
+
+    # S3 Bucket Names - DEVELOPMENT (Keep for local testing)
+    # S3_PROFILE_PICTURES_BUCKET: str = "p2p-dev-profile-images"
+    # S3_FORUM_MEDIA_BUCKET: str = "p2p-dev-forum-media"
+    # S3_USECASE_MEDIA_BUCKET: str = "p2p-dev-usecase-media"
     CLOUDFRONT_DOMAIN: Optional[str] = None
 
     class Config:

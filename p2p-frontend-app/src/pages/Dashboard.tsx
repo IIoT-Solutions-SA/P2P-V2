@@ -219,10 +219,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
+      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
             {/* Welcome Section */}
@@ -235,8 +234,8 @@ export default function Dashboard() {
               <p className="text-slate-300 text-lg">Ready to connect and share knowledge today? Here's what's happening in your professional network.</p>
             </div>
 
-            {/* Quick Actions */}
-            <div>
+            {/* Quick Actions - Hide on mobile since it's in the hamburger menu */}
+            <div className="hidden md:block">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <button 
@@ -388,8 +387,8 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Profile Summary */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200">
+            {/* Profile Summary - Hidden on mobile since it's in hamburger menu */}
+            <div className="hidden md:block bg-white rounded-2xl p-6 border border-slate-200">
               <div className="text-center space-y-4">
                 <div className="relative inline-block">
                   <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">

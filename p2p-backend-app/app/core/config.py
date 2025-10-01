@@ -50,10 +50,10 @@ class Settings(BaseSettings):
     S3_USECASE_MEDIA_BUCKET: str = "p2p-prod-usecase-media"
 
     # S3 Bucket Names - DEVELOPMENT (Keep for local testing)
-    # S3_PROFILE_PICTURES_BUCKET: str = "p2p-dev-profile-images"
-    # S3_FORUM_MEDIA_BUCKET: str = "p2p-dev-forum-media"
-    # S3_USECASE_MEDIA_BUCKET: str = "p2p-dev-usecase-media"
-    CLOUDFRONT_DOMAIN: Optional[str] = None
+    #S3_PROFILE_PICTURES_BUCKET: str = "p2p-dev-profile-images"
+    #S3_FORUM_MEDIA_BUCKET: str = "p2p-dev-forum-media"
+    #S3_USECASE_MEDIA_BUCKET: str = "p2p-dev-usecase-media"
+    #CLOUDFRONT_DOMAIN: Optional[str] = None
 
     class Config:
         case_sensitive = True

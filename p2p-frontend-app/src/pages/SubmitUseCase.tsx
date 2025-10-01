@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { buildApiUrl } from '@/config/environment'
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -146,6 +146,9 @@ export default function SubmitUseCase() {
   const editUseCaseId = searchParams.get('edit')
   const isEditMode = !!editUseCaseId
 
+  // Auto-save form data to localStorage
+  const FORM_STORAGE_KEY = `usecase_form_${editUseCaseId || 'new'}`
+
   const [currentStep, setCurrentStep] = useState(1)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [existingImages, setExistingImages] = useState<string[]>([])  // Store existing image URLs
@@ -222,8 +225,12 @@ export default function SubmitUseCase() {
     { challenge: "", description: "", solution: "", outcome: "" }
   ])
 
+  const scrollPositionRef = useRef<number>(0)
+  const formDataRef = useRef<any>({})
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    mode: 'onBlur', // Only validate on blur to prevent issues while typing
     defaultValues: {
       // Basic Information
       title: "",
@@ -273,6 +280,54 @@ export default function SubmitUseCase() {
   })
 
   // Fetch existing use case data when in edit mode
+  // Auto-save form data to localStorage every 30 seconds and on form value changes
+  useEffect(() => {
+    const formValues = form.watch()
+    const saveToLocalStorage = () => {
+      try {
+        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify({
+          formData: formValues,
+          currentStep,
+          timestamp: Date.now()
+        }))
+        console.log('Form auto-saved')
+      } catch (error) {
+        console.error('Failed to save form data:', error)
+      }
+    }
+
+    // Save immediately when values change
+    const timeoutId = setTimeout(saveToLocalStorage, 1000) // Save 1 second after user stops typing
+
+    return () => clearTimeout(timeoutId)
+  }, [form.watch(), currentStep, FORM_STORAGE_KEY])
+
+  // Load saved form data on mount and reset submission state
+  useEffect(() => {
+    // Always reset the submission state when component mounts
+    // This handles browser back navigation and direct navigation to the page
+    setIsSubmitted(false)
+
+    if (!isEditMode) { // Only load saved data for new forms
+      try {
+        const saved = localStorage.getItem(FORM_STORAGE_KEY)
+        if (saved) {
+          const { formData, currentStep: savedStep, timestamp } = JSON.parse(saved)
+          // Only restore if saved within last 24 hours
+          if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+            // Automatically restore saved form data without asking
+            Object.keys(formData).forEach(key => {
+              form.setValue(key as any, formData[key])
+            })
+            setCurrentStep(savedStep)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load saved form data:', error)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (isEditMode && editUseCaseId) {
       const fetchExistingUseCase = async () => {
@@ -602,6 +657,10 @@ export default function SubmitUseCase() {
     setIsSubmitting(true)
     try {
       // First, create the use case WITHOUT images to get the ID
+      // Debug: Log lessons learned and roadmap
+      console.log('Lessons Learned:', lessonsLearned)
+      console.log('Future Roadmap:', futureRoadmap)
+
       const payload = {
         // Basic Information
         title: data.title,
@@ -675,6 +734,9 @@ export default function SubmitUseCase() {
       }
 
       // Use PUT for edit mode, POST for create mode
+      // Debug: Log the full payload
+      console.log('Full Payload being sent:', JSON.stringify(payload, null, 2))
+
       const url = isEditMode
         ? buildApiUrl(`/api/v1/use-cases/${editUseCaseId}`)
         : buildApiUrl('/api/v1/use-cases')
@@ -745,6 +807,12 @@ export default function SubmitUseCase() {
       }
 
       setIsSubmitted(true)
+      // Clear saved form data on successful submission
+      localStorage.removeItem(FORM_STORAGE_KEY)
+      // Only clear form if not in edit mode
+      if (!isEditMode) {
+        // Form will be reset when user clicks "Submit Another"
+      }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'submitting'} use case:`, error)
     } finally {
@@ -947,16 +1015,22 @@ export default function SubmitUseCase() {
     }
     if (currentStep < 7) {
       setCurrentStep(currentStep + 1)
-      // Scroll to top when moving to next step
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Don't auto-scroll on mobile - let user stay where they are
+      if (window.innerWidth > 768) {
+        // Only scroll to top on larger screens
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     }
   }
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
-      // Scroll to top when moving to previous step
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Don't auto-scroll on mobile - let user stay where they are
+      if (window.innerWidth > 768) {
+        // Only scroll to top on larger screens
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     }
   }
 
@@ -976,12 +1050,38 @@ export default function SubmitUseCase() {
               : 'Thank you for sharing your factory success story. Our team will review your submission and it will be published on the platform soon.'
             }
           </p>
-          <Button 
-            onClick={() => window.location.href = '/usecases'} 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {isEditMode ? 'View Use Cases' : 'Browse Use Cases'}
-          </Button>
+          <div className="flex gap-4">
+            <Button
+              onClick={() => {
+                // Reset everything
+                setIsSubmitted(false)
+                setCurrentStep(1)
+                form.reset()
+                setUploadedImages([])
+                setExistingImages([])
+                setSpecificProblems(["", ""])
+                setSelectionCriteria(["", ""])
+                setTechnologyComponents([""])
+                setVendorProcess("")
+                setVendorSelectionReasons([])
+                setProjectTeamInternal([{ role: "", name: "", title: "" }])
+                setProjectTeamVendor([{ role: "", name: "", title: "" }])
+                setPhases([{ phase: "", duration: "", objectives: [""], keyActivities: [""], budget: "" }])
+                setQualitativeImpacts([])
+                localStorage.removeItem(FORM_STORAGE_KEY)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Submit Another
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/usecases'}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isEditMode ? 'View Use Cases' : 'Browse Use Cases'}
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -1001,10 +1101,10 @@ export default function SubmitUseCase() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="container mx-auto px-6 py-8">
+        <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-slate-900 mb-4">
               {isEditMode ? 'Edit Your Success Story' : 'Submit Your Success Story'}
@@ -1057,7 +1157,7 @@ export default function SubmitUseCase() {
       </div>
 
       {/* Form Content */}
-      <div className="container mx-auto px-6 py-12">
+      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-8 sm:py-12">
         <div className="max-w-4xl mx-auto">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -1798,7 +1898,6 @@ export default function SubmitUseCase() {
                           {quantitativeResults.map((result, index) => (
                             <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border border-gray-200 rounded-lg">
                               <Input
-                                key={`metric-${index}-${result.metric}`}
                                 placeholder="Metric Name (e.g., Defect Rate Reduction)"
                                 value={result.metric || ''}
                                 onChange={(e) => {
@@ -2596,6 +2695,26 @@ export default function SubmitUseCase() {
                       <h3 className="font-semibold text-slate-900 mb-2">Images</h3>
                       <p className="text-slate-600">{uploadedImages.length} image(s) uploaded</p>
                     </div>
+
+                    {/* Show Future Roadmap if it has items */}
+                    {futureRoadmap.length > 0 && futureRoadmap.some(r => r.initiative) && (
+                      <div>
+                        <h3 className="font-semibold text-slate-900 mb-2">Future Roadmap</h3>
+                        <div className="space-y-3">
+                          {futureRoadmap.filter(r => r.initiative).map((item, index) => (
+                            <div key={index} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                              <p className="font-medium text-slate-800">{item.timeline}: {item.initiative}</p>
+                              {item.description && (
+                                <p className="text-sm text-slate-600 mt-1">{item.description}</p>
+                              )}
+                              {item.expected_benefit && (
+                                <p className="text-sm text-slate-500 mt-1">Expected: {item.expected_benefit}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

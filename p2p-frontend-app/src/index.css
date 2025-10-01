@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+/* Global styles for mobile responsiveness */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer utilities {
+  /* Add padding for mobile bottom navigation */
+  .pb-safe-mobile {
+    @apply pb-20 md:pb-0;
+  }
+
+  /* Safe area for iOS devices */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Ensure all containers don't overflow */
+  .container, [class*="container"] {
+    max-width: 100% !important;
+  }
+}

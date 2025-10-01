@@ -564,8 +564,8 @@ export default function Forum() {
 
   if (selectedPost) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
+        <div className="w-full px-4 sm:px-6 lg:max-w-4xl lg:mx-auto py-6 sm:py-8">
           <Button 
             variant="ghost" 
             className="mb-6"
@@ -766,9 +766,9 @@ export default function Forum() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
+      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Sidebar */}
           <div className="space-y-6">
             <div className="bg-white rounded-2xl p-6 border border-slate-200">

@@ -30,30 +30,32 @@ export default function LandingPage() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 container mx-auto px-6 py-24">
-          <div className="text-center space-y-10">
-            <h1 className="text-6xl font-bold leading-tight text-white">
-              Accelerate Your Factory's
-              <br />
-              <span className="text-blue-400">Digital Transformation</span>
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+          <div className="text-center space-y-6 sm:space-y-8 lg:space-y-10">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
+              <span className="block sm:inline">Accelerate Your</span>
+              <br className="hidden sm:block" />
+              <span className="block sm:inline">Factory's</span>
+              {' '}
+              <span className="text-blue-400 block sm:inline">Digital Transformation</span>
             </h1>
-            <p className="text-xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
               Join Saudi Arabia's premier peer-to-peer platform where manufacturing executives share proven strategies and explore real implementation case studies.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-              <Button 
-                size="lg" 
-                className="text-lg px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg"
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 lg:space-x-6 px-4 sm:px-0">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 lg:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg"
                 onClick={() => navigate('/usecases')}
               >
                 Explore Success Stories
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-4 lg:h-5 w-4 lg:w-5" />
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-8 py-4 text-white border-white/30 hover:bg-white/10 backdrop-blur-sm"
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto text-base lg:text-lg px-6 sm:px-8 py-3 lg:py-4 text-white border-white/30 hover:bg-white/10 backdrop-blur-sm"
                 onClick={() => navigate('/forum')}
               >
                 Join Discussions

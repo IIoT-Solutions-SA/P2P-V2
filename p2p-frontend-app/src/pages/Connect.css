@@ -1,7 +1,15 @@
 .connect-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
+  padding-bottom: 5rem; /* Account for mobile bottom nav */
+}
+
+@media (min-width: 768px) {
+  .connect-container {
+    padding: 2rem;
+    padding-bottom: 2rem;
+  }
 }
 
 .connect-header {

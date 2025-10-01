@@ -265,9 +265,9 @@ export default function UseCaseDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-4 flex items-center justify-between">
           <Button variant="ghost" onClick={() => navigate('/usecases')} className="flex items-center space-x-2 text-gray-600 hover:text-gray-900">
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Use Cases</span>
@@ -321,7 +321,7 @@ export default function UseCaseDetail() {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-12">
+      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-8 sm:py-12">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
             <div className="relative h-96 bg-gray-800">

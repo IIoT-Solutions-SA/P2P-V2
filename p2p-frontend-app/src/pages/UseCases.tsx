@@ -196,9 +196,9 @@ export default function UseCases() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 font-sans">
-      <div className="container mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 font-sans pb-20 md:pb-0">
+      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           <aside className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100">
               <h3 className="font-bold text-slate-800 text-lg mb-4">Categories</h3>

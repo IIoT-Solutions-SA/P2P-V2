@@ -10,15 +10,16 @@ interface EditProfilePanelProps {
   isOpen: boolean
   onClose: () => void
   onSave: () => void
+  initialTab?: 'profile' | 'account'
 }
 
-export function EditProfilePanel({ isOpen, onClose, onSave }: EditProfilePanelProps) {
+export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profile' }: EditProfilePanelProps) {
   const { user, refreshProfile } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [tagInput, setTagInput] = useState('')
-  const [activeTab, setActiveTab] = useState<'profile' | 'account'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'account'>(initialTab)
   
   // Profile form data
   const [formData, setFormData] = useState<UpdateProfileData>({
@@ -61,9 +62,9 @@ export function EditProfilePanel({ isOpen, onClose, onSave }: EditProfilePanelPr
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setError(null)
       setSuccessMessage(null)
-      setActiveTab('profile')
+      setActiveTab(initialTab)
     }
-  }, [user, isOpen])
+  }, [user, isOpen, initialTab])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -496,7 +497,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave }: EditProfilePanelPr
               </div>
 
               {/* Password Change Section */}
-              <div className="border border-gray-200 rounded-lg p-6">
+              <div className="border border-gray-200 rounded-lg p-6" data-section="security">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <Lock className="mr-2 h-5 w-5" />
                   Change Password

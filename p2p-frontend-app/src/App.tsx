@@ -10,7 +10,7 @@ import SubmitUseCase from './pages/SubmitUseCase'
 import UseCaseDetail from './pages/UseCaseDetail'
 import UserManagement from './pages/UserManagement'
 import Connect from './pages/Connect'
-import Navigation, { MobileNavigation } from './components/Navigation'
+import Navigation, { MobileBottomNav } from './components/Navigation'
 import ProtectedRoute from './components/ProtectedRoute'
 import ScrollToTop from './components/ScrollToTop'
 import { AuthProvider } from './contexts/AuthContext'
@@ -20,9 +20,9 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <ScrollToTop />
-        <div className="min-h-screen">
+        <div className="min-h-screen overflow-x-hidden">
           <Navigation />
-          <main>
+          <main className="w-full overflow-x-hidden">
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Navigate to="/home" replace />} />
@@ -71,7 +71,7 @@ function App() {
               } />
             </Routes>
           </main>
-          <MobileNavigation />
+          <MobileBottomNav />
         </div>
       </BrowserRouter>
     </AuthProvider>

@@ -769,8 +769,8 @@ export default function Forum() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
       <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Sidebar - Hidden on mobile */}
+          <div className="space-y-6 hidden lg:block">
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <h3 className="font-bold text-slate-900 text-lg mb-4">Categories</h3>
               <div className="space-y-2">
@@ -864,65 +864,65 @@ export default function Forum() {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 w-full space-y-6">
             {/* START: Create Post Trigger Section */}
             <div className="relative">
-              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-200 shadow-lg">
-                <div className="flex items-center gap-4">
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 sm:p-6 border-2 border-blue-200 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                   <div className="flex-1">
                     <button
                       onClick={() => setIsModalOpen(true)}
-                      className="w-full text-left text-slate-600 bg-white border-2 border-blue-100 rounded-full px-6 py-4 hover:bg-blue-50 hover:border-blue-300 transition-all text-base shadow-sm"
+                      className="w-full text-left text-slate-600 bg-white border-2 border-blue-100 rounded-full px-4 sm:px-6 py-3 sm:py-4 hover:bg-blue-50 hover:border-blue-300 transition-all text-sm sm:text-base shadow-sm"
                     >
                       <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
                           <Plus className="h-4 w-4 text-blue-600" />
                         </div>
-                        <span className="text-slate-700">What's on your mind? Share your question or insight...</span>
+                        <span className="text-slate-700 truncate">What's on your mind? Share your question or insight...</span>
                       </div>
                     </button>
                   </div>
-                  <Button 
-                    onClick={() => setIsModalOpen(true)} 
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-14 px-8 text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 rounded-xl"
+                  <Button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-11 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 rounded-xl whitespace-nowrap"
                   >
-                    <Plus className="h-5 w-5 mr-2" /> 
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                     New Post
                   </Button>
                 </div>
-                <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
-                  <div className="flex items-center space-x-4">
-                    <span className="flex items-center">
-                      <MessageSquare className="h-4 w-4 mr-1 text-blue-500" />
+                <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-slate-600">
+                  <div className="flex items-center flex-wrap gap-x-3 sm:gap-x-4 gap-y-1">
+                    <span className="flex items-center whitespace-nowrap">
+                      <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-blue-500" />
                       Ask questions
                     </span>
-                    <span className="flex items-center">
-                      <Lightbulb className="h-4 w-4 mr-1 text-yellow-500" />
+                    <span className="flex items-center whitespace-nowrap">
+                      <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-yellow-500" />
                       Share insights
                     </span>
-                    <span className="flex items-center">
-                      <Users className="h-4 w-4 mr-1 text-green-500" />
+                    <span className="flex items-center whitespace-nowrap">
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-green-500" />
                       Connect with peers
                     </span>
                   </div>
-                  <span className="text-blue-600 font-medium">Join the conversation →</span>
+                  <span className="text-blue-600 font-medium whitespace-nowrap hidden sm:inline">Join the conversation →</span>
                 </div>
               </Card>
             </div>
             {/* END: Create Post Trigger Section */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200">
-              <div className="flex items-center space-x-4">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search in forum..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900"
+                    className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 text-sm sm:text-base"
                   />
                 </div>
-                <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
+                <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 w-full sm:w-auto">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
                 </Button>
@@ -1040,41 +1040,41 @@ export default function Forum() {
                 <div className="text-center py-8 bg-white rounded-2xl border"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" /></div>
               ) : filteredPosts.length > 0 ? (
                 filteredPosts.map((post) => (
-                  <div key={post.id} className="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center space-x-2">
-                            {post.isPinned && <Pin className="h-4 w-4 text-blue-600" />}
-                            {post.hasBestAnswer && <CheckCircle className="h-4 w-4 text-blue-600" />}
-                            <span className="text-xs px-3 py-1 rounded-full font-medium bg-blue-600 text-white capitalize">
-                              <Tag className="h-3 w-3 mr-1 inline" />
+                  <div key={post.id} className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex items-center flex-wrap gap-2">
+                            {post.isPinned && <Pin className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />}
+                            {post.hasBestAnswer && <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />}
+                            <span className="text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium bg-blue-600 text-white capitalize whitespace-nowrap">
+                              <Tag className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1 inline" />
                               {post.category}
                             </span>
                           </div>
-                          <h3 
-                            className="text-lg font-semibold text-slate-900 hover:text-blue-600 cursor-pointer"
+                          <h3
+                            className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 hover:text-blue-600 cursor-pointer break-words line-clamp-2"
                             onClick={() => handlePostClick(post.id)}
                           >
                             {post.title}
                           </h3>
-                          <p className="text-sm text-slate-600">{post.excerpt}</p>
+                          <p className="text-xs sm:text-sm text-slate-600 break-words line-clamp-2">{post.excerpt}</p>
 
                           {/* Display attachment indicators only */}
                           {post.attachments && post.attachments.length > 0 && (
-                            <div className="flex items-center space-x-2 mt-2">
+                            <div className="flex items-center flex-wrap gap-2 mt-1">
                               {post.attachments.some(att => att.type.startsWith('image/')) && (
-                                <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                                  <Image className="h-3 w-3" />
-                                  <span>
+                                <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                  <Image className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                  <span className="text-[10px] sm:text-xs">
                                     {post.attachments.filter(att => att.type.startsWith('image/')).length} image(s)
                                   </span>
                                 </div>
                               )}
                               {post.attachments.some(att => att.type.startsWith('video/')) && (
-                                <div className="flex items-center space-x-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
-                                  <Video className="h-3 w-3" />
-                                  <span>
+                                <div className="flex items-center space-x-1 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                                  <Video className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                  <span className="text-[10px] sm:text-xs">
                                     {post.attachments.filter(att => att.type.startsWith('video/')).length} video(s)
                                   </span>
                                 </div>
@@ -1083,53 +1083,55 @@ export default function Forum() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                        <div className="flex items-center space-x-6">
-                          <div className="flex items-center space-x-1 text-sm text-slate-900"><MessageSquare className="h-4 w-4" /><span>{post.replies}</span></div>
-                          <div className="flex items-center space-x-1 text-sm text-slate-900"><Eye className="h-4 w-4" /><span>{post.views}</span></div>
-                          <button 
+                      <div className="flex flex-col gap-3 pt-3 sm:pt-4 border-t border-slate-200">
+                        <div className="flex items-center gap-3 sm:gap-6">
+                          <div className="flex items-center space-x-1 text-xs sm:text-sm text-slate-900"><MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span>{post.replies}</span></div>
+                          <div className="flex items-center space-x-1 text-xs sm:text-sm text-slate-900"><Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span>{post.views}</span></div>
+                          <button
                             onClick={(e) => { e.stopPropagation(); handleLikePost(post.id); }}
-                            className={`flex items-center space-x-1 text-sm transition-colors ${likedPosts.includes(post.id) || post.isLikedByUser ? 'text-blue-600' : 'text-slate-900 hover:text-blue-600'}`}
+                            className={`flex items-center space-x-1 text-xs sm:text-sm transition-colors ${likedPosts.includes(post.id) || post.isLikedByUser ? 'text-blue-600' : 'text-slate-900 hover:text-blue-600'}`}
                           >
-                            <ThumbsUp className={`h-4 w-4 ${likedPosts.includes(post.id) || post.isLikedByUser ? 'fill-current' : ''}`} />
+                            <ThumbsUp className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${likedPosts.includes(post.id) || post.isLikedByUser ? 'fill-current' : ''}`} />
                             <span>{post.likes}</span>
                           </button>
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleBookmarkPost(post.id); }} className={`${bookmarkedPosts.includes(post.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100 px-2 sm:px-3 h-7 sm:h-8`}>
+                            <Bookmark className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${bookmarkedPosts.includes(post.id) ? 'fill-current text-blue-600' : ''}`} />
+                            <span className="hidden sm:inline ml-1.5">Save</span>
+                          </Button>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-xs font-bold text-white">{post.author.charAt(0)}</span>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <div className="flex items-center space-x-1">
-                                <span className="text-sm font-semibold text-slate-900">{post.author}</span>
-                                {post.isVerified && <CheckCircle className="h-3 w-3 text-blue-600" />}
+                                <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{post.author}</span>
+                                {post.isVerified && <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />}
                               </div>
-                              <span className="text-xs text-slate-500">{post.authorTitle}</span>
+                              <span className="text-[10px] sm:text-xs text-slate-500 truncate block">{post.authorTitle}</span>
                             </div>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleBookmarkPost(post.id); }} className={`${bookmarkedPosts.includes(post.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}>
-                            <Bookmark className={`h-4 w-4 mr-1.5 ${bookmarkedPosts.includes(post.id) ? 'fill-current text-blue-600' : ''}`} /> Save
-                          </Button>
-                          <div className="flex items-center space-x-1 text-xs text-slate-500">
-                            <Clock className="h-3 w-3" />
-                            <span>{post.timeAgo}</span>
-                          </div>
-                          {isPostAuthor(post) && (
-                            <div className="relative">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={(e) => { 
-                                  e.stopPropagation(); 
-                                  setOpenDropdown(openDropdown === post.id ? null : post.id) 
-                                }}
-                                className="text-slate-600 hover:text-slate-900"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                              {openDropdown === post.id && (
-                                <div className="absolute right-0 top-8 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-10 min-w-[140px] overflow-hidden">
+                          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+                            <div className="flex items-center space-x-1 text-[10px] sm:text-xs text-slate-500">
+                              <Clock className="h-3 w-3" />
+                              <span className="hidden sm:inline">{post.timeAgo}</span>
+                            </div>
+                            {isPostAuthor(post) && (
+                              <div className="relative">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDropdown(openDropdown === post.id ? null : post.id)
+                                  }}
+                                  className="text-slate-600 hover:text-slate-900"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                                {openDropdown === post.id && (
+                                  <div className="absolute right-0 top-8 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-10 min-w-[120px] sm:min-w-[140px] overflow-hidden">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1157,8 +1159,9 @@ export default function Forum() {
                                   </button>
                                 </div>
                               )}
-                            </div>
-                          )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

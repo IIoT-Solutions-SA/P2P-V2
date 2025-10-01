@@ -225,13 +225,13 @@ export default function Dashboard() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
             {/* Welcome Section */}
-            <div className="bg-slate-800 rounded-2xl p-8 text-white">
-              <div className="flex items-center space-x-3 mb-4">
-                <Sparkles className="h-6 w-6 text-blue-400" />
-                <span className="text-lg font-medium">Good morning!</span>
+            <div className="bg-slate-800 rounded-2xl p-6 sm:p-8 text-white">
+              <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
+                <span className="text-base sm:text-lg font-medium">Good morning!</span>
               </div>
-              <h1 className="text-3xl font-bold mb-3">Welcome back, {user?.firstName || 'User'}! 👋</h1>
-              <p className="text-slate-300 text-lg">Ready to connect and share knowledge today? Here's what's happening in your professional network.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 break-words">Welcome back, {user?.firstName || 'User'}! 👋</h1>
+              <p className="text-slate-300 text-sm sm:text-base lg:text-lg">Ready to connect and share knowledge today? Here's what's happening in your professional network.</p>
             </div>
 
             {/* Quick Actions - Hide on mobile since it's in the hamburger menu */}
@@ -293,67 +293,149 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Your Progress</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-blue-600 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <MessageSquare className="h-8 w-8 text-blue-200" />
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Your Progress</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="bg-blue-600 p-4 sm:p-6 rounded-xl text-white">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">{stats?.questions_asked || 0}</div>
-                      <div className="text-blue-200 text-sm">Questions</div>
+                      <div className="text-xl sm:text-2xl font-bold">{stats?.questions_asked || 0}</div>
+                      <div className="text-blue-200 text-xs sm:text-sm">Questions</div>
                     </div>
                   </div>
-                  <div className="text-sm text-blue-200">Forum posts created</div>
+                  <div className="text-xs sm:text-sm text-blue-200">Forum posts created</div>
                 </div>
-                <div className="bg-slate-600 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <Award className="h-8 w-8 text-slate-200" />
+                <div className="bg-slate-600 p-4 sm:p-6 rounded-xl text-white">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <Award className="h-6 w-6 sm:h-8 sm:w-8 text-slate-200" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">{stats?.answers_given || 0}</div>
-                      <div className="text-slate-200 text-sm">Answers</div>
+                      <div className="text-xl sm:text-2xl font-bold">{stats?.answers_given || 0}</div>
+                      <div className="text-slate-200 text-xs sm:text-sm">Answers</div>
                     </div>
                   </div>
-                  <div className="text-sm text-slate-200">{stats?.best_answers || 0} best answers</div>
+                  <div className="text-xs sm:text-sm text-slate-200">{stats?.best_answers || 0} best answers</div>
                 </div>
-                <div className="bg-blue-500 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <BookmarkCheck className="h-8 w-8 text-blue-200" />
+                <div className="bg-blue-500 p-4 sm:p-6 rounded-xl text-white">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <BookmarkCheck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">{stats?.bookmarks_saved || 0}</div>
-                      <div className="text-blue-200 text-sm">Saved</div>
+                      <div className="text-xl sm:text-2xl font-bold">{stats?.bookmarks_saved || 0}</div>
+                      <div className="text-blue-200 text-xs sm:text-sm">Saved</div>
                     </div>
                   </div>
-                  <div className="text-sm text-blue-200">Bookmarked items</div>
+                  <div className="text-xs sm:text-sm text-blue-200">Bookmarked items</div>
                 </div>
-                <div className="bg-slate-700 p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <Star className="h-8 w-8 text-slate-300" />
+                <div className="bg-slate-700 p-4 sm:p-6 rounded-xl text-white">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <Star className="h-6 w-6 sm:h-8 sm:w-8 text-slate-300" />
                     <div className="text-right">
-                      <div className="text-2xl font-bold">{stats?.reputation_score || 0}</div>
-                      <div className="text-slate-300 text-sm">Reputation</div>
+                      <div className="text-xl sm:text-2xl font-bold">{stats?.reputation_score || 0}</div>
+                      <div className="text-slate-300 text-xs sm:text-sm">Reputation</div>
                     </div>
                   </div>
-                  <div className="text-sm text-slate-300">{stats?.use_cases_submitted || 0} use cases shared</div>
+                  <div className="text-xs sm:text-sm text-slate-300">{stats?.use_cases_submitted || 0} use cases shared</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Access - Mobile Only */}
+            <div className="lg:hidden">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Access</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={async () => { await fetchBookmarks('posts'); setShowBookmarks(true); }}
+                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-900">Saved Posts</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {forumBookmarkCount}
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={async () => { await fetchBookmarks('use-cases'); setShowBookmarks(true); }}
+                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-900">Use Cases</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {useCaseBookmarkCount}
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleQuickAccessClick('My Connections')}
+                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-900">Connections</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-slate-600">
+                      {String(stats?.connections_count || 0)}
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={async () => { await fetchDrafts(); setShowDrafts(true); }}
+                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-900">Drafts</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {String(stats?.draft_posts || 0)}
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Activity Level - Mobile Only */}
+            <div className="lg:hidden">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">This Month</h3>
+              <div className="bg-white rounded-xl p-4 sm:p-6 border border-slate-200">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-600">Activity Level</p>
+                      <p className="text-2xl font-bold text-blue-600">{Math.round(stats?.activity_level || 0)}%</p>
+                    </div>
+                    <div className="p-2 bg-blue-600 rounded-lg">
+                      <Activity className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-3">
+                    <div className="bg-blue-600 h-3 rounded-full" style={{ width: `${Math.round(stats?.activity_level || 0)}%` }}></div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Target className="h-4 w-4 text-green-500" />
+                    <p className="text-xs text-slate-600">
+                      {(stats?.activity_level || 0) > 70
+                        ? "Excellent progress! Keep it up!"
+                        : (stats?.activity_level || 0) > 40
+                          ? "Good activity level"
+                          : "Get more active in the community"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Activity Feed */}
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Recent Activities</h2>
-                  <p className="text-gray-600">Stay updated with community happenings</p>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Activities</h2>
+                  <p className="text-sm sm:text-base text-gray-600">Stay updated with community happenings</p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 self-start sm:self-auto">
                   View All
                 </Button>
               </div>
               <div className="space-y-4">
                 {activities.map((activity, i) => (
-                  <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-3 rounded-lg ${
+                  <div key={i} className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ${
                         activity.type === "question" ? "bg-blue-600" :
                         activity.type === "answer" ? "bg-slate-600" :
                         activity.type === "usecase" ? "bg-blue-500" :
@@ -361,21 +443,21 @@ export default function Dashboard() {
                         activity.type === "like" ? "bg-red-500" :
                         "bg-gray-500"
                       }`}>
-                        {activity.type === "question" && <MessageSquare className="h-5 w-5 text-white" />}
-                        {activity.type === "answer" && <Award className="h-5 w-5 text-white" />}
-                        {(activity.type === "usecase" || activity.type === "case") && <FileText className="h-5 w-5 text-white" />}
-                        {activity.type === "bookmark" && <BookmarkCheck className="h-5 w-5 text-white" />}
-                        {activity.type === "like" && <Star className="h-5 w-5 text-white" />}
-                        {activity.type === "comment" && <MessageSquare className="h-5 w-5 text-white" />}
+                        {activity.type === "question" && <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
+                        {activity.type === "answer" && <Award className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
+                        {(activity.type === "usecase" || activity.type === "case") && <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
+                        {activity.type === "bookmark" && <BookmarkCheck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
+                        {activity.type === "like" && <Star className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
+                        {activity.type === "comment" && <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-slate-900 font-medium mb-1">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base text-slate-900 font-medium mb-1 break-words">
                           <span className="font-semibold">{activity.user}</span> {activity.action}
                         </p>
-                        <p className="text-slate-600 mb-3">{activity.content}</p>
-                        <div className="flex items-center justify-between">
+                        <p className="text-xs sm:text-sm text-slate-600 mb-3 break-words line-clamp-2">{activity.content}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <span className="text-xs text-slate-500">{activity.time}</span>
-                          <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium">{activity.category}</span>
+                          <span className="text-xs bg-slate-100 text-slate-700 px-2 sm:px-3 py-1 rounded-full font-medium whitespace-nowrap self-start">{activity.category}</span>
                         </div>
                       </div>
                     </div>
@@ -385,8 +467,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-8">
+          {/* Sidebar - Hidden on mobile */}
+          <div className="space-y-8 hidden lg:block">
             {/* Profile Summary - Hidden on mobile since it's in hamburger menu */}
             <div className="hidden md:block bg-white rounded-2xl p-6 border border-slate-200">
               <div className="text-center space-y-4">

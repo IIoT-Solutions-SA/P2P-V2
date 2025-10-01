@@ -199,7 +199,7 @@ export default function UseCases() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 font-sans pb-20 md:pb-0">
       <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-          <aside className="lg:col-span-1 space-y-6">
+          <aside className="lg:col-span-1 space-y-6 hidden lg:block">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100">
               <h3 className="font-bold text-slate-800 text-lg mb-4">Categories</h3>
               <div className="space-y-1">
@@ -250,21 +250,22 @@ export default function UseCases() {
               </div>
             </div>
           </aside>
-          <main className="lg:col-span-3 space-y-6">
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-lg p-8 text-white">
-              <h1 className="text-4xl font-bold mb-2">Factory Success Stories</h1>
-              <p className="text-slate-300 text-lg max-w-2xl">Discover proven implementations, learn from industry leaders, and find solutions that work.</p>
+          <main className="lg:col-span-3 w-full space-y-6">
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-lg p-6 sm:p-8 text-white">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Factory Success Stories</h1>
+              <p className="text-slate-300 text-sm sm:text-base lg:text-lg max-w-2xl">Discover proven implementations, learn from industry leaders, and find solutions that work.</p>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-100 flex flex-col gap-4">
               <div className="flex-1 w-full relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <input type="text" placeholder="Search use cases..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
+                <input type="text" placeholder="Search use cases..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base" />
               </div>
-              <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg">
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg overflow-x-auto">
                 {sortOptions.map((option) => (
-                  <Button key={option.id} variant={sortBy === option.id ? "default" : "ghost"} size="sm" onClick={() => setSortBy(option.id)} className={`rounded-md transition-all duration-200 ${sortBy === option.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'}`}>
-                    <option.icon className="h-4 w-4 mr-2" />
-                    {option.name}
+                  <Button key={option.id} variant={sortBy === option.id ? "default" : "ghost"} size="sm" onClick={() => setSortBy(option.id)} className={`rounded-md transition-all duration-200 whitespace-nowrap text-xs sm:text-sm ${sortBy === option.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'}`}>
+                    <option.icon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">{option.name}</span>
+                    <span className="sm:hidden">{option.name.split(' ')[0]}</span>
                   </Button>
                 ))}
               </div>
@@ -274,61 +275,61 @@ export default function UseCases() {
               {!loading && useCases.map((useCase, idx) => (
                 <div key={useCase.id} className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 overflow-hidden">
                     <div className="cursor-pointer" onClick={() => navigate(`/usecases/${useCase.company_slug}/${useCase.title_slug}`)}>
-                      <div className="p-6">
+                      <div className="p-4 sm:p-6">
                         <div className="flex items-start justify-between">
-                            <div className="flex-1 space-y-3">
-                                <div className="flex items-center space-x-3">
-                                    {useCase.featured && <span className="flex items-center text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Star className="h-4 w-4 mr-1" /> Featured</span>}
-                                    <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">{useCase.category}</span>
+                            <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
+                                <div className="flex items-center flex-wrap gap-2">
+                                    {useCase.featured && <span className="flex items-center text-[10px] sm:text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap"><Star className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" /> Featured</span>}
+                                    <span className="text-[10px] sm:text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">{useCase.category}</span>
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-800">{useCase.title}</h3>
-                                <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
-                                    <span className="flex items-center"><Building2 className="h-4 w-4 mr-1.5 text-slate-400" />{useCase.company}</span>
-                                    <span className="flex items-center"><Clock className="h-4 w-4 mr-1.5 text-slate-400" />{useCase.timeframe}</span>
+                                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-800 break-words">{useCase.title}</h3>
+                                <div className="flex items-center flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-500">
+                                    <span className="flex items-center whitespace-nowrap"><Building2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 text-slate-400 flex-shrink-0" /><span className="truncate">{useCase.company}</span></span>
+                                    <span className="flex items-center whitespace-nowrap"><Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 text-slate-400 flex-shrink-0" />{useCase.timeframe}</span>
                                 </div>
-                                <p className="text-slate-600 leading-relaxed pt-1" style={{wordBreak:'break-word', overflowWrap:'anywhere'}}>{useCase.description}</p>
+                                <p className="text-xs sm:text-sm lg:text-base text-slate-600 leading-relaxed pt-1 break-words line-clamp-3">{useCase.description}</p>
                             </div>
                         </div>
                       </div>
-                      <div className="bg-slate-50/70 px-6 py-4 border-t border-slate-100">
-                        <h4 className="font-semibold text-slate-700 mb-3 text-sm">Key Results</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="bg-slate-50/70 px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100">
+                        <h4 className="font-semibold text-slate-700 mb-2 sm:mb-3 text-xs sm:text-sm">Key Results</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                             {parseBenefits(useCase.results.benefits).map((stat, i) => (
-                                <div key={i} className="bg-white p-3 rounded-lg border border-slate-200 text-center">
-                                    <div className="text-2xl font-bold text-blue-600">{stat.value}</div>
-                                    <div className="text-xs text-slate-500 capitalize">{stat.label}</div>
+                                <div key={i} className="bg-white p-2 sm:p-3 rounded-lg border border-slate-200 text-center">
+                                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 break-words">{stat.value}</div>
+                                    <div className="text-[10px] sm:text-xs text-slate-500 capitalize break-words line-clamp-2">{stat.label}</div>
                                 </div>
                             ))}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-4 text-sm">
-                            <span className="flex items-center text-slate-900" title="Views">
-                              <Eye className="h-4 w-4 mr-1.5" /> {useCase.views}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 gap-3">
+                        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+                            <span className="flex items-center text-slate-900 whitespace-nowrap" title="Views">
+                              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" /> {useCase.views}
                             </span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className={`${likedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}
+                              className={`${likedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100 px-2 sm:px-3 h-7 sm:h-8`}
                               onClick={(e) => handleLike(e, useCase, idx)}
                             >
-                              <ThumbsUp className={`h-4 w-4 mr-1.5 ${likedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.likes}
+                              <ThumbsUp className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 ${likedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.likes}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className={`${bookmarkedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}
+                              className={`${bookmarkedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100 px-2 sm:px-3 h-7 sm:h-8`}
                               onClick={(e) => handleBookmark(e, useCase, idx)}
                             >
-                              <Bookmark className={`h-4 w-4 mr-1.5 ${bookmarkedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.saves}
+                              <Bookmark className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 ${bookmarkedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.saves}
                             </Button>
                         </div>
-                        <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center"><span className="text-xs font-bold text-slate-600">{useCase.publishedBy.charAt(0)}</span></div>
-                            <div>
-                                <p className="text-sm font-semibold text-slate-800">{useCase.publishedBy}</p>
-                                <p className="text-xs text-slate-500">{useCase.publisherTitle}</p>
+                        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0"><span className="text-xs font-bold text-slate-600">{useCase.publishedBy.charAt(0)}</span></div>
+                            <div className="min-w-0">
+                                <p className="text-xs sm:text-sm font-semibold text-slate-800 truncate">{useCase.publishedBy}</p>
+                                <p className="text-[10px] sm:text-xs text-slate-500 truncate">{useCase.publisherTitle}</p>
                             </div>
                         </div>
                     </div>

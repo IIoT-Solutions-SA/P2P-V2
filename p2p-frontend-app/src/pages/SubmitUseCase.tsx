@@ -312,7 +312,15 @@ export default function SubmitUseCase() {
       try {
         const saved = localStorage.getItem(FORM_STORAGE_KEY)
         if (saved) {
-          const { formData, currentStep: savedStep, timestamp } = JSON.parse(saved)
+          const { formData, currentStep: savedStep, timestamp, wasSubmitted } = JSON.parse(saved)
+
+          // If form was previously submitted successfully, clear localStorage and don't restore
+          if (wasSubmitted) {
+            console.log('Previous submission detected - clearing saved data')
+            localStorage.removeItem(FORM_STORAGE_KEY)
+            return
+          }
+
           // Only restore if saved within last 24 hours
           if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
             // Automatically restore saved form data without asking
@@ -320,6 +328,9 @@ export default function SubmitUseCase() {
               form.setValue(key as any, formData[key])
             })
             setCurrentStep(savedStep)
+          } else {
+            // Data is too old, clear it
+            localStorage.removeItem(FORM_STORAGE_KEY)
           }
         }
       } catch (error) {
@@ -807,11 +818,15 @@ export default function SubmitUseCase() {
       }
 
       setIsSubmitted(true)
-      // Clear saved form data on successful submission
-      localStorage.removeItem(FORM_STORAGE_KEY)
-      // Only clear form if not in edit mode
-      if (!isEditMode) {
-        // Form will be reset when user clicks "Submit Another"
+
+      // Mark in localStorage that submission was successful so we don't restore this data
+      try {
+        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify({
+          wasSubmitted: true,
+          timestamp: Date.now()
+        }))
+      } catch (error) {
+        console.error('Failed to mark submission in localStorage:', error)
       }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'submitting'} use case:`, error)
@@ -1053,22 +1068,59 @@ export default function SubmitUseCase() {
           <div className="flex gap-4">
             <Button
               onClick={() => {
-                // Reset everything
+                // Reset everything completely
                 setIsSubmitted(false)
                 setCurrentStep(1)
                 form.reset()
+
+                // Reset all image states
                 setUploadedImages([])
                 setExistingImages([])
+
+                // Reset required arrays
                 setSpecificProblems(["", ""])
                 setSelectionCriteria(["", ""])
                 setTechnologyComponents([""])
+
+                // Reset optional vendor fields
                 setVendorProcess("")
                 setVendorSelectionReasons([])
+
+                // Reset team fields
                 setProjectTeamInternal([{ role: "", name: "", title: "" }])
                 setProjectTeamVendor([{ role: "", name: "", title: "" }])
                 setPhases([{ phase: "", duration: "", objectives: [""], keyActivities: [""], budget: "" }])
+
+                // Reset ROI fields
+                setRoiTotalInvestment("")
+                setRoiThreeYearRoi("")
+
+                // Reset results and challenges
+                setQuantitativeResults([
+                  { metric: "", baseline: "", current: "", improvement: "" },
+                  { metric: "", baseline: "", current: "", improvement: "" }
+                ])
+                setChallengesSolutions([{ challenge: "", description: "", solution: "", outcome: "" }])
                 setQualitativeImpacts([])
+
+                // Reset tags
+                setIndustryTags([])
+                setTechnologyTags([])
+
+                // Reset technical architecture fields
+                setSystemOverview("")
+                setArchitectureComponents([{ layer: "", components: [""], specifications: "" }])
+                setSecurityMeasures([""])
+                setScalabilityDesign([""])
+
+                // Reset lessons learned and future roadmap
+                setLessonsLearned([{ category: "", lesson: "", description: "", recommendation: "" }])
+                setFutureRoadmap([{ timeline: "", initiative: "", description: "", expected_benefit: "" }])
+
+                // Clear localStorage
                 localStorage.removeItem(FORM_STORAGE_KEY)
+
+                // Scroll to top
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
               className="bg-green-600 hover:bg-green-700 text-white"
@@ -1076,7 +1128,11 @@ export default function SubmitUseCase() {
               Submit Another
             </Button>
             <Button
-              onClick={() => window.location.href = '/usecases'}
+              onClick={() => {
+                // Clear everything immediately
+                localStorage.removeItem(FORM_STORAGE_KEY)
+                window.location.href = '/usecases'
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isEditMode ? 'View Use Cases' : 'Browse Use Cases'}

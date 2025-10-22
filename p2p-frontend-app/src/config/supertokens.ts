@@ -1,5 +1,6 @@
 import SuperTokens from "supertokens-auth-react";
 import EmailPassword from "supertokens-auth-react/recipe/emailpassword";
+import EmailVerification from "supertokens-auth-react/recipe/emailverification";
 import Session from "supertokens-auth-react/recipe/session";
 import { API_BASE_URL, WEBSITE_BASE_URL } from './environment';
 
@@ -24,6 +25,9 @@ SuperTokens.init({
                     ]
                 }
             }
+        }),
+        EmailVerification.init({
+            mode: "REQUIRED"
         }),
         Session.init()
     ]

@@ -3,6 +3,8 @@ import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import MemberSignup from './pages/MemberSignup'
+import EmailVerificationPending from './pages/EmailVerificationPending'
+import EmailVerificationSuccess from './pages/EmailVerificationSuccess'
 import Dashboard from './pages/Dashboard'
 import Forum from './pages/Forum'
 import UseCases from './pages/UseCases'
@@ -30,7 +32,9 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/join" element={<MemberSignup />} />
-              
+              <Route path="/verify-email" element={<EmailVerificationPending />} />
+              <Route path="/auth/verify-email" element={<EmailVerificationSuccess />} />
+
               {/* Protected Routes */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>

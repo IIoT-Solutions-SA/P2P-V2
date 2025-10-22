@@ -86,10 +86,10 @@ export default function Signup() {
 
     try {
       // Step 1: Create account
-      await signup(formData)
+      const signupResponse = await signup(formData)
 
-      // Step 2: Upload profile picture if provided
-      if (profilePicture) {
+      // Step 2: Upload profile picture if provided (only if no email verification needed)
+      if (profilePicture && signupResponse && !signupResponse.requiresEmailVerification) {
         try {
           const formData = new FormData()
           formData.append('file', profilePicture)
@@ -109,7 +109,14 @@ export default function Signup() {
         }
       }
 
-      navigate('/dashboard')
+      // Check if email verification is required (admin signup)
+      if (signupResponse && signupResponse.requiresEmailVerification) {
+        // Redirect to verification pending page
+        navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)
+      } else {
+        // Invited member - no verification needed, go to dashboard
+        navigate('/dashboard')
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Signup failed')
     } finally {

@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from supertokens_python.recipe.emailpassword.asyncio import sign_in, sign_up
 from supertokens_python.recipe.session.asyncio import create_new_session
+from supertokens_python.recipe.emailverification.asyncio import create_email_verification_token, verify_email_using_token
 import logging
 
 from app.core.database import get_db
@@ -96,7 +97,7 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
         if isinstance(supertokens_result, SignUpOkResult):
             supertokens_user = supertokens_result.user
             logger.info(f"SuperTokens user created with ID: {supertokens_user.id}")
-            
+
             logger.info("Creating user in database")
             await UserService.create_user_with_profile(
                 db=db,
@@ -105,14 +106,58 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
                 profile_data=profile_data
             )
             logger.info("User created successfully in database")
-            
-            # Mark invitation as used if this was an invited signup
+
+            # Handle email verification based on user type
             if invite_token:
+                # Invited members: Mark invitation as used and verify email automatically
                 from app.services import invitation_service
                 await invitation_service.mark_invitation_used(invite_token)
                 logger.info(f"Marked invitation as used: {invite_token}")
 
-            return JSONResponse(status_code=200, content={"status": "OK", "message": "User created successfully."})
+                # Automatically verify email for invited members (they received invite email)
+                try:
+                    from supertokens_python.recipe.emailverification.syncio import unverify_email, create_email_verification_token as sync_create_token
+                    from supertokens_python.recipe.emailverification.asyncio import verify_email_using_token
+
+                    # Create and immediately verify token for invited members
+                    token_result = await create_email_verification_token("public", supertokens_result.recipe_user_id, email)
+                    if hasattr(token_result, 'token'):
+                        await verify_email_using_token("public", token_result.token)
+                        logger.info(f"Automatically verified email for invited member: {email}")
+                except Exception as e:
+                    logger.warning(f"Could not auto-verify invited member email: {str(e)}")
+
+                return JSONResponse(status_code=200, content={
+                    "status": "OK",
+                    "message": "User created successfully.",
+                    "requiresEmailVerification": False
+                })
+            else:
+                # Admin signup: Send verification email
+                logger.info(f"Admin signup - sending verification email to: {email}")
+
+                try:
+                    from supertokens_python.recipe.emailverification.asyncio import send_email_verification_email
+
+                    # Manually trigger verification email send
+                    # Parameters: tenant_id, user_id, recipe_user_id, email
+                    await send_email_verification_email(
+                        "public",
+                        supertokens_user.id,
+                        supertokens_result.recipe_user_id,
+                        email
+                    )
+                    logger.info(f"Verification email sent successfully to: {email}")
+                except Exception as e:
+                    logger.error(f"Failed to send verification email: {str(e)}")
+                    # Still return success - user is created, they can resend email later
+
+                return JSONResponse(status_code=200, content={
+                    "status": "OK",
+                    "message": "User created successfully. Please check your email to verify your account.",
+                    "requiresEmailVerification": True,
+                    "email": email
+                })
             
         elif hasattr(supertokens_result, 'status') and supertokens_result.status == "EMAIL_ALREADY_EXISTS_ERROR":
             logger.warning("Email already exists during sign-up")
@@ -154,20 +199,37 @@ async def post_signin(request: Request, response: Response):
             user = result.user
             logger.info(f"Sign-in successful for user ID: {user.id}")
             logger.info(f"Recipe user ID: {result.recipe_user_id}")
-            
+
+            # Check if email is verified
+            from supertokens_python.recipe.emailverification.asyncio import is_email_verified
+
+            email_verified = await is_email_verified(result.recipe_user_id)
+            logger.info(f"Email verification status for {email}: {email_verified}")
+
+            if not email_verified:
+                logger.warning(f"Login attempt with unverified email: {email}")
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "status": "EMAIL_NOT_VERIFIED",
+                        "message": "Please verify your email before logging in. Check your inbox for the verification link.",
+                        "email": email
+                    }
+                )
+
             # Create session using the FastAPI response object
             logger.info("Creating new session")
             # Use the recipe_user_id from the result, not the user.id string
             session = await create_new_session(request, response, result.recipe_user_id)
             logger.info(f"Session created with handle: {session.get_handle()}")
-            
+
             # Set the response body manually
             response.status_code = 200
             import json
             response_data = {"status": "OK", "message": "Login successful!", "userId": user.id}
             response.body = json.dumps(response_data).encode()
             response.headers["content-type"] = "application/json"
-            
+
             logger.info("Returning response with session cookies")
             logger.info(f"Response headers: {dict(response.headers)}")
             return response

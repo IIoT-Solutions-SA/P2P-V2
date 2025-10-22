@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (data: SignupData): Promise<void> => {
+  const signup = async (data: SignupData): Promise<{ requiresEmailVerification?: boolean; email?: string } | void> => {
     const payload = {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -86,8 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...(data.inviteToken && { inviteToken: data.inviteToken }),
         ...(data.isInvited && { isInvited: data.isInvited })
     };
-    
-    // --- FINAL FIX APPLIED HERE ---
+
     // STEP 1: Call the custom signup endpoint to create the user.
     const signupResponse = await fetch(buildApiUrl('/api/v1/auth/custom-signup'), {
         method: 'POST',
@@ -99,8 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signupResult = await signupResponse.json();
 
     if (signupResult.status === 'OK') {
-        // STEP 2: If user creation was successful, immediately call login to create the session.
+        // Check if email verification is required (admin signup)
+        if (signupResult.requiresEmailVerification) {
+            // Return info for frontend to redirect to verification page
+            return {
+                requiresEmailVerification: true,
+                email: signupResult.email || data.email
+            };
+        }
+
+        // STEP 2: If user creation was successful and no verification needed, immediately call login to create the session.
         await login({ email: data.email, password: data.password });
+        return { requiresEmailVerification: false };
     } else {
         throw new Error(signupResult.message || 'Signup failed');
     }

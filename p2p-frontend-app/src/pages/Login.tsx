@@ -37,7 +37,24 @@ export default function Login() {
       await login({ email, password })
       navigate(from, { replace: true })
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Login failed')
+      const errorMessage = error instanceof Error ? error.message : 'Login failed'
+
+      // Check if it's an email verification error
+      if (errorMessage.includes('verify your email') || errorMessage.includes('EMAIL_NOT_VERIFIED')) {
+        setError(
+          <div className="flex flex-col space-y-2">
+            <p>Please verify your email before logging in.</p>
+            <button
+              onClick={() => navigate(`/verify-email?email=${encodeURIComponent(email)}`)}
+              className="text-blue-600 hover:text-blue-700 font-medium underline text-sm"
+            >
+              Resend verification email
+            </button>
+          </div> as any
+        )
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }

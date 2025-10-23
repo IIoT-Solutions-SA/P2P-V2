@@ -45,14 +45,14 @@ class Settings(BaseSettings):
     AWS_REGION: str = "me-south-1"
 
     # S3 Bucket Names - PRODUCTION
-    #S3_PROFILE_PICTURES_BUCKET: str = "p2p-prod-profile-images"
-    #S3_FORUM_MEDIA_BUCKET: str = "p2p-prod-forum-media"
-    #S3_USECASE_MEDIA_BUCKET: str = "p2p-prod-usecase-media"
+    S3_PROFILE_PICTURES_BUCKET: str = "p2p-prod-profile-images"
+    S3_FORUM_MEDIA_BUCKET: str = "p2p-prod-forum-media"
+    S3_USECASE_MEDIA_BUCKET: str = "p2p-prod-usecase-media"
 
     # S3 Bucket Names - DEVELOPMENT (Keep for local testing)
-    S3_PROFILE_PICTURES_BUCKET: str = "p2p-dev-profile-images"
-    S3_FORUM_MEDIA_BUCKET: str = "p2p-dev-forum-media"
-    S3_USECASE_MEDIA_BUCKET: str = "p2p-dev-usecase-media"
+    #S3_PROFILE_PICTURES_BUCKET: str = "p2p-dev-profile-images"
+    #S3_FORUM_MEDIA_BUCKET: str = "p2p-dev-forum-media"
+    #S3_USECASE_MEDIA_BUCKET: str = "p2p-dev-usecase-media"
 
     # CloudFront CDN (optional - use direct S3 URLs if not set)
     CLOUDFRONT_DOMAIN: Optional[str] = None

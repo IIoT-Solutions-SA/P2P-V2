@@ -104,7 +104,8 @@ async def get_current_user(
             "location": mongo_profile.location if mongo_profile and hasattr(mongo_profile, 'location') else "",
             "industrySector": organization["industry"],  # Use organization's industry
             "expertiseTags": mongo_profile.expertise_tags if mongo_profile and hasattr(mongo_profile, 'expertise_tags') else [],
-            "organizationId": organization["id"],  
+            "organizationId": organization["id"],
+            "profilePictureUrl": user.profile_picture_url,  # Profile picture from PostgreSQL (camelCase for frontend)
             "isActive": user.is_active,
             "lastLogin": user.updated_at,  # Using updated_at as proxy for last login
             "createdAt": user.created_at

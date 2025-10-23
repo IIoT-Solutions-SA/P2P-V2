@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button"
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
 import { EditProfilePanel } from "@/components/EditProfilePanel"
-import { 
-  MessageSquare, 
-  FileText, 
-  Users, 
-  BookmarkCheck, 
+import { Avatar } from "@/components/ui/Avatar"
+import { ComingSoonModal } from "@/components/ui/ComingSoonModal"
+import {
+  MessageSquare,
+  FileText,
+  Users,
+  BookmarkCheck,
   Award,
   Calendar,
   Sparkles,
@@ -53,6 +55,7 @@ export default function Dashboard() {
   const [bookmarkModalTitle, setBookmarkModalTitle] = useState<string>('Saved Items')
   const [showDrafts, setShowDrafts] = useState(false)
   const [showEditProfile, setShowEditProfile] = useState(false)
+  const [showComingSoon, setShowComingSoon] = useState(false)
   const [bookmarks, setBookmarks] = useState<any[]>([])
   const [drafts, setDrafts] = useState<any[]>([])
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
@@ -202,8 +205,8 @@ export default function Dashboard() {
       await fetchDrafts()
       setShowDrafts(true)
     } else if (type === 'My Connections') {
-      // TODO: Implement connections - for now just show a message
-      alert('Connections feature coming soon!')
+      // TODO: Implement connections - for now just show coming soon modal
+      setShowComingSoon(true)
     }
   }
 
@@ -276,8 +279,8 @@ export default function Dashboard() {
                     </div>
                   </button>
                 ) : (
-                  <button 
-                    onClick={() => navigate('/connect')}
+                  <button
+                    onClick={() => setShowComingSoon(true)}
                     className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
                     <div className="bg-blue-500 p-4 rounded-lg mb-4 group-hover:bg-blue-600 transition-colors">
                       <Users className="h-6 w-6 text-white" />
@@ -473,9 +476,11 @@ export default function Dashboard() {
             <div className="hidden md:block bg-white rounded-2xl p-6 border border-slate-200">
               <div className="text-center space-y-4">
                 <div className="relative inline-block">
-                  <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">{user?.firstName?.charAt(0) || 'U'}</span>
-                  </div>
+                  <Avatar
+                    src={user?.profilePictureUrl}
+                    name={`${user?.firstName} ${user?.lastName}`}
+                    size="xl"
+                  />
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
@@ -780,6 +785,14 @@ export default function Dashboard() {
           // Reload user data after successful update
           await loadDashboard()
         }}
+      />
+
+      {/* Coming Soon Modal */}
+      <ComingSoonModal
+        isOpen={showComingSoon}
+        onClose={() => setShowComingSoon(false)}
+        featureName="Connect with Members"
+        description="This feature will allow you to browse and connect with other professionals in your organization."
       />
     </div>
   )

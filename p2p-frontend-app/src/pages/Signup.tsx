@@ -88,33 +88,40 @@ export default function Signup() {
       // Step 1: Create account
       const signupResponse = await signup(formData)
 
-      // Step 2: Upload profile picture if provided (only if no email verification needed)
-      if (profilePicture && signupResponse && !signupResponse.requiresEmailVerification) {
-        try {
-          const formData = new FormData()
-          formData.append('file', profilePicture)
-
-          const response = await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
-            method: 'POST',
-            body: formData,
-            credentials: 'include' // Include session cookies
-          })
-
-          if (!response.ok) {
-            console.warn('Profile picture upload failed, but account was created')
-          }
-        } catch (uploadError) {
-          console.warn('Profile picture upload failed:', uploadError)
-          // Don't fail the entire signup process
-        }
-      }
-
       // Check if email verification is required (admin signup)
       if (signupResponse && signupResponse.requiresEmailVerification) {
+        // Store profile picture in localStorage for upload after email verification
+        if (profilePicture) {
+          const reader = new FileReader()
+          reader.onload = () => {
+            localStorage.setItem('pendingProfilePicture', reader.result as string)
+            localStorage.setItem('pendingProfilePictureType', profilePicture.type)
+          }
+          reader.readAsDataURL(profilePicture)
+        }
         // Redirect to verification pending page
         navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)
       } else {
-        // Invited member - no verification needed, go to dashboard
+        // Invited member - no verification needed, upload profile picture now
+        if (profilePicture && signupResponse) {
+          try {
+            const formData = new FormData()
+            formData.append('file', profilePicture)
+
+            const response = await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
+              method: 'POST',
+              body: formData,
+              credentials: 'include'
+            })
+
+            if (!response.ok) {
+              console.warn('Profile picture upload failed, but account was created')
+            }
+          } catch (uploadError) {
+            console.warn('Profile picture upload failed:', uploadError)
+          }
+        }
+        // Go to dashboard
         navigate('/dashboard')
       }
     } catch (error) {

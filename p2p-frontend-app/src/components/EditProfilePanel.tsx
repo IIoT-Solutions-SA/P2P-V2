@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Save, Loader2, Plus, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
@@ -50,7 +50,9 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
   })
 
   useEffect(() => {
+    console.log('EditProfilePanel useEffect triggered', { hasUser: !!user, isOpen })
     if (user && isOpen) {
+      console.log('Resetting form data')
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -185,27 +187,37 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
     }
   }
 
-  const handleProfilePictureUpload = async (file: File) => {
+  const handleProfilePictureUpload = useCallback(async (file: File) => {
+    console.log('handleProfilePictureUpload called with file:', file.name)
     try {
       const formData = new FormData()
       formData.append('file', file)
 
+      console.log('Sending POST request to /api/v1/media/profile-picture')
       const response = await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
         method: 'POST',
         body: formData,
         credentials: 'include'
       })
 
+      console.log('Upload response:', response.status, response.ok)
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Upload failed:', errorText)
         throw new Error('Failed to upload profile picture')
       }
+
+      const result = await response.json()
+      console.log('Upload successful:', result)
 
       await refreshProfile()
       setSuccessMessage('Profile picture updated successfully!')
     } catch (err) {
+      console.error('Upload error:', err)
       setError(err instanceof Error ? err.message : 'Failed to upload profile picture')
     }
-  }
+  }, [refreshProfile])
 
   if (!isOpen) return null
 
@@ -265,20 +277,21 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
 
           {/* Profile Tab */}
           {activeTab === 'profile' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <>
+              {/* Profile Picture Section - OUTSIDE form to prevent conflicts */}
+              <div className="text-center py-6 border-b border-gray-200 mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-4">
+                  Profile Picture
+                </label>
+                <ProfilePictureEditor
+                  currentImageUrl={user?.profilePictureUrl || undefined}
+                  onImageUpload={handleProfilePictureUpload}
+                  size="lg"
+                  disabled={loading}
+                />
+              </div>
 
-            {/* Profile Picture Section */}
-            <div className="text-center py-6 border-b border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-4">
-                Profile Picture
-              </label>
-              <ProfilePictureEditor
-                currentImageUrl={user?.profilePictureUrl || undefined}
-                onImageUpload={handleProfilePictureUpload}
-                size="lg"
-                disabled={loading}
-              />
-            </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -430,6 +443,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
               </Button>
             </div>
           </form>
+            </>
           )}
 
           {/* Account Tab */}

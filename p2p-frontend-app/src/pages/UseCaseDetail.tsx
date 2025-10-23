@@ -3,15 +3,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { buildApiUrl } from '@/config/environment';
 import { Button } from "@/components/ui/button";
 import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal";
-import { 
-  ArrowLeft, 
-  Factory, 
-  MapPin, 
-  Calendar, 
-  TrendingUp, 
-  CheckCircle, 
-  Users, 
-  Download, 
+import { MediaGallery } from "@/components/ui/MediaGallery";
+import {
+  ArrowLeft,
+  Factory,
+  MapPin,
+  Calendar,
+  TrendingUp,
+  CheckCircle,
+  Users,
+  Download,
   Share2,
   Bookmark,
   Eye,
@@ -660,82 +661,22 @@ export default function UseCaseDetail() {
 
           {/* Images Gallery */}
           {useCase && useCase.images && useCase.images.length > 0 && (
-            <div style={{
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              padding: '32px',
-              marginBottom: '32px',
-              borderRadius: '16px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              <h2 style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                marginBottom: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                color: '#111827'
-              }}>
-                <svg className="h-6 w-6 mr-3" style={{width: '24px', height: '24px', marginRight: '12px', color: '#9333ea'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white border border-slate-200 p-8 mb-8 rounded-2xl shadow-sm">
+              <h2 className="text-2xl font-bold mb-6 flex items-center text-slate-800">
+                <svg className="h-6 w-6 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Implementation Gallery
               </h2>
 
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: window.innerWidth > 1024 ? 'repeat(3, 1fr)' : window.innerWidth > 768 ? 'repeat(2, 1fr)' : '1fr',
-                gap: '24px'
-              }}>
-                {useCase.images.map((image, index) => (
-                  <div key={index} style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    <img
-                      src={image}
-                      alt={`${useCase.title} - Image ${index + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '200px',
-                        objectFit: 'cover'
-                      }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: 'rgba(0,0,0,0)',
-                      transition: 'background-color 0.3s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.2)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0)'}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: 0,
-                        transition: 'opacity 0.3s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
-                        <Eye className="h-5 w-5 text-gray-600" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <MediaGallery
+                items={useCase.images.map((image, index) => ({
+                  url: image,
+                  filename: `${useCase.title} - Image ${index + 1}`,
+                  type: 'image/jpeg',
+                  isVideo: false
+                }))}
+              />
             </div>
           )}
 

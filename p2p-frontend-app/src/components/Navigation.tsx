@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { EditProfilePanel } from '@/components/EditProfilePanel'
+import { Avatar } from '@/components/ui/Avatar'
 
 export default function Navigation() {
   const { user, organization, isAuthenticated, logout } = useAuth()
@@ -107,11 +108,11 @@ export default function Navigation() {
                     onClick={() => navigate('/dashboard')}
                     className="flex items-center space-x-3 hover:opacity-80 cursor-pointer"
                   >
-                    <div className="w-8 lg:w-10 h-8 lg:h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {user?.firstName?.charAt(0) || 'U'}
-                      </span>
-                    </div>
+                    <Avatar
+                      src={user?.profilePictureUrl}
+                      name={`${user?.firstName} ${user?.lastName}`}
+                      size="md"
+                    />
                     <div className="hidden xl:block text-left">
                       <div className="text-sm font-semibold text-slate-900">
                         {user?.firstName} {user?.lastName}
@@ -136,11 +137,11 @@ export default function Navigation() {
               <div className="flex xl:hidden items-center space-x-2">
                 {isAuthenticated && (
                   <div className="flex items-center">
-                    <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-bold text-white">
-                        {user?.firstName?.charAt(0) || 'U'}
-                      </span>
-                    </div>
+                    <Avatar
+                      src={user?.profilePictureUrl}
+                      name={`${user?.firstName} ${user?.lastName}`}
+                      size="sm"
+                    />
                     <span className="ml-2 mr-1 text-sm font-medium text-slate-700 max-w-[80px] truncate">
                       {user?.firstName}
                     </span>
@@ -182,11 +183,12 @@ export default function Navigation() {
               {isAuthenticated && (
                 <div className="pb-4 border-b border-slate-200">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg font-bold text-white">
-                        {user?.firstName?.charAt(0) || 'U'}
-                      </span>
-                    </div>
+                    <Avatar
+                      src={user?.profilePictureUrl}
+                      name={`${user?.firstName} ${user?.lastName}`}
+                      size="lg"
+                      className="flex-shrink-0"
+                    />
                     <div className="overflow-hidden">
                       <div className="font-semibold text-slate-900 truncate">
                         {user?.firstName} {user?.lastName}

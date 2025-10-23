@@ -98,21 +98,27 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
                 )}
 
                 {/* Overlay controls */}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <div className="flex space-x-2">
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black bg-opacity-0 group-hover:bg-opacity-40">
+                  <div className="flex space-x-3 z-10">
                     <button
-                      onClick={() => openModal(item)}
-                      className="p-2 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openModal(item);
+                      }}
+                      className="p-3 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-lg"
                       title="View full size"
                     >
-                      <Expand className="w-4 h-4" />
+                      <Expand className="w-5 h-5 text-gray-700" />
                     </button>
                     <button
-                      onClick={() => handleDownload(item)}
-                      className="p-2 bg-white bg-opacity-80 rounded-full hover:bg-opacity-100 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item);
+                      }}
+                      className="p-3 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-lg"
                       title="Download"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-5 h-5 text-gray-700" />
                     </button>
                   </div>
                 </div>
@@ -144,12 +150,12 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({
 
       {/* Full-size modal */}
       {isModalOpen && selectedItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-          <div className="relative max-w-4xl max-h-full">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={closeModal}>
+          <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
             {/* Close button */}
             <button
               onClick={closeModal}
-              className="absolute top-4 right-4 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors z-10"
+              className="absolute -top-12 right-0 p-2 bg-white/90 text-slate-700 rounded-full hover:bg-white transition-colors z-10"
             >
               <X className="w-6 h-6" />
             </button>

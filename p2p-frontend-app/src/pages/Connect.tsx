@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ComingSoonModal } from '../components/ui/ComingSoonModal';
 // import { API_BASE_URL } from '../config/environment'; // Will be used when Connect feature is enabled
 import './Connect.css';
 
@@ -24,6 +25,7 @@ export default function Connect() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading] = useState(true); // Will be managed when Connect feature is enabled
   const [error] = useState<string | null>(null); // Will be managed when Connect feature is enabled
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
   useEffect(() => {
     // If user is admin, redirect to user management
@@ -31,10 +33,9 @@ export default function Connect() {
       navigate('/user-management');
       return;
     }
-    
-    // Show coming soon alert for members
-    alert('Connect feature coming soon! This will allow you to browse and connect with other members in your organization.');
-    navigate('/dashboard');
+
+    // Show coming soon modal for members
+    setShowComingSoon(true);
   }, [user, navigate]);
 
   useEffect(() => {
@@ -195,7 +196,7 @@ export default function Connect() {
         <div className="no-results">
           <p>No members found matching your search.</p>
           {searchTerm && (
-            <button 
+            <button
               className="btn-clear-search"
               onClick={() => setSearchTerm('')}
             >
@@ -204,6 +205,17 @@ export default function Connect() {
           )}
         </div>
       )}
+
+      {/* Coming Soon Modal */}
+      <ComingSoonModal
+        isOpen={showComingSoon}
+        onClose={() => {
+          setShowComingSoon(false);
+          navigate('/dashboard');
+        }}
+        featureName="Connect with Members"
+        description="This feature will allow you to browse and connect with other professionals in your organization."
+      />
     </div>
   );
 }

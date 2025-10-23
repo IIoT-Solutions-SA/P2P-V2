@@ -1,26 +1,26 @@
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
- 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
   Loader2,
   AlertCircle,
   ArrowRight,
   ChevronDown,
-  ChevronUp 
+  ChevronUp
 } from "lucide-react"
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { buildApiUrl } from '@/config/environment'
 
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || '/dashboard'
-  const { login } = useAuth()
+  const { login, refreshProfile } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -35,6 +35,39 @@ export default function Login() {
 
     try {
       await login({ email, password })
+
+      // Check for pending profile picture upload
+      const pendingPicture = localStorage.getItem('pendingProfilePicture')
+      const pendingPictureType = localStorage.getItem('pendingProfilePictureType')
+
+      if (pendingPicture && pendingPictureType) {
+        try {
+          // Convert base64 back to File
+          const response = await fetch(pendingPicture)
+          const blob = await response.blob()
+          const file = new File([blob], 'profile-picture', { type: pendingPictureType })
+
+          // Upload profile picture
+          const formData = new FormData()
+          formData.append('file', file)
+
+          await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          })
+
+          // Refresh profile to get the new picture
+          await refreshProfile()
+
+          // Clear localStorage
+          localStorage.removeItem('pendingProfilePicture')
+          localStorage.removeItem('pendingProfilePictureType')
+        } catch (uploadError) {
+          console.warn('Profile picture upload failed:', uploadError)
+        }
+      }
+
       navigate(from, { replace: true })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed'

@@ -34,6 +34,7 @@ import { useLocation } from 'react-router-dom'
 import { buildApiUrl } from '@/config/environment'
 import { MediaGallery } from '@/components/ui/MediaGallery'
 import { FileDropZone } from '@/components/ui/FileDropZone'
+import { Avatar } from '@/components/ui/Avatar'
 
 interface Category {
   id: string
@@ -46,6 +47,7 @@ interface Comment {
   id: number
   author: string
   authorTitle: string
+  authorProfilePicture?: string
   content: string
   timeAgo: string
   likes: number
@@ -59,6 +61,7 @@ interface ForumPost {
   title: string
   author: string
   author_id?: string  // SuperTokens ID for authorization
+  author_profile_picture?: string
   authorTitle: string
   category: string
   content?: string
@@ -593,11 +596,11 @@ export default function Forum() {
               <h1 className="text-2xl font-bold text-slate-900 mb-4">{selectedPost.title}</h1>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">
-                      {selectedPost.author.charAt(0)}
-                    </span>
-                  </div>
+                  <Avatar
+                    src={selectedPost.author_profile_picture}
+                    name={selectedPost.author}
+                    size="md"
+                  />
                   <div>
                     <div className="flex items-center space-x-1">
                       <span className="font-semibold text-slate-900">{selectedPost.author}</span>
@@ -671,9 +674,12 @@ export default function Forum() {
               {selectedPost.comments?.map((comment) => (
                 <div key={comment.id} className="border-b border-slate-200 pb-6 last:border-0">
                   <div className="flex space-x-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-white">{comment.author.charAt(0)}</span>
-                    </div>
+                    <Avatar
+                      src={comment.authorProfilePicture}
+                      name={comment.author}
+                      size="md"
+                      className="flex-shrink-0"
+                    />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <div>
@@ -715,9 +721,12 @@ export default function Forum() {
                         <div className="mt-4 ml-8 space-y-4">
                           {comment.replies.map((reply) => (
                             <div key={reply.id} className="flex space-x-3">
-                              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-bold text-white">{reply.author.charAt(0)}</span>
-                              </div>
+                              <Avatar
+                                src={reply.authorProfilePicture}
+                                name={reply.author}
+                                size="sm"
+                                className="flex-shrink-0"
+                              />
                               <div className="flex-1">
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center space-x-1">
@@ -1101,9 +1110,12 @@ export default function Forum() {
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-                            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs font-bold text-white">{post.author.charAt(0)}</span>
-                            </div>
+                            <Avatar
+                              src={post.author_profile_picture}
+                              name={post.author}
+                              size="sm"
+                              className="flex-shrink-0"
+                            />
                             <div className="min-w-0">
                               <div className="flex items-center space-x-1">
                                 <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{post.author}</span>

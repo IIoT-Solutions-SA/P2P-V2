@@ -133,9 +133,12 @@ async def get_forum_posts(
                     if ObjectId.is_valid(post.author_id):
                         mongo_user = await MongoUser.find_one(MongoUser.id == ObjectId(post.author_id))
                         if mongo_user:
-                            user_info[post.author_id] = {"name": mongo_user.name}
+                            user_info[post.author_id] = {
+                                "name": mongo_user.name,
+                                "profile_picture_url": mongo_user.profile_picture_url
+                            }
                         else:
-                            user_info[post.author_id] = {"name": "Unknown User"}
+                            user_info[post.author_id] = {"name": "Unknown User", "profile_picture_url": None}
                     else:
                         # Try as SuperTokens ID (for new posts)
                         pg_user = await UserService.get_user_by_supertokens_id(db, post.author_id)
@@ -143,9 +146,10 @@ async def get_forum_posts(
                             mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
                             user_info[post.author_id] = {
                                 "name": mongo_user.name if mongo_user else pg_user.email.split('@')[0],
+                                "profile_picture_url": mongo_user.profile_picture_url if mongo_user else None
                             }
                         else:
-                            user_info[post.author_id] = {"name": "Unknown User"}
+                            user_info[post.author_id] = {"name": "Unknown User", "profile_picture_url": None}
                 except Exception as e:
                     logger.warning(f"Error getting user info for author_id {post.author_id}: {e}")
                     user_info[post.author_id] = {"name": "Unknown User"}
@@ -175,6 +179,7 @@ async def get_forum_posts(
                 "title": post.title,
                 "author": user_info.get(post.author_id, {}).get("name", "Unknown User"),
                 "author_id": post.author_id,  # Now stores SuperTokens ID for proper authorization
+                "author_profile_picture": user_info.get(post.author_id, {}).get("profile_picture_url"),
                 "authorTitle": "Community Member",  # Can be enhanced later
                 "category": _normalize_category_name(post.category),
                 "content": post.content,
@@ -308,17 +313,26 @@ async def get_forum_post(
                     logger.error(f"Error logging view activity: {e}")
         
         # Get post author (handle both old MongoDB ObjectIds and new SuperTokens IDs)
+        author_profile_picture = None
         try:
             # First try as MongoDB ObjectId (for existing posts)
             if ObjectId.is_valid(post.author_id):
                 mongo_user = await MongoUser.find_one(MongoUser.id == ObjectId(post.author_id))
-                author_name = mongo_user.name if mongo_user else "Unknown User"
+                if mongo_user:
+                    author_name = mongo_user.name
+                    author_profile_picture = mongo_user.profile_picture_url
+                else:
+                    author_name = "Unknown User"
             else:
                 # Try as SuperTokens ID (for new posts)
                 pg_user = await UserService.get_user_by_supertokens_id(db, post.author_id)
                 if pg_user:
                     mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
-                    author_name = mongo_user.name if mongo_user else pg_user.email.split('@')[0]
+                    if mongo_user:
+                        author_name = mongo_user.name
+                        author_profile_picture = mongo_user.profile_picture_url
+                    else:
+                        author_name = pg_user.email.split('@')[0]
                 else:
                     author_name = "Unknown User"
         except Exception as e:
@@ -339,10 +353,16 @@ async def get_forum_post(
         for reply in replies:
             try:
                 reply_author = await MongoUser.find_one(MongoUser.id == ObjectId(reply.author_id))
-                reply_author_name = reply_author.name if reply_author else "Unknown User"
+                if reply_author:
+                    reply_author_name = reply_author.name
+                    reply_author_profile_picture = reply_author.profile_picture_url
+                else:
+                    reply_author_name = "Unknown User"
+                    reply_author_profile_picture = None
             except Exception:
                 reply_author_name = "Unknown User"
-            
+                reply_author_profile_picture = None
+
             # Calculate time ago for reply
             time_diff = datetime.utcnow() - reply.created_at
             if time_diff.days > 0:
@@ -356,6 +376,7 @@ async def get_forum_post(
             node = {
                 "id": str(reply.id),
                 "author": reply_author_name,
+                "authorProfilePicture": reply_author_profile_picture,
                 "authorTitle": "Community Member",
                 "content": reply.content,
                 "timeAgo": reply_time_ago,
@@ -394,6 +415,7 @@ async def get_forum_post(
             "title": post.title,
             "author": author_name,
             "author_id": post.author_id,  # SuperTokens ID for proper authorization
+            "author_profile_picture": author_profile_picture,
             "authorTitle": "Community Member",
             "category": post.category,
             "content": post.content,

@@ -9,7 +9,7 @@ interface ProfilePictureEditorProps {
   showUploadButton?: boolean;
 }
 
-export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
+export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = React.memo(({
   currentImageUrl,
   onImageUpload,
   size = 'md',
@@ -28,12 +28,19 @@ export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleFileSelect triggered', event.target.files);
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', file.name, file.type, file.size);
 
     // Validate file
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
+      console.log('Invalid file type:', file.type);
       setError('Please select a valid image file (JPEG, PNG, or WebP)');
       return;
     }
@@ -70,7 +77,9 @@ export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
   };
 
   const openFileDialog = () => {
+    console.log('openFileDialog called', { disabled, isUploading, hasRef: !!fileInputRef.current });
     if (!disabled && !isUploading && fileInputRef.current) {
+      console.log('Triggering file input click');
       fileInputRef.current.click();
     }
   };
@@ -87,7 +96,9 @@ export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
   };
 
   React.useEffect(() => {
+    console.log('ProfilePictureEditor mounted', { currentImageUrl, disabled });
     return () => {
+      console.log('ProfilePictureEditor unmounting');
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
@@ -137,6 +148,7 @@ export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
         {/* Upload button overlay */}
         {showUploadButton && !isUploading && (
           <button
+            type="button"
             onClick={openFileDialog}
             disabled={disabled}
             className={`
@@ -153,6 +165,7 @@ export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
         {/* Remove preview button */}
         {previewUrl && !isUploading && (
           <button
+            type="button"
             onClick={removePreview}
             className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
             title="Remove preview"
@@ -165,6 +178,7 @@ export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
       {/* Upload button (alternative to overlay) */}
       {showUploadButton && !displayImageUrl && !isUploading && (
         <button
+          type="button"
           onClick={openFileDialog}
           disabled={disabled}
           className={`
@@ -200,4 +214,6 @@ export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = ({
       )}
     </div>
   );
-};
+});
+
+ProfilePictureEditor.displayName = 'ProfilePictureEditor';

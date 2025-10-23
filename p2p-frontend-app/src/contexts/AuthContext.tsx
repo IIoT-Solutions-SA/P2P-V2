@@ -5,7 +5,7 @@ import { buildApiUrl } from '@/config/environment';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
-  signup: (data: SignupData) => Promise<void>;
+  signup: (data: SignupData) => Promise<{ requiresEmailVerification?: boolean; email?: string } | void>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
   refreshProfile: () => Promise<void>;

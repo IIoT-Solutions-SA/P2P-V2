@@ -824,19 +824,18 @@ export default function UseCaseDetail() {
                   </div>
                 )}
                 
-                {(useCase.technical_architecture.architecture_components || useCase.technical_architecture.components) &&
-                 (useCase.technical_architecture.architecture_components || useCase.technical_architecture.components).length > 0 && (
+                {useCase.technical_architecture.components && useCase.technical_architecture.components.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Architecture Components</h3>
                     <div className="space-y-4">
-                      {(useCase.technical_architecture.architecture_components || useCase.technical_architecture.components).map((component, index) => (
+                      {useCase.technical_architecture.components.map((component: { layer: string; components: string[]; specifications: string }, index: number) => (
                         <div key={index} className="border border-gray-200 rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">{component.layer}</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="font-medium text-gray-800">Components:</span>
                               <ul className="mt-1 space-y-1">
-                                {(Array.isArray(component.components) ? component.components : []).map((comp, i) => (
+                                {(Array.isArray(component.components) ? component.components : []).map((comp: string, i: number) => (
                                   <li key={i} className="flex items-start space-x-1">
                                     <div className="w-1 h-1 bg-gray-500 rounded-full mt-2 flex-shrink-0"></div>
                                     <span className="text-gray-600">{comp}</span>

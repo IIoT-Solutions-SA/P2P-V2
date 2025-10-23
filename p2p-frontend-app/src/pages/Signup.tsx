@@ -89,7 +89,7 @@ export default function Signup() {
       const signupResponse = await signup(formData)
 
       // Check if email verification is required (admin signup)
-      if (signupResponse && signupResponse.requiresEmailVerification) {
+      if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresEmailVerification) {
         // Store profile picture in localStorage for upload after email verification
         if (profilePicture) {
           const reader = new FileReader()

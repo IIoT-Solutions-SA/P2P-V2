@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { buildApiUrl } from '@/config/environment'
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -225,8 +225,6 @@ export default function SubmitUseCase() {
     { challenge: "", description: "", solution: "", outcome: "" }
   ])
 
-  const scrollPositionRef = useRef<number>(0)
-  const formDataRef = useRef<any>({})
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),

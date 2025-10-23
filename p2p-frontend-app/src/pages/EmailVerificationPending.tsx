@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
 import { Mail, CheckCircle, Loader2, AlertCircle } from "lucide-react"

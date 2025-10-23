@@ -1,4 +1,4 @@
-import React, { useState, useRef, DragEvent } from 'react';
+import React, { useState, useRef, type DragEvent } from 'react';
 import { Upload, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
 
 interface ImageUploaderProps {

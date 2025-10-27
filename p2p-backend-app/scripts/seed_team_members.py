@@ -136,8 +136,41 @@ async def seed_team_members():
 
         created_count = 0
         skipped_count = 0
+        iiot_org_id = None
 
-        for member_data in team_members:
+        # Step 1: Create admin (Aadil) first to establish the organization
+        admin_data = team_members[0]  # Aadil is first in the list
+        existing_admin = await MongoUser.find_one(MongoUser.email == admin_data["email"])
+
+        if existing_admin:
+            logger.info(f"⏭️  Admin {admin_data['email']} already exists")
+            iiot_org_id = existing_admin.organization_id
+            skipped_count += 1
+        else:
+            logger.info(f"Creating admin {admin_data['email']}...")
+            ok = await create_platform_user(
+                email=admin_data["email"],
+                password=admin_data["password"],
+                first_name=admin_data["first_name"],
+                last_name=admin_data["last_name"],
+                company_name=admin_data["company"],
+                industry_sector=admin_data["industry_sector"],
+                company_size=admin_data["company_size"],
+                city=admin_data["city"],
+                job_title=admin_data["title"],
+                role=admin_data["role"],
+                logger=logger
+            )
+            if ok:
+                created_count += 1
+                # Get the admin's organization_id
+                admin_user = await MongoUser.find_one(MongoUser.email == admin_data["email"])
+                if admin_user:
+                    iiot_org_id = admin_user.organization_id
+                    logger.info(f"✅ IIoT Solutions org created with ID: {iiot_org_id}")
+
+        # Step 2: Create remaining members with the organization_id
+        for member_data in team_members[1:]:  # Skip first (admin)
             # Check if user already exists
             existing_user = await MongoUser.find_one(MongoUser.email == member_data["email"])
 
@@ -146,7 +179,8 @@ async def seed_team_members():
                 skipped_count += 1
                 continue
 
-            # Create the user
+            # Create the member
+            logger.info(f"Creating member {member_data['email']}...")
             ok = await create_platform_user(
                 email=member_data["email"],
                 password=member_data["password"],
@@ -163,6 +197,13 @@ async def seed_team_members():
 
             if ok:
                 created_count += 1
+                # Manually update organization_id in MongoDB to join IIoT Solutions org
+                if iiot_org_id:
+                    member_user = await MongoUser.find_one(MongoUser.email == member_data["email"])
+                    if member_user:
+                        member_user.organization_id = iiot_org_id
+                        await member_user.save()
+                        logger.info(f"✅ Updated {member_data['email']} to join org {iiot_org_id}")
 
         logger.info(f"✅ Team member seeding complete!")
         logger.info(f"   Created: {created_count}")

@@ -17,7 +17,7 @@ from app.core.logging import setup_logging
 
 async def create_platform_user(email: str, password: str, first_name: str, last_name: str,
                                company_name: str, industry_sector: str, company_size: str, city: str,
-                               job_title: str,
+                               job_title: str, role: str,
                                logger=None) -> bool:
     """Create a full platform user (SuperTokens + our DBs) via custom signup."""
     try:
@@ -34,7 +34,8 @@ async def create_platform_user(email: str, password: str, first_name: str, last_
                     "industrySector": industry_sector,
                     "companySize": company_size,
                     "city": city,
-                    "jobTitle": job_title
+                    "title": job_title,
+                    "role": role
                 }
             )
 
@@ -156,6 +157,7 @@ async def seed_team_members():
                 company_size=member_data["company_size"],
                 city=member_data["city"],
                 job_title=member_data["title"],
+                role=member_data["role"],
                 logger=logger
             )
 

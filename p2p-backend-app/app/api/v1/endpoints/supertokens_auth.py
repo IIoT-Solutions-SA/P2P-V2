@@ -60,9 +60,10 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
             else:
                 logger.warning(f"Could not find organization for inviter: {invitation.invited_by_email}")
         
-        # Determine role based on invitation status
-        user_role = "member" if is_invited else "admin"
-        logger.info(f"Setting user role: {user_role} (is_invited: {is_invited})")
+        # Determine role based on invitation status or explicit role override (for seeding)
+        explicit_role = body.get("role")  # Allow explicit role for seeding
+        user_role = explicit_role if explicit_role else ("member" if is_invited else "admin")
+        logger.info(f"Setting user role: {user_role} (is_invited: {is_invited}, explicit: {explicit_role})")
         
         profile_data = {
             "name": f"{body.get('firstName')} {body.get('lastName')}",

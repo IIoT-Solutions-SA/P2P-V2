@@ -103,12 +103,13 @@ services:
       - DATABASE_URL=postgresql+asyncpg://p2p_user:iiot123@postgres:5432/p2p_sandbox
       - MONGODB_URL=mongodb://p2p_user:iiot123@mongodb:27017/p2p_sandbox?authSource=admin
       - SUPERTOKENS_CONNECTION_URI=http://supertokens:3567
-      - BACKEND_CORS_ORIGINS=["http://localhost:5173"]
+      - BACKEND_CORS_ORIGINS=["http://peerlink.sa"]
       - SECRET_KEY=your-secret-key-here-change-in-production
       - DEBUG=true
       - LOG_LEVEL=DEBUG
-      - API_DOMAIN=http://localhost:8000
-      - WEBSITE_DOMAIN=http://localhost:5173
+      - API_DOMAIN=http://peerlink.sa:8000
+      - WEBSITE_DOMAIN=http://peerlink.sa
+      - COOKIE_DOMAIN=peerlink.sa
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s
@@ -137,7 +138,7 @@ services:
       - MODE=development
     command: sh -c "npm run dev -- --host --mode $$MODE"
     ports:
-      - "5173:5173"
+      - "80:80"
     volumes:
       - ../p2p-frontend-app:/app
       - /app/node_modules

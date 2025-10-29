@@ -13,6 +13,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { buildApiUrl } from '@/config/environment'
+import loginImage from '/src/assets/LOGIN.png'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -205,7 +206,7 @@ export default function Login() {
 
               {/* Content */}
               <div className="relative z-10 text-center">
-                <img src="/src/assets/LOGIN.png" alt="Login" className="w-64 h-32 mx-auto mb-4 object-contain" />
+                <img src={loginImage} alt="Login" className="w-64 h-32 mx-auto mb-4 object-contain" />
                 <h2 className="text-4xl font-bold text-black mb-4">Welcome Back!</h2>
                 <p className="text-slate-700 text-lg max-w-md mx-auto">
                   Join the leading peer-to-peer knowledge platform connecting manufacturers across the region

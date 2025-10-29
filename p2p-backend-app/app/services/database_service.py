@@ -45,6 +45,13 @@ class UserService:
                 org_name = domain.split(".")[0].replace("-", " ").title()
                 existing_org = await Organization.find_one(Organization.domain == domain)
                 if existing_org:
+                    # Check if this organization already has an admin
+                    existing_admin = await MongoUser.find_one(
+                        MongoUser.organization_id == str(existing_org.id),
+                        MongoUser.role == "admin"
+                    )
+                    if existing_admin:
+                        raise ValueError(f"An admin already exists for the organization with domain '{domain}'. Please contact {existing_admin.email} for an invitation.")
                     organization_id = str(existing_org.id)
                 else:
                     new_org = Organization(
@@ -58,6 +65,9 @@ class UserService:
                     )
                     await new_org.insert()
                     organization_id = str(new_org.id)
+            except ValueError:
+                # Re-raise ValueError for duplicate admin check
+                raise
             except Exception:
                 organization_id = None
 

@@ -60,9 +60,10 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
             else:
                 logger.warning(f"Could not find organization for inviter: {invitation.invited_by_email}")
         
-        # Determine role based on invitation status
-        user_role = "member" if is_invited else "admin"
-        logger.info(f"Setting user role: {user_role} (is_invited: {is_invited})")
+        # Determine role based on invitation status or explicit role override (for seeding)
+        explicit_role = body.get("role")  # Allow explicit role for seeding
+        user_role = explicit_role if explicit_role else ("member" if is_invited else "admin")
+        logger.info(f"Setting user role: {user_role} (is_invited: {is_invited}, explicit: {explicit_role})")
         
         profile_data = {
             "name": f"{body.get('firstName')} {body.get('lastName')}",
@@ -99,13 +100,29 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
             logger.info(f"SuperTokens user created with ID: {supertokens_user.id}")
 
             logger.info("Creating user in database")
-            await UserService.create_user_with_profile(
-                db=db,
-                supertokens_id=supertokens_user.id,
-                email=supertokens_user.emails[0],
-                profile_data=profile_data
-            )
-            logger.info("User created successfully in database")
+            try:
+                await UserService.create_user_with_profile(
+                    db=db,
+                    supertokens_id=supertokens_user.id,
+                    email=supertokens_user.emails[0],
+                    profile_data=profile_data
+                )
+                logger.info("User created successfully in database")
+            except ValueError as ve:
+                # Duplicate admin error - delete the SuperTokens user and return error
+                logger.error(f"Organization validation failed: {str(ve)}")
+                try:
+                    from supertokens_python.asyncio import delete_user
+                    await delete_user(supertokens_user.id)
+                except Exception as delete_error:
+                    logger.warning(f"Could not delete SuperTokens user: {delete_error}")
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "status": "ERROR",
+                        "message": str(ve)
+                    }
+                )
 
             # Handle email verification based on user type
             if invite_token:

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { buildApiUrl } from '@/config/environment'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -23,10 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { 
-  Factory, 
-  MapPin, 
-  Upload, 
+import {
+  Factory,
+  MapPin,
+  Upload,
   CheckCircle,
   Plus,
   X,
@@ -38,7 +38,11 @@ import {
   BarChart3,
   Users,
   Lightbulb,
-  Calendar
+  Calendar,
+  AlertCircle,
+  Cloud,
+  Loader2,
+  FileText
 } from "lucide-react"
 import LocationPicker from '@/components/LocationPicker'
 import { FileDropZone } from '@/components/ui/FileDropZone'
@@ -143,6 +147,7 @@ const categories = [
 
 export default function SubmitUseCase() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const editUseCaseId = searchParams.get('edit')
   const isEditMode = !!editUseCaseId
 
@@ -156,7 +161,18 @@ export default function SubmitUseCase() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoadingExistingData, setIsLoadingExistingData] = useState(false)
 
-  
+  // Autosave status tracking
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+
+  // Server draft tracking (GROUP C)
+  const [draftId, setDraftId] = useState<string | null>(null)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [serverDraftSaved, setServerDraftSaved] = useState(false)
+
+  // Start New Use Case dialog
+  const [showNewUseCaseDialog, setShowNewUseCaseDialog] = useState(false)
+
   // State for dynamic arrays
   const [specificProblems, setSpecificProblems] = useState<string[]>(["", ""])
   const [selectionCriteria, setSelectionCriteria] = useState<string[]>(["", ""])
@@ -278,27 +294,140 @@ export default function SubmitUseCase() {
   })
 
   // Fetch existing use case data when in edit mode
-  // Auto-save form data to localStorage every 30 seconds and on form value changes
+  // Auto-save form data to localStorage on form value changes
   useEffect(() => {
-    const formValues = form.watch()
-    const saveToLocalStorage = () => {
+    // Subscribe to form changes
+    const subscription = form.watch((value, { name, type }) => {
+      // Trigger save whenever form values change
+      setAutosaveStatus('saving')
+
+      const saveToLocalStorage = () => {
+        try {
+          // Get fresh form values
+          const formValues = form.getValues()
+
+          // Capture all form state including dynamic arrays
+          const completeFormState = {
+            formData: formValues,
+            currentStep,
+            timestamp: Date.now(),
+            // Include dynamic states
+            specificProblems,
+            selectionCriteria,
+            technologyComponents,
+            vendorProcess,
+            vendorSelectionReasons,
+            projectTeamInternal,
+            projectTeamVendor,
+            phases,
+            // Include existing images in edit mode
+            existingImages: isEditMode ? existingImages : [],
+            // Note: uploaded File objects can't be serialized, users will need to re-upload
+            uploadedImagesCount: uploadedImages.length
+          }
+
+          localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(completeFormState))
+          setAutosaveStatus('saved')
+          setLastSavedAt(Date.now())
+          console.log('Form auto-saved successfully at step', currentStep)
+        } catch (error) {
+          console.error('Failed to save form data:', error)
+          setAutosaveStatus('failed')
+          // Show user-friendly error notification
+          if (error instanceof Error && error.name === 'QuotaExceededError') {
+            console.error('localStorage quota exceeded. Please clear some browser data.')
+          }
+        }
+      }
+
+      // Debounce save by 1 second
+      const timeoutId = setTimeout(saveToLocalStorage, 1000)
+      return () => clearTimeout(timeoutId)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [
+    form,
+    currentStep,
+    FORM_STORAGE_KEY,
+    specificProblems,
+    selectionCriteria,
+    technologyComponents,
+    vendorProcess,
+    vendorSelectionReasons,
+    projectTeamInternal,
+    projectTeamVendor,
+    phases,
+    existingImages,
+    uploadedImages.length,
+    isEditMode
+  ])
+
+  // Additional autosave trigger for step changes and dynamic array updates
+  useEffect(() => {
+    // Skip on initial mount
+    if (currentStep === 1 && !lastSavedAt) return
+
+    const saveOnChanges = () => {
       try {
-        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify({
+        const formValues = form.getValues()
+        const completeFormState = {
           formData: formValues,
           currentStep,
-          timestamp: Date.now()
-        }))
-        console.log('Form auto-saved')
+          timestamp: Date.now(),
+          specificProblems,
+          selectionCriteria,
+          technologyComponents,
+          vendorProcess,
+          vendorSelectionReasons,
+          projectTeamInternal,
+          projectTeamVendor,
+          phases,
+          existingImages: isEditMode ? existingImages : [],
+          uploadedImagesCount: uploadedImages.length
+        }
+
+        localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(completeFormState))
+        setAutosaveStatus('saved')
+        setLastSavedAt(Date.now())
+        console.log('Form auto-saved on state change at step', currentStep)
       } catch (error) {
-        console.error('Failed to save form data:', error)
+        console.error('Failed to save on state change:', error)
+        setAutosaveStatus('failed')
       }
     }
 
-    // Save immediately when values change
-    const timeoutId = setTimeout(saveToLocalStorage, 1000) // Save 1 second after user stops typing
-
+    // Debounce to avoid too frequent saves
+    const timeoutId = setTimeout(saveOnChanges, 500)
     return () => clearTimeout(timeoutId)
-  }, [form.watch(), currentStep, FORM_STORAGE_KEY])
+  }, [
+    currentStep,
+    specificProblems,
+    selectionCriteria,
+    technologyComponents,
+    vendorProcess,
+    vendorSelectionReasons,
+    projectTeamInternal,
+    projectTeamVendor,
+    phases,
+    existingImages,
+    uploadedImages.length,
+    isEditMode,
+    FORM_STORAGE_KEY,
+    form
+  ])
+
+  // Update timestamp display every minute
+  useEffect(() => {
+    if (autosaveStatus === 'saved' && lastSavedAt) {
+      const interval = setInterval(() => {
+        // Force re-render to update the "X minutes ago" text
+        setLastSavedAt(lastSavedAt)
+      }, 60000) // Update every minute
+
+      return () => clearInterval(interval)
+    }
+  }, [autosaveStatus, lastSavedAt])
 
   // Load saved form data on mount and reset submission state
   useEffect(() => {
@@ -306,40 +435,179 @@ export default function SubmitUseCase() {
     // This handles browser back navigation and direct navigation to the page
     setIsSubmitted(false)
 
-    if (!isEditMode) { // Only load saved data for new forms
-      try {
-        const saved = localStorage.getItem(FORM_STORAGE_KEY)
-        if (saved) {
-          const { formData, currentStep: savedStep, timestamp, wasSubmitted } = JSON.parse(saved)
+    // Load autosaved data for both new and edit modes
+    // In edit mode, localStorage takes precedence over server data if it's newer
+    try {
+      const saved = localStorage.getItem(FORM_STORAGE_KEY)
+      if (saved) {
+        const savedData = JSON.parse(saved)
+        const {
+          formData,
+          currentStep: savedStep,
+          timestamp,
+          wasSubmitted,
+          specificProblems: savedProblems,
+          selectionCriteria: savedCriteria,
+          technologyComponents: savedTech,
+          vendorProcess: savedVendorProcess,
+          vendorSelectionReasons: savedVendorReasons,
+          projectTeamInternal: savedTeamInternal,
+          projectTeamVendor: savedTeamVendor,
+          phases: savedPhases,
+          existingImages: savedExistingImages
+        } = savedData
 
-          // If form was previously submitted successfully, clear localStorage and don't restore
-          if (wasSubmitted) {
-            console.log('Previous submission detected - clearing saved data')
-            localStorage.removeItem(FORM_STORAGE_KEY)
-            return
-          }
-
-          // Only restore if saved within last 24 hours
-          if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-            // Automatically restore saved form data without asking
-            Object.keys(formData).forEach(key => {
-              form.setValue(key as any, formData[key])
-            })
-            setCurrentStep(savedStep)
-          } else {
-            // Data is too old, clear it
-            localStorage.removeItem(FORM_STORAGE_KEY)
-          }
+        // If form was previously submitted successfully, clear localStorage and don't restore
+        if (wasSubmitted) {
+          console.log('Previous submission detected - clearing saved data')
+          localStorage.removeItem(FORM_STORAGE_KEY)
+          return
         }
-      } catch (error) {
-        console.error('Failed to load saved form data:', error)
+
+        // Only restore if saved within last 24 hours
+        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+          // Automatically restore saved form data without asking
+          Object.keys(formData).forEach(key => {
+            form.setValue(key as any, formData[key])
+          })
+          setCurrentStep(savedStep)
+
+          // Restore dynamic arrays and states
+          if (savedProblems) setSpecificProblems(savedProblems)
+          if (savedCriteria) setSelectionCriteria(savedCriteria)
+          if (savedTech) setTechnologyComponents(savedTech)
+          if (savedVendorProcess) setVendorProcess(savedVendorProcess)
+          if (savedVendorReasons) setVendorSelectionReasons(savedVendorReasons)
+          if (savedTeamInternal) setProjectTeamInternal(savedTeamInternal)
+          if (savedTeamVendor) setProjectTeamVendor(savedTeamVendor)
+          if (savedPhases) setPhases(savedPhases)
+          if (savedExistingImages) setExistingImages(savedExistingImages)
+
+          console.log('Auto-saved form data restored', isEditMode ? '(edit mode)' : '(new form)')
+        } else {
+          // Data is too old, clear it
+          localStorage.removeItem(FORM_STORAGE_KEY)
+        }
       }
+    } catch (error) {
+      console.error('Failed to load saved form data:', error)
+      // Don't crash the app if restoration fails, just log the error
     }
   }, [])
+
+  // ===== DRAFT MAPPING FUNCTIONS (GROUP C) =====
+
+  // Map form data to backend draft format (camelCase → backend format)
+  const mapFormDataToDraft = () => {
+    const formValues = form.getValues()
+    return {
+      draftId: draftId || undefined, // Include draftId if updating existing draft
+      currentStep,
+      title: formValues.title,
+      subtitle: formValues.subtitle,
+      description: formValues.description,
+      category: formValues.category,
+      factoryName: formValues.factoryName,
+      city: formValues.city,
+      latitude: formValues.latitude,
+      longitude: formValues.longitude,
+      industryContext: formValues.industryContext,
+      specificProblems,
+      financialLoss: formValues.financialLoss,
+      selectionCriteria,
+      selectedVendor: form.getValues('selectedVendor'),
+      technologyComponents,
+      implementationTime: formValues.implementationTime,
+      totalBudget: formValues.totalBudget,
+      methodology: formValues.methodology,
+      quantitativeResults,
+      roiPercentage: formValues.roiPercentage,
+      annualSavings: formValues.annualSavings,
+      challengesSolutions,
+      contactPerson: formValues.contactPerson,
+      contactTitle: formValues.contactTitle,
+      images: existingImages,
+      industryTags: formValues.industryTags,
+      technologyTags: formValues.technologyTags,
+      vendorProcess,
+      vendorSelectionReasons,
+      projectTeamInternal,
+      projectTeamVendor,
+      phases,
+      qualitativeImpacts: formValues.qualitativeImpacts,
+      roiTotalInvestment: formValues.roiTotalInvestment,
+      roiThreeYearRoi: formValues.roiThreeYearRoi
+    }
+  }
+
+  // Restore draft data to form (backend format → frontend state)
+  const restoreDraftToForm = (draft: any) => {
+    try {
+      // Restore form fields
+      if (draft.title) form.setValue('title', draft.title)
+      if (draft.subtitle) form.setValue('subtitle', draft.subtitle)
+      if (draft.description) form.setValue('description', draft.description)
+      if (draft.category) form.setValue('category', draft.category)
+      if (draft.factoryName) form.setValue('factoryName', draft.factoryName)
+      if (draft.city) form.setValue('city', draft.city)
+      if (draft.latitude) form.setValue('latitude', draft.latitude)
+      if (draft.longitude) form.setValue('longitude', draft.longitude)
+      if (draft.industryContext) form.setValue('industryContext', draft.industryContext)
+      if (draft.financialLoss) form.setValue('financialLoss', draft.financialLoss)
+      if (draft.selectedVendor) form.setValue('selectedVendor', draft.selectedVendor)
+      if (draft.implementationTime) form.setValue('implementationTime', draft.implementationTime)
+      if (draft.totalBudget) form.setValue('totalBudget', draft.totalBudget)
+      if (draft.methodology) form.setValue('methodology', draft.methodology)
+      if (draft.roiPercentage) form.setValue('roiPercentage', draft.roiPercentage)
+      if (draft.annualSavings) form.setValue('annualSavings', draft.annualSavings)
+      if (draft.contactPerson) form.setValue('contactPerson', draft.contactPerson)
+      if (draft.contactTitle) form.setValue('contactTitle', draft.contactTitle)
+
+      // Restore dynamic arrays
+      if (draft.specificProblems) setSpecificProblems(draft.specificProblems)
+      if (draft.selectionCriteria) setSelectionCriteria(draft.selectionCriteria)
+      if (draft.technologyComponents) setTechnologyComponents(draft.technologyComponents)
+      if (draft.quantitativeResults) setQuantitativeResults(draft.quantitativeResults)
+      if (draft.challengesSolutions) setChallengesSolutions(draft.challengesSolutions)
+      if (draft.vendorProcess) setVendorProcess(draft.vendorProcess)
+      if (draft.vendorSelectionReasons) setVendorSelectionReasons(draft.vendorSelectionReasons)
+      if (draft.projectTeamInternal) setProjectTeamInternal(draft.projectTeamInternal)
+      if (draft.projectTeamVendor) setProjectTeamVendor(draft.projectTeamVendor)
+      if (draft.phases) setPhases(draft.phases)
+      if (draft.images) setExistingImages(draft.images)
+
+      // Restore current step
+      if (draft.currentStep) setCurrentStep(draft.currentStep)
+
+      console.log('Draft data restored to form successfully')
+    } catch (error) {
+      console.error('Error restoring draft to form:', error)
+    }
+  }
 
   useEffect(() => {
     if (isEditMode && editUseCaseId) {
       const fetchExistingUseCase = async () => {
+        // Check if we have newer localStorage data first
+        const saved = localStorage.getItem(FORM_STORAGE_KEY)
+        let hasNewerLocalData = false
+
+        if (saved) {
+          try {
+            const savedData = JSON.parse(saved)
+            const timestamp = savedData.timestamp || 0
+            // If localStorage data is less than 5 minutes old, prioritize it
+            if (Date.now() - timestamp < 5 * 60 * 1000) {
+              hasNewerLocalData = true
+              console.log('Edit Mode: Found recent localStorage data (< 5 min), skipping server fetch')
+              setIsLoadingExistingData(false)
+              return // Don't overwrite with server data
+            }
+          } catch (e) {
+            console.error('Error checking localStorage:', e)
+          }
+        }
+
         setIsLoadingExistingData(true)
         try {
           const response = await fetch(buildApiUrl(`/api/v1/use-cases/by-id/${editUseCaseId}`), {
@@ -560,6 +828,134 @@ export default function SubmitUseCase() {
       fetchExistingUseCase()
     }
   }, [isEditMode, editUseCaseId])
+
+  // ===== DRAFT RESUME ON MOUNT (GROUP C Phase 1.3) =====
+  useEffect(() => {
+    const draftIdParam = searchParams.get('draft')
+    if (draftIdParam && !isEditMode) {
+      fetchServerDraft(draftIdParam)
+    }
+  }, [searchParams, isEditMode])
+
+  // ===== DRAFT FETCH AND SAVE HANDLERS (GROUP C Phases 1.3 & 1.4) =====
+
+  const fetchServerDraft = async (id: string) => {
+    try {
+      console.log('Fetching server draft:', id)
+      const res = await fetch(buildApiUrl(`/api/v1/use-cases/drafts/${id}`), {
+        credentials: 'include'
+      })
+
+      console.log('Draft fetch response status:', res.status)
+
+      if (res.ok) {
+        const draft = await res.json()
+        console.log('Draft data received:', draft)
+        restoreDraftToForm(draft)
+        setDraftId(id)
+        console.log('Draft restored successfully')
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Failed to fetch draft:', res.status, errorData)
+        alert(`Failed to load draft (${res.status}). ${errorData.detail || 'It may have been deleted.'}`)
+      }
+    } catch (error) {
+      console.error('Error fetching draft:', error)
+      alert('Error loading draft. Please check console for details.')
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    setSavingDraft(true)
+    setServerDraftSaved(false)
+
+    try {
+      const payload = mapFormDataToDraft()
+
+      console.log('Saving draft to server...')
+      const res = await fetch(buildApiUrl('/api/v1/use-cases/drafts'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const savedDraftId = data.draft_id
+
+        setDraftId(savedDraftId)
+        setServerDraftSaved(true)
+
+        // Update URL with draft ID (without reload)
+        if (!searchParams.get('draft')) {
+          window.history.replaceState({}, '', `/submit?draft=${savedDraftId}`)
+        }
+
+        // Hide success message after 3 seconds
+        setTimeout(() => setServerDraftSaved(false), 3000)
+
+        console.log('Draft saved to server:', savedDraftId)
+      } else {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.detail || 'Failed to save draft')
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error)
+      alert('Failed to save draft to server. Please try again.')
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  // Clear all form data to start a new use case
+  const clearAllFormData = () => {
+    form.reset()
+    setCurrentStep(1)
+    setDraftId(null)
+    setSpecificProblems([])
+    setSelectionCriteria([])
+    setTechnologyComponents([])
+    setVendorSelectionReasons([])
+    setProjectTeamInternal([])
+    setProjectTeamVendor([])
+    setPhases([])
+    setQuantitativeResults([])
+    setQualitativeImpacts([])
+    setChallengesSolutions([])
+    setUploadedImages([])
+    setExistingImages([])
+    localStorage.removeItem(FORM_STORAGE_KEY)
+    setAutosaveStatus('idle')
+    setLastSavedAt(null)
+    setServerDraftSaved(false)
+  }
+
+  // Handle "Start New Use Case" with confirmation dialog
+  const handleStartNew = async (action: 'save' | 'discard' | 'cancel') => {
+    setShowNewUseCaseDialog(false)
+
+    if (action === 'cancel') return
+
+    if (action === 'save') {
+      await handleSaveDraft()
+    } else if (action === 'discard' && draftId) {
+      // Delete draft from server
+      try {
+        await fetch(buildApiUrl(`/api/v1/use-cases/drafts/${draftId}`), {
+          method: 'DELETE',
+          credentials: 'include'
+        })
+        console.log('Draft deleted from server')
+      } catch (error) {
+        console.error('Error deleting draft:', error)
+      }
+    }
+
+    // Clear everything and start fresh
+    clearAllFormData()
+    navigate('/submit') // Remove ?draft param from URL
+  }
 
   // Predefined cities for dropdown
   const SAUDI_CITIES = [
@@ -816,6 +1212,20 @@ export default function SubmitUseCase() {
       }
 
       setIsSubmitted(true)
+
+      // Delete server draft after successful submission
+      if (draftId) {
+        try {
+          await fetch(buildApiUrl(`/api/v1/use-cases/drafts/${draftId}`), {
+            method: 'DELETE',
+            credentials: 'include'
+          })
+          console.log('Deleted server draft after successful submission')
+        } catch (error) {
+          console.error('Failed to delete server draft:', error)
+          // Non-critical error, don't block the success flow
+        }
+      }
 
       // Mark in localStorage that submission was successful so we don't restore this data
       try {
@@ -1164,11 +1574,44 @@ export default function SubmitUseCase() {
               {isEditMode ? 'Edit Your Success Story' : 'Submit Your Success Story'}
             </h1>
             <p className="text-xl text-slate-600">
-              {isEditMode 
-                ? 'Update your factory transformation story' 
+              {isEditMode
+                ? 'Update your factory transformation story'
                 : 'Share your factory\'s transformation with the community'
               }
             </p>
+
+            {/* Autosave Status Indicator - Top Header */}
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm min-h-[24px]">
+              {autosaveStatus === 'saving' && (
+                <div className="flex items-center gap-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Saving draft...</span>
+                </div>
+              )}
+              {autosaveStatus === 'saved' && lastSavedAt && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>
+                    Draft saved {(() => {
+                      const seconds = Math.floor((Date.now() - lastSavedAt) / 1000)
+                      if (seconds < 60) return 'just now'
+                      const minutes = Math.floor(seconds / 60)
+                      if (minutes === 1) return '1 minute ago'
+                      if (minutes < 60) return `${minutes} minutes ago`
+                      const hours = Math.floor(minutes / 60)
+                      if (hours === 1) return '1 hour ago'
+                      return `${hours} hours ago`
+                    })()}
+                  </span>
+                </div>
+              )}
+              {autosaveStatus === 'failed' && (
+                <div className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Failed to save draft</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Progress Steps */}
@@ -2775,18 +3218,96 @@ export default function SubmitUseCase() {
 
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between items-center pt-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                  className="flex items-center space-x-2"
-                >
-                  <span>Previous</span>
-                </Button>
+              <div className="flex flex-col gap-4 pt-8">
+                {/* Autosave Status Indicator - Always Visible */}
+                <div className="flex flex-col items-center justify-center gap-2 text-sm min-h-[24px]">
+                  {/* localStorage autosave status */}
+                  <div className="flex items-center gap-2">
+                    {autosaveStatus === 'saving' && (
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span>Saving draft locally...</span>
+                      </div>
+                    )}
+                    {autosaveStatus === 'saved' && lastSavedAt && (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>
+                          Draft saved locally {(() => {
+                            const seconds = Math.floor((Date.now() - lastSavedAt) / 1000)
+                            if (seconds < 60) return 'just now'
+                            const minutes = Math.floor(seconds / 60)
+                            if (minutes === 1) return '1 minute ago'
+                            if (minutes < 60) return `${minutes} minutes ago`
+                            const hours = Math.floor(minutes / 60)
+                            if (hours === 1) return '1 hour ago'
+                            return `${hours} hours ago`
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                    {autosaveStatus === 'failed' && (
+                      <div className="flex items-center gap-2 text-red-600">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Failed to save draft locally</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Server save status indicator */}
+                  {serverDraftSaved && (
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Cloud className="h-4 w-4" />
+                      <span>Saved to server</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation Buttons Row */}
+                <div className="flex justify-between items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={prevStep}
+                    disabled={currentStep === 1}
+                    className="flex items-center space-x-2"
+                  >
+                    <span>Previous</span>
+                  </Button>
 
                 <div className="flex space-x-4">
+                  {/* Save as Draft Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSaveDraft}
+                    disabled={savingDraft}
+                    className="flex items-center gap-2"
+                  >
+                    {savingDraft ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save as Draft
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Start New Use Case Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowNewUseCaseDialog(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Start New Use Case
+                  </Button>
+
                   {currentStep < 7 ? (
                     <Button
                       type="button"
@@ -2815,11 +3336,51 @@ export default function SubmitUseCase() {
                     </Button>
                   )}
                 </div>
+                </div>
               </div>
             </form>
           </Form>
         </div>
       </div>
+
+      {/* Start New Use Case Confirmation Dialog */}
+      {showNewUseCaseDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowNewUseCaseDialog(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-2">Start New Use Case?</h3>
+            <p className="text-slate-600 mb-6">
+              You are currently {draftId ? 'working on a draft' : 'creating a use case'}.
+              What would you like to do?
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleStartNew('save')}
+                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-left transition-colors"
+              >
+                <div className="font-medium">Save & Start New</div>
+                <div className="text-sm text-blue-100">Save current work as draft, then start fresh</div>
+              </button>
+              <button
+                onClick={() => handleStartNew('discard')}
+                className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-left transition-colors"
+              >
+                <div className="font-medium">Discard & Start New</div>
+                <div className="text-sm text-red-100">Delete this draft and start fresh (cannot be undone)</div>
+              </button>
+              <button
+                onClick={() => handleStartNew('cancel')}
+                className="w-full px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

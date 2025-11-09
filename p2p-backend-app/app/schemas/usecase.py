@@ -96,3 +96,146 @@ class UseCaseCreate(BaseModel):
     roiThreeYearRoi: Optional[str] = None
 
 
+# ===== DRAFT SCHEMAS =====
+
+class UseCaseDraftCreate(BaseModel):
+    """Schema for creating/updating use case drafts - all fields Optional for partial saves"""
+    # Draft ID for updates (if updating existing draft)
+    draftId: Optional[str] = None
+
+    # Wizard step tracking
+    currentStep: Optional[int] = 1
+
+    # Basic Information
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    factoryName: Optional[str] = None
+
+    # Location
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+    # Business Challenge
+    industryContext: Optional[str] = None
+    specificProblems: Optional[List[str]] = None
+    financialLoss: Optional[str] = None
+
+    # Solution Overview
+    selectionCriteria: Optional[List[str]] = None
+    selectedVendor: Optional[str] = None
+    technologyComponents: Optional[List[str]] = None
+
+    # Implementation
+    implementationTime: Optional[str] = None
+    totalBudget: Optional[str] = None
+    methodology: Optional[str] = None
+
+    # Results
+    quantitativeResults: Optional[List[QuantitativeResult]] = None
+    roiPercentage: Optional[str] = None
+    annualSavings: Optional[str] = None
+
+    # Challenges & Solutions
+    challengesSolutions: Optional[List[ChallengeSolution]] = None
+
+    # Contact & Media
+    contactPerson: Optional[str] = None
+    contactTitle: Optional[str] = None
+    images: Optional[List[str]] = None
+
+    # Extended sections
+    technical_architecture: Optional[TechnicalArchitecture] = None
+    future_roadmap: Optional[List[FutureRoadmapItem]] = None
+    lessons_learned: Optional[List[LessonLearned]] = None
+
+    # Additional fields
+    industryTags: Optional[List[str]] = None
+    technologyTags: Optional[List[str]] = None
+    vendorProcess: Optional[str] = None
+    vendorSelectionReasons: Optional[List[str]] = None
+    projectTeamInternal: Optional[List[dict]] = None
+    projectTeamVendor: Optional[List[dict]] = None
+    phases: Optional[List[dict]] = None
+    qualitativeImpacts: Optional[List[str]] = None
+    roiTotalInvestment: Optional[str] = None
+    roiThreeYearRoi: Optional[str] = None
+
+
+class UseCaseDraftResponse(BaseModel):
+    """Full draft response with metadata"""
+    id: str
+    user_id: str
+    current_step: int
+
+    # All UseCase fields (Optional)
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    factoryName: Optional[str] = None
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    industryContext: Optional[str] = None
+    specificProblems: Optional[List[str]] = None
+    financialLoss: Optional[str] = None
+    selectionCriteria: Optional[List[str]] = None
+    selectedVendor: Optional[str] = None
+    technologyComponents: Optional[List[str]] = None
+    implementationTime: Optional[str] = None
+    totalBudget: Optional[str] = None
+    methodology: Optional[str] = None
+    quantitativeResults: Optional[List[dict]] = None
+    roiPercentage: Optional[str] = None
+    annualSavings: Optional[str] = None
+    challengesSolutions: Optional[List[dict]] = None
+    contactPerson: Optional[str] = None
+    contactTitle: Optional[str] = None
+    images: Optional[List[str]] = None
+    technical_architecture: Optional[dict] = None
+    future_roadmap: Optional[List[dict]] = None
+    lessons_learned: Optional[List[dict]] = None
+    industryTags: Optional[List[str]] = None
+    technologyTags: Optional[List[str]] = None
+    vendorProcess: Optional[str] = None
+    vendorSelectionReasons: Optional[List[str]] = None
+    projectTeamInternal: Optional[List[dict]] = None
+    projectTeamVendor: Optional[List[dict]] = None
+    phases: Optional[List[dict]] = None
+    qualitativeImpacts: Optional[List[str]] = None
+    roiTotalInvestment: Optional[str] = None
+    roiThreeYearRoi: Optional[str] = None
+
+    # Metadata
+    created_at: str
+    updated_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class UseCaseDraftListItem(BaseModel):
+    """Lightweight draft info for list view"""
+    id: str
+    title: Optional[str] = None
+    category: Optional[str] = None
+    current_step: int
+    created_at: str
+    updated_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class UseCaseDraftPublishValidation(BaseModel):
+    """Validation result for publishing a draft"""
+    is_valid: bool
+    missing_fields: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    can_publish: bool
+    draft_preview: Optional[dict] = None
+
+

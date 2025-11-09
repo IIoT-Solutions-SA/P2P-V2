@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Response, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from supertokens_python.recipe.emailpassword.asyncio import sign_in, sign_up
+from supertokens_python.recipe.emailpassword.asyncio import sign_in, sign_up, send_reset_password_email, reset_password_using_token
 from supertokens_python.recipe.session.asyncio import create_new_session
 from supertokens_python.recipe.emailverification.asyncio import create_email_verification_token, verify_email_using_token
 import logging
@@ -264,4 +264,122 @@ async def post_signin(request: Request, response: Response):
             
     except Exception as e:
         logger.error(f"Sign-in error: {str(e)}", exc_info=True)
+        return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Server error: {str(e)}"})
+
+
+@router.post("/forgot-password")
+async def forgot_password(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Handles forgot password request - sends reset email with token
+    """
+    try:
+        logger.info("Starting forgot password process")
+        body = await request.json()
+        email = body.get("email")
+
+        logger.info(f"Forgot password request for email: {email}")
+
+        if not email:
+            logger.warning("Missing email in forgot password request")
+            return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Email is required"})
+
+        # Look up the user to get their SuperTokens ID
+        try:
+            pg_user = await UserService.get_user_by_email_pg(db, email)
+
+            if not pg_user or not pg_user.supertokens_id:
+                logger.info(f"No user found with email: {email}")
+                # Return success anyway to avoid revealing if email exists
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "status": "OK",
+                        "message": "If an account exists with this email, a password reset link has been sent."
+                    }
+                )
+
+            # Send password reset email using SuperTokens with correct parameters
+            # Parameters: tenant_id, user_id, email
+            logger.info(f"Sending password reset email via SuperTokens for user_id: {pg_user.supertokens_id}")
+            await send_reset_password_email("public", pg_user.supertokens_id, email)
+            logger.info(f"Password reset email sent successfully to: {email}")
+
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "If an account exists with this email, a password reset link has been sent."
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to send reset email: {str(e)}")
+            # Still return success to avoid revealing if email exists
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "If an account exists with this email, a password reset link has been sent."
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"Forgot password error: {str(e)}", exc_info=True)
+        return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Server error: {str(e)}"})
+
+
+@router.post("/reset-password")
+async def reset_password(request: Request):
+    """
+    Handles password reset using token from email
+    """
+    try:
+        logger.info("Starting password reset process")
+        body = await request.json()
+        token = body.get("token")
+        new_password = body.get("newPassword")
+
+        logger.info(f"Password reset attempt with token")
+
+        if not token or not new_password:
+            logger.warning("Missing token or password in reset request")
+            return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Token and new password are required"})
+
+        # Reset password using SuperTokens
+        logger.info("Attempting to reset password with token")
+        result = await reset_password_using_token("public", token, new_password)
+
+        # Log result details for debugging
+        logger.info(f"Reset password result type: {type(result)}")
+        logger.info(f"Reset password result type name: {type(result).__name__}")
+        if hasattr(result, 'status'):
+            logger.info(f"Reset password result status: {result.status}")
+
+        # Check if the reset failed (invalid token error)
+        # Check by type name since we can't import the specific result classes
+        result_type_name = type(result).__name__
+
+        if "InvalidToken" in result_type_name or "INVALID_TOKEN" in str(result):
+            logger.warning(f"Password reset failed - invalid token: {result_type_name}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "ERROR",
+                    "message": "Invalid or expired reset token. Please request a new password reset link."
+                }
+            )
+        else:
+            # Success case - password was reset
+            user_id = getattr(result, 'user_id', None)
+            logger.info(f"Password reset successful for user ID: {user_id}")
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "Password has been reset successfully. You can now log in with your new password.",
+                    "userId": user_id
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"Password reset error: {str(e)}", exc_info=True)
         return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Server error: {str(e)}"})

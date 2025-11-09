@@ -61,6 +61,11 @@ export default function Dashboard() {
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
   const [loadingDrafts, setLoadingDrafts] = useState(false)
   const setPrefillDraft = useState<{ title?: string; content?: string; category?: string } | null>(null)[1]
+
+  // Use Case Drafts state (GROUP C)
+  const [useCaseDrafts, setUseCaseDrafts] = useState<any[]>([])
+  const [showUseCaseDraftsPanel, setShowUseCaseDraftsPanel] = useState(false)
+  const [loadingUseCaseDrafts, setLoadingUseCaseDrafts] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{
     show: boolean
     title?: string
@@ -88,10 +93,13 @@ export default function Dashboard() {
   const loadDashboard = async () => {
       try {
         setLoading(true)
-        
+
         // Fetch user stats
         await fetchStats()
-        
+
+        // Fetch use case drafts count (GROUP C)
+        await fetchUseCaseDrafts()
+
         // Fetch community activities
         const activitiesResponse = await fetch(buildApiUrl('/api/v1/dashboard/activities'), {
           credentials: 'include'
@@ -100,7 +108,7 @@ export default function Dashboard() {
           const activitiesData = await activitiesResponse.json()
           setActivities(activitiesData.activities || [])
         }
-        
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
         // Use fallback data if API fails
@@ -197,6 +205,25 @@ export default function Dashboard() {
       setDrafts([])
     } finally {
       setLoadingDrafts(false)
+    }
+  }
+
+  // Fetch use case drafts (GROUP C)
+  const fetchUseCaseDrafts = async () => {
+    try {
+      setLoadingUseCaseDrafts(true)
+      const response = await fetch(buildApiUrl('/api/v1/use-cases/drafts'), {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUseCaseDrafts(data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching use case drafts:', error)
+      setUseCaseDrafts([])
+    } finally {
+      setLoadingUseCaseDrafts(false)
     }
   }
 
@@ -389,6 +416,17 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </button>
+                <button
+                  onClick={async () => { await fetchUseCaseDrafts(); setShowUseCaseDraftsPanel(true); }}
+                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-900">UC Drafts</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {String(useCaseDrafts.length)}
+                    </div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -540,7 +578,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </button>
-                <button 
+                <button
                   onClick={async () => { await fetchDrafts(); setShowDrafts(true); }}
                   className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
                 >
@@ -548,6 +586,17 @@ export default function Dashboard() {
                     <span className="text-sm font-medium text-slate-900">Draft Posts</span>
                     <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
                       {String(stats?.draft_posts || 0)}
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={async () => { await fetchUseCaseDrafts(); setShowUseCaseDraftsPanel(true); }}
+                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-900">Use Case Drafts</span>
+                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
+                      {String(useCaseDrafts.length)}
                     </div>
                   </div>
                 </button>
@@ -757,6 +806,102 @@ export default function Dashboard() {
                   <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-600">No draft posts yet</p>
                   <p className="text-sm text-slate-500">Start writing and save drafts for later!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Use Case Drafts Panel (GROUP C) */}
+      {showUseCaseDraftsPanel && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm" onClick={() => setShowUseCaseDraftsPanel(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white border-l border-blue-100 shadow-2xl flex flex-col">
+            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
+              <h3 className="text-xl font-bold">Use Case Drafts</h3>
+              <button onClick={() => setShowUseCaseDraftsPanel(false)} className="text-white/80 hover:text-white">✕</button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              {loadingUseCaseDrafts ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-slate-600 mt-2">Loading drafts...</p>
+                </div>
+              ) : useCaseDrafts.length > 0 ? (
+                <div className="space-y-3">
+                  {useCaseDrafts.map((draft, i) => (
+                    <div
+                      key={draft.id || i}
+                      className="relative group bg-white border border-blue-100 rounded-lg transition-colors hover:border-blue-300"
+                    >
+                      <div
+                        onClick={() => {
+                          navigate(`/submit?draft=${draft.id}`)
+                          setShowUseCaseDraftsPanel(false)
+                        }}
+                        className="w-full text-left p-4 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="font-medium text-slate-900 line-clamp-2 pr-8">{draft.title || 'Untitled Draft'}</h4>
+                          <span className="text-xs text-slate-500 ml-4 whitespace-nowrap">
+                            {new Date(draft.updated_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {draft.subtitle && (
+                          <p className="text-sm text-slate-600 mb-3 line-clamp-2">{draft.subtitle}</p>
+                        )}
+                        {draft.description && !draft.subtitle && (
+                          <p className="text-sm text-slate-600 mb-3 line-clamp-2">{draft.description}</p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          {draft.category && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-blue-100 text-blue-800">{draft.category}</span>
+                          )}
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-slate-100 text-slate-700">
+                            Step {draft.current_step || 1} of 7
+                          </span>
+                          <span className="ml-auto text-xs text-blue-700 font-medium">Continue editing →</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          setDeleteConfirm({
+                            show: true,
+                            title: 'Delete Draft',
+                            message: 'Are you sure you want to delete this use case draft? This action cannot be undone.',
+                            onConfirm: async () => {
+                              try {
+                                const res = await fetch(buildApiUrl(`/api/v1/use-cases/drafts/${draft.id}`), {
+                                  method: 'DELETE',
+                                  credentials: 'include'
+                                })
+                                if (res.ok) {
+                                  // Refresh drafts list
+                                  fetchUseCaseDrafts()
+                                }
+                              } catch (error) {
+                                console.error('Error deleting use case draft:', error)
+                              }
+                              setDeleteConfirm({ show: false })
+                            }
+                          })
+                        }}
+                        className="absolute top-1 right-1 z-20 opacity-70 group-hover:opacity-100 transition-opacity p-2 bg-red-500 hover:bg-red-600 rounded-full text-white shadow-lg"
+                        title="Delete draft"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-600">No use case drafts yet</p>
+                  <p className="text-sm text-slate-500">Start creating a use case and save as draft!</p>
                 </div>
               )}
             </div>

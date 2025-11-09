@@ -6,13 +6,19 @@ Provides use cases, categories, stats, and contributors
 from fastapi import APIRouter, Depends, HTTPException, Query
 from supertokens_python.recipe.session.framework.fastapi import verify_session
 from supertokens_python.recipe.session import SessionContainer
-from app.models.mongo_models import UseCase, User as MongoUser, UserActivity, UserBookmark
+from app.models.mongo_models import UseCase, User as MongoUser, UserActivity, UserBookmark, UseCaseDraft
 from typing import List, Optional
 import logging
 from bson import ObjectId
 from beanie.odm.enums import SortDirection
 from beanie.operators import In
-from app.schemas.usecase import UseCaseCreate
+from app.schemas.usecase import (
+    UseCaseCreate,
+    UseCaseDraftCreate,
+    UseCaseDraftResponse,
+    UseCaseDraftListItem,
+    UseCaseDraftPublishValidation
+)
 from app.services.usecase_service import UseCaseSubmissionService
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -258,6 +264,665 @@ async def submit_new_use_case(
         logger.error(f"Error submitting use case: {e}")
         raise HTTPException(status_code=500, detail="Failed to submit use case")
 
+@router.post("/drafts", status_code=201)
+async def save_draft(
+    draft_data: UseCaseDraftCreate,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Save or update a use case draft
+    If draftId provided: updates that specific draft
+    If NO draftId: creates a new draft (allows multiple drafts per user)
+    """
+    try:
+        # Get authenticated user
+        supertokens_user_id = session.get_user_id()
+
+        # Resolve to MongoDB user
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+
+        # Check if updating an existing draft (draftId provided)
+        existing_draft = None
+        if draft_data.draftId:
+            # Validate draft ID format
+            if not ObjectId.is_valid(draft_data.draftId):
+                raise HTTPException(status_code=400, detail="Invalid draft ID format")
+
+            # Find the specific draft
+            existing_draft = await UseCaseDraft.find_one(UseCaseDraft.id == ObjectId(draft_data.draftId))
+
+            # Verify ownership
+            if existing_draft and existing_draft.user_id != user_id_str:
+                raise HTTPException(status_code=403, detail="Not authorized to update this draft")
+
+        if existing_draft:
+            # Update existing draft
+            update_dict = draft_data.dict(exclude_unset=True, exclude_none=False)
+            # Remove draftId from update_dict since it's only used for lookup
+            update_dict.pop('draftId', None)
+
+            # Update fields
+            for field, value in update_dict.items():
+                # Map camelCase to snake_case for MongoDB fields
+                if field == "factoryName":
+                    existing_draft.factory_name = value
+                elif field == "currentStep":
+                    existing_draft.current_step = value
+                elif field == "description":
+                    # Map description to multiple fields for compatibility
+                    existing_draft.problem_statement = value
+                    existing_draft.executive_summary = value
+                    existing_draft.solution_description = value
+                elif field == "industryContext":
+                    if value is not None:
+                        if existing_draft.business_challenge is None:
+                            existing_draft.business_challenge = {}
+                        existing_draft.business_challenge["industry_context"] = value
+                elif field == "specificProblems":
+                    if value is not None:
+                        if existing_draft.business_challenge is None:
+                            existing_draft.business_challenge = {}
+                        existing_draft.business_challenge["specific_problems"] = value
+                elif field == "financialLoss":
+                    if value is not None:
+                        if existing_draft.business_challenge is None:
+                            existing_draft.business_challenge = {}
+                        existing_draft.business_challenge["financial_loss"] = value
+                elif field == "selectionCriteria":
+                    if value is not None:
+                        if existing_draft.solution_details is None:
+                            existing_draft.solution_details = {}
+                        existing_draft.solution_details["selection_criteria"] = value
+                elif field == "selectedVendor":
+                    if existing_draft.vendor_info is None:
+                        existing_draft.vendor_info = {}
+                    existing_draft.vendor_info["selected_vendor"] = value if value else None
+                elif field == "technologyComponents":
+                    if value is not None:
+                        if existing_draft.solution_details is None:
+                            existing_draft.solution_details = {}
+                        existing_draft.solution_details["technology_components"] = value
+                elif field == "totalBudget":
+                    if value is not None:
+                        if existing_draft.implementation_details is None:
+                            existing_draft.implementation_details = {}
+                        existing_draft.implementation_details["total_budget"] = value
+                elif field == "methodology":
+                    if value is not None:
+                        if existing_draft.implementation_details is None:
+                            existing_draft.implementation_details = {}
+                        existing_draft.implementation_details["methodology"] = value
+                elif field == "quantitativeResults":
+                    if value is not None:
+                        if existing_draft.results is None:
+                            existing_draft.results = {}
+                        existing_draft.results["quantitative_metrics"] = [r.dict() if hasattr(r, 'dict') else r for r in value]
+                elif field == "annualSavings":
+                    if value is not None:
+                        if existing_draft.results is None:
+                            existing_draft.results = {}
+                        existing_draft.results["annual_savings"] = value
+                elif field == "challengesSolutions":
+                    existing_draft.challenges_and_solutions = [c.dict() if hasattr(c, 'dict') else c for c in value] if value else None
+                elif field == "description":
+                    # Map description to both executive_summary and problem_statement
+                    existing_draft.executive_summary = value
+                    existing_draft.problem_statement = value
+                elif field == "city":
+                    # Store city in location dict or region
+                    existing_draft.region = value
+                elif field == "latitude" and value is not None:
+                    if existing_draft.location is None:
+                        existing_draft.location = {}
+                    existing_draft.location["lat"] = value
+                elif field == "longitude" and value is not None:
+                    if existing_draft.location is None:
+                        existing_draft.location = {}
+                    existing_draft.location["lng"] = value
+                elif field == "contactPerson":
+                    existing_draft.contact_person = value
+                elif field == "contactTitle":
+                    existing_draft.contact_title = value
+                elif field == "implementationTime":
+                    existing_draft.implementation_time = value
+                elif field == "roiPercentage":
+                    existing_draft.roi_percentage = value
+                elif field == "industryTags":
+                    existing_draft.industry_tags = value
+                elif field == "technologyTags":
+                    existing_draft.technology_tags = value
+                elif field == "vendorProcess":
+                    if existing_draft.vendor_info is None:
+                        existing_draft.vendor_info = {}
+                    existing_draft.vendor_info["vendor_process"] = value if value else None
+                elif field == "vendorSelectionReasons":
+                    if value is not None:
+                        if existing_draft.vendor_info is None:
+                            existing_draft.vendor_info = {}
+                        existing_draft.vendor_info["selection_reasons"] = value
+                elif field == "projectTeamInternal":
+                    if value is not None:
+                        if existing_draft.implementation_details is None:
+                            existing_draft.implementation_details = {}
+                        existing_draft.implementation_details["project_team_internal"] = value
+                elif field == "projectTeamVendor":
+                    if value is not None:
+                        if existing_draft.implementation_details is None:
+                            existing_draft.implementation_details = {}
+                        existing_draft.implementation_details["project_team_vendor"] = value
+                elif field == "phases":
+                    if value is not None:
+                        if existing_draft.implementation_details is None:
+                            existing_draft.implementation_details = {}
+                        existing_draft.implementation_details["phases"] = value
+                elif field == "qualitativeImpacts":
+                    if value is not None:
+                        if existing_draft.results is None:
+                            existing_draft.results = {}
+                        existing_draft.results["qualitative_impacts"] = value
+                elif field == "roiTotalInvestment":
+                    if value is not None:
+                        if existing_draft.results is None:
+                            existing_draft.results = {}
+                        existing_draft.results["roi_total_investment"] = value
+                elif field == "roiThreeYearRoi":
+                    if value is not None:
+                        if existing_draft.results is None:
+                            existing_draft.results = {}
+                        existing_draft.results["roi_three_year_roi"] = value
+                else:
+                    # Direct mapping for fields that match
+                    setattr(existing_draft, field, value)
+
+            existing_draft.updated_at = datetime.utcnow()
+            await existing_draft.save()
+
+            logger.info(f"Updated draft {existing_draft.id} for user {user_id_str}")
+            return {
+                "success": True,
+                "draft_id": str(existing_draft.id),
+                "message": "Draft updated successfully"
+            }
+        else:
+            # Create new draft
+            draft_dict = draft_data.dict(exclude_unset=True, exclude_none=False)
+
+            # Map frontend fields to MongoDB model fields
+            new_draft = UseCaseDraft(
+                user_id=user_id_str,
+                current_step=draft_dict.get("currentStep", 1),
+                title=draft_dict.get("title"),
+                subtitle=draft_dict.get("subtitle"),
+                problem_statement=draft_dict.get("description"),  # Executive summary
+                executive_summary=draft_dict.get("description"),
+                solution_description=draft_dict.get("description"),
+                category=draft_dict.get("category"),
+                factory_name=draft_dict.get("factoryName"),
+                region=draft_dict.get("city"),
+                implementation_time=draft_dict.get("implementationTime"),
+                roi_percentage=draft_dict.get("roiPercentage"),
+                contact_person=draft_dict.get("contactPerson"),
+                contact_title=draft_dict.get("contactTitle"),
+                images=draft_dict.get("images"),
+                industry_tags=draft_dict.get("industryTags"),
+                technology_tags=draft_dict.get("technologyTags"),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+
+            # Handle location
+            lat = draft_dict.get("latitude")
+            lng = draft_dict.get("longitude")
+            if lat is not None and lng is not None:
+                new_draft.location = {"lat": lat, "lng": lng}
+
+            # Handle nested objects
+            if draft_dict.get("industryContext") or draft_dict.get("specificProblems") or draft_dict.get("financialLoss"):
+                new_draft.business_challenge = {
+                    "industry_context": draft_dict.get("industryContext"),
+                    "specific_problems": draft_dict.get("specificProblems"),
+                    "financial_loss": draft_dict.get("financialLoss")
+                }
+
+            if draft_dict.get("selectionCriteria") or draft_dict.get("technologyComponents"):
+                new_draft.solution_details = {
+                    "selection_criteria": draft_dict.get("selectionCriteria"),
+                    "technology_components": draft_dict.get("technologyComponents")
+                }
+
+            if draft_dict.get("selectedVendor") or draft_dict.get("vendorProcess") or draft_dict.get("vendorSelectionReasons"):
+                new_draft.vendor_info = {
+                    "selected_vendor": draft_dict.get("selectedVendor"),
+                    "vendor_process": draft_dict.get("vendorProcess"),
+                    "selection_reasons": draft_dict.get("vendorSelectionReasons")
+                }
+
+            if draft_dict.get("totalBudget") or draft_dict.get("methodology") or draft_dict.get("projectTeamInternal") or draft_dict.get("projectTeamVendor") or draft_dict.get("phases"):
+                new_draft.implementation_details = {
+                    "total_budget": draft_dict.get("totalBudget"),
+                    "methodology": draft_dict.get("methodology"),
+                    "project_team_internal": draft_dict.get("projectTeamInternal"),
+                    "project_team_vendor": draft_dict.get("projectTeamVendor"),
+                    "phases": draft_dict.get("phases")
+                }
+
+            if draft_dict.get("quantitativeResults") or draft_dict.get("annualSavings") or draft_dict.get("qualitativeImpacts") or draft_dict.get("roiTotalInvestment") or draft_dict.get("roiThreeYearRoi"):
+                new_draft.results = {}
+                if draft_dict.get("quantitativeResults"):
+                    new_draft.results["quantitative_metrics"] = [r.dict() if hasattr(r, 'dict') else r for r in draft_dict["quantitativeResults"]]
+                if draft_dict.get("annualSavings"):
+                    new_draft.results["annual_savings"] = draft_dict["annualSavings"]
+                if draft_dict.get("qualitativeImpacts"):
+                    new_draft.results["qualitative_impacts"] = draft_dict["qualitativeImpacts"]
+                if draft_dict.get("roiTotalInvestment"):
+                    new_draft.results["roi_total_investment"] = draft_dict["roiTotalInvestment"]
+                if draft_dict.get("roiThreeYearRoi"):
+                    new_draft.results["roi_three_year_roi"] = draft_dict["roiThreeYearRoi"]
+
+            if draft_dict.get("challengesSolutions"):
+                new_draft.challenges_and_solutions = [c.dict() if hasattr(c, 'dict') else c for c in draft_dict["challengesSolutions"]]
+
+            if draft_dict.get("technical_architecture"):
+                new_draft.technical_architecture = draft_dict["technical_architecture"]
+
+            if draft_dict.get("future_roadmap"):
+                new_draft.future_roadmap = [f.dict() if hasattr(f, 'dict') else f for f in draft_dict["future_roadmap"]]
+
+            if draft_dict.get("lessons_learned"):
+                new_draft.lessons_learned = [l.dict() if hasattr(l, 'dict') else l for l in draft_dict["lessons_learned"]]
+
+            await new_draft.create()
+
+            logger.info(f"Created new draft {new_draft.id} for user {user_id_str}")
+            return {
+                "success": True,
+                "draft_id": str(new_draft.id),
+                "message": "Draft created successfully"
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error saving draft: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to save draft")
+
+
+@router.get("/drafts", response_model=List[UseCaseDraftListItem])
+async def list_user_drafts(
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all drafts for the authenticated user
+    Returns lightweight list for dashboard display
+    """
+    try:
+        # Get authenticated user
+        supertokens_user_id = session.get_user_id()
+
+        # Resolve to MongoDB user
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+
+        # Fetch user's drafts, sorted by most recently updated
+        drafts = await UseCaseDraft.find(
+            UseCaseDraft.user_id == user_id_str
+        ).sort(-UseCaseDraft.updated_at).to_list()
+
+        # Convert to response format
+        response = []
+        for draft in drafts:
+            response.append({
+                "id": str(draft.id),
+                "title": draft.title or "Untitled Draft",
+                "subtitle": draft.subtitle,
+                "description": draft.executive_summary or draft.problem_statement,
+                "category": draft.category,
+                "current_step": draft.current_step,
+                "created_at": draft.created_at.isoformat(),
+                "updated_at": draft.updated_at.isoformat()
+            })
+
+        logger.info(f"Retrieved {len(response)} drafts for user {user_id_str}")
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing drafts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list drafts")
+
+
+@router.get("/drafts/{draft_id}")
+async def get_draft(
+    draft_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get a specific draft by ID
+    Returns complete draft data for editing
+    """
+    try:
+        # Validate draft ID format
+        if not ObjectId.is_valid(draft_id):
+            raise HTTPException(status_code=400, detail="Invalid draft ID format")
+
+        # Get authenticated user
+        supertokens_user_id = session.get_user_id()
+
+        # Resolve to MongoDB user
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+
+        # Fetch draft
+        draft = await UseCaseDraft.find_one(UseCaseDraft.id == ObjectId(draft_id))
+        if not draft:
+            raise HTTPException(status_code=404, detail="Draft not found")
+
+        # Verify ownership
+        if draft.user_id != user_id_str:
+            raise HTTPException(status_code=403, detail="Not authorized to access this draft")
+
+        # Prepare response with mapped fields (camelCase for frontend)
+        response = {
+            "id": str(draft.id),
+            "user_id": draft.user_id,
+            "currentStep": draft.current_step,
+            "title": draft.title,
+            "subtitle": draft.subtitle,
+            "description": draft.executive_summary or draft.problem_statement,
+            "category": draft.category,
+            "factoryName": draft.factory_name,
+            "city": draft.region,
+            "images": draft.images or [],
+            "contactPerson": draft.contact_person,
+            "contactTitle": draft.contact_title,
+            "implementationTime": draft.implementation_time,
+            "roiPercentage": draft.roi_percentage,
+            "industryTags": draft.industry_tags or [],
+            "technologyTags": draft.technology_tags or [],
+            "created_at": draft.created_at.isoformat(),
+            "updated_at": draft.updated_at.isoformat()
+        }
+
+        # Extract location
+        if draft.location:
+            response["latitude"] = draft.location.get("lat")
+            response["longitude"] = draft.location.get("lng")
+
+        # Extract business challenge fields
+        if draft.business_challenge:
+            response["industryContext"] = draft.business_challenge.get("industry_context")
+            response["specificProblems"] = draft.business_challenge.get("specific_problems") or []
+            response["financialLoss"] = draft.business_challenge.get("financial_loss")
+
+        # Extract solution details
+        if draft.solution_details:
+            response["selectionCriteria"] = draft.solution_details.get("selection_criteria") or []
+            response["technologyComponents"] = draft.solution_details.get("technology_components") or []
+
+        # Extract vendor info
+        if draft.vendor_info:
+            response["selectedVendor"] = draft.vendor_info.get("selected_vendor")
+            response["vendorProcess"] = draft.vendor_info.get("vendor_process")
+            response["vendorSelectionReasons"] = draft.vendor_info.get("selection_reasons") or []
+
+        # Extract implementation details
+        if draft.implementation_details:
+            response["totalBudget"] = draft.implementation_details.get("total_budget")
+            response["methodology"] = draft.implementation_details.get("methodology")
+            response["projectTeamInternal"] = draft.implementation_details.get("project_team_internal") or []
+            response["projectTeamVendor"] = draft.implementation_details.get("project_team_vendor") or []
+            response["phases"] = draft.implementation_details.get("phases") or []
+
+        # Extract results
+        if draft.results:
+            response["quantitativeResults"] = draft.results.get("quantitative_metrics") or []
+            response["annualSavings"] = draft.results.get("annual_savings")
+            response["qualitativeImpacts"] = draft.results.get("qualitative_impacts") or []
+            response["roiTotalInvestment"] = draft.results.get("roi_total_investment")
+            response["roiThreeYearRoi"] = draft.results.get("roi_three_year_roi")
+
+        # Extract challenges & solutions
+        if draft.challenges_and_solutions:
+            response["challengesSolutions"] = draft.challenges_and_solutions
+
+        # Extract extended sections
+        if draft.technical_architecture:
+            response["technical_architecture"] = draft.technical_architecture
+        if draft.future_roadmap:
+            response["future_roadmap"] = draft.future_roadmap
+        if draft.lessons_learned:
+            response["lessons_learned"] = draft.lessons_learned
+
+        logger.info(f"Retrieved draft {draft_id} for user {user_id_str}")
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"Error getting draft {draft_id}: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to get draft: {str(e)}")
+
+
+@router.delete("/drafts/{draft_id}", status_code=204)
+async def delete_draft(
+    draft_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a draft
+    Only the draft owner can delete it
+    """
+    try:
+        # Validate draft ID format
+        if not ObjectId.is_valid(draft_id):
+            raise HTTPException(status_code=400, detail="Invalid draft ID format")
+
+        # Get authenticated user
+        supertokens_user_id = session.get_user_id()
+
+        # Resolve to MongoDB user
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+
+        # Fetch draft
+        draft = await UseCaseDraft.find_one(UseCaseDraft.id == ObjectId(draft_id))
+        if not draft:
+            raise HTTPException(status_code=404, detail="Draft not found")
+
+        # Verify ownership
+        if draft.user_id != user_id_str:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this draft")
+
+        # Delete draft
+        await draft.delete()
+
+        logger.info(f"Deleted draft {draft_id} for user {user_id_str}")
+        from fastapi import Response
+        return Response(status_code=204)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting draft {draft_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete draft")
+
+
+@router.post("/drafts/{draft_id}/publish")
+async def publish_draft(
+    draft_id: str,
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Convert a draft to a published use case
+    Validates required fields and creates a UseCase from the draft
+    Deletes the draft after successful publication
+    """
+    try:
+        # Validate draft ID format
+        if not ObjectId.is_valid(draft_id):
+            raise HTTPException(status_code=400, detail="Invalid draft ID format")
+
+        # Get authenticated user
+        supertokens_user_id = session.get_user_id()
+
+        # Resolve to MongoDB user
+        pg_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not pg_user:
+            raise HTTPException(status_code=401, detail="Invalid session user")
+
+        mongo_user = await MongoUser.find_one(MongoUser.email == pg_user.email)
+        if not mongo_user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        user_id_str = str(mongo_user.id)
+
+        # Fetch draft
+        draft = await UseCaseDraft.find_one(UseCaseDraft.id == ObjectId(draft_id))
+        if not draft:
+            raise HTTPException(status_code=404, detail="Draft not found")
+
+        # Verify ownership
+        if draft.user_id != user_id_str:
+            raise HTTPException(status_code=403, detail="Not authorized to publish this draft")
+
+        # Validate required fields for publication
+        missing_fields = []
+        if not draft.title:
+            missing_fields.append("title")
+        if not draft.subtitle:
+            missing_fields.append("subtitle")
+        if not draft.category:
+            missing_fields.append("category")
+        if not draft.factory_name:
+            missing_fields.append("factoryName")
+        if not draft.region:
+            missing_fields.append("city")
+        if not draft.location or not draft.location.get("lat") or not draft.location.get("lng"):
+            missing_fields.append("location")
+        if not draft.business_challenge or not draft.business_challenge.get("industry_context"):
+            missing_fields.append("industryContext")
+        if not draft.business_challenge or not draft.business_challenge.get("specific_problems"):
+            missing_fields.append("specificProblems")
+        if not draft.solution_details or not draft.solution_details.get("selection_criteria"):
+            missing_fields.append("selectionCriteria")
+        if not draft.implementation_details or not draft.implementation_details.get("total_budget"):
+            missing_fields.append("totalBudget")
+        if not draft.implementation_details or not draft.implementation_details.get("methodology"):
+            missing_fields.append("methodology")
+
+        if missing_fields:
+            return {
+                "success": False,
+                "can_publish": False,
+                "missing_fields": missing_fields,
+                "message": f"Cannot publish: missing required fields"
+            }
+
+        # Create UseCase from draft
+        use_case = UseCase(
+            submitted_by=user_id_str,
+            title=draft.title,
+            subtitle=draft.subtitle,
+            problem_statement=draft.problem_statement or draft.executive_summary,
+            executive_summary=draft.executive_summary or draft.problem_statement,
+            solution_description=draft.solution_description or "",
+            category=draft.category,
+            factory_name=draft.factory_name,
+            region=draft.region,
+            location=draft.location,
+            business_challenge=draft.business_challenge,
+            solution_details=draft.solution_details,
+            vendor_info=draft.vendor_info,
+            implementation_details=draft.implementation_details,
+            results=draft.results,
+            challenges_and_solutions=draft.challenges_and_solutions or [],
+            technical_architecture=draft.technical_architecture,
+            future_roadmap=draft.future_roadmap or [],
+            lessons_learned=draft.lessons_learned or [],
+            implementation_time=draft.implementation_time,
+            roi_percentage=draft.roi_percentage,
+            contact_person=draft.contact_person,
+            contact_title=draft.contact_title,
+            images=draft.images or [],
+            industry_tags=draft.industry_tags or [],
+            technology_tags=draft.technology_tags or [],
+            published=True,
+            status="published",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+
+        await use_case.create()
+
+        # Log activity
+        await UserActivityService.log_activity(
+            user_id=user_id_str,
+            activity_type="usecase",
+            target_id=str(use_case.id),
+            target_title=use_case.title,
+            target_category=use_case.category,
+            description=f"Published use case: {use_case.title}"
+        )
+
+        # Delete the draft after successful publication
+        await draft.delete()
+
+        logger.info(f"Published draft {draft_id} as use case {use_case.id} for user {user_id_str}")
+
+        return {
+            "success": True,
+            "can_publish": True,
+            "use_case_id": str(use_case.id),
+            "message": "Draft published successfully",
+            "use_case": {
+                "id": str(use_case.id),
+                "title": use_case.title,
+                "slug": use_case.title_slug
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error publishing draft {draft_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to publish draft")
 @router.get("/{company_slug}/{title_slug}")
 async def get_use_case_by_slug(
     company_slug: str,
@@ -664,3 +1329,7 @@ async def delete_use_case(
     except Exception as e:
         logger.error(f"Error deleting use case {use_case_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete use case")
+
+
+# ===== DRAFT ENDPOINTS =====
+

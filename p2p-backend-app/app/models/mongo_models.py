@@ -237,6 +237,64 @@ class UseCase(Document):
             [("title", pymongo.TEXT)]
         ]
 
+class UseCaseDraft(Document):
+    """Model for Use Case drafts - mirrors UseCase model with all Optional fields"""
+    # Draft Ownership & Metadata
+    user_id: str  # MongoDB ObjectId of the user who created the draft
+    current_step: int = 1  # Current wizard step (1-7)
+
+    # Basic Information (all Optional for partial saves)
+    title: Optional[str] = None
+    problem_statement: Optional[str] = None
+    solution_description: Optional[str] = None
+    vendor_info: Optional[Dict[str, Any]] = None
+    cost_estimate: Optional[str] = None
+    impact_metrics: Optional[Dict[str, Any]] = None
+    industry_tags: Optional[List[str]] = None
+    region: Optional[str] = None
+    location: Optional[Dict[str, float]] = None
+
+    # Detailed Information
+    subtitle: Optional[str] = None
+    description_long: Optional[str] = None
+    category: Optional[str] = None
+    factory_name: Optional[str] = None
+    implementation_time: Optional[str] = None
+    roi_percentage: Optional[str] = None
+
+    # Contact & Metadata
+    contact_person: Optional[str] = None
+    contact_title: Optional[str] = None
+    images: Optional[List[str]] = None  # S3 URLs for images
+    videos: Optional[List[Dict[str, str]]] = None  # [{"url": "...", "thumbnail": "...", "filename": "..."}]
+
+    # Rich Content Sections
+    executive_summary: Optional[str] = None
+    business_challenge: Optional[Dict[str, Any]] = None
+    solution_details: Optional[Dict[str, Any]] = None
+    implementation_details: Optional[Dict[str, Any]] = None
+    challenges_and_solutions: Optional[List[Dict[str, str]]] = None
+    results: Optional[Dict[str, Any]] = None
+    technical_architecture: Optional[Dict[str, Any]] = None
+    future_roadmap: Optional[List[Dict[str, str]]] = None
+    lessons_learned: Optional[List[Dict[str, str]]] = None
+
+    # Additional Metadata
+    read_time: Optional[str] = None
+    technology_tags: Optional[List[str]] = None
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Settings:
+        name = "use_case_drafts"
+        indexes = [
+            [("user_id", pymongo.ASCENDING)],
+            [("updated_at", pymongo.DESCENDING)],
+            [("user_id", pymongo.ASCENDING), ("updated_at", pymongo.DESCENDING)]
+        ]
+
 class Invitation(Document):
     """Model for user invitations"""
     email: EmailStr

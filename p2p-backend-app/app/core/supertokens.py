@@ -32,6 +32,30 @@ def custom_email_delivery_override(original_implementation):
     return original_implementation
 
 
+def custom_password_reset_email_override(original_implementation):
+    """Custom email delivery for password reset emails"""
+    original_send_email = original_implementation.send_email
+
+    async def send_email(template_vars, user_context: Dict[str, Any]):
+        """Send password reset email using our custom service"""
+        try:
+            from app.services.password_reset_service import send_password_reset_email
+
+            # Send using our custom email service
+            await send_password_reset_email(
+                email=template_vars.user.email,
+                password_reset_url=template_vars.password_reset_link
+            )
+            logger.info(f"Password reset email sent to {template_vars.user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send password reset email: {str(e)}")
+            # Fallback to original implementation if custom fails
+            await original_send_email(template_vars, user_context)
+
+    original_implementation.send_email = send_email
+    return original_implementation
+
+
 def init_supertokens():
     """Initialize SuperTokens with email/password authentication and email verification."""
 
@@ -60,6 +84,9 @@ def init_supertokens():
                         InputFormField(id="companySize", optional=False),
                         InputFormField(id="city", optional=False),
                     ]
+                ),
+                email_delivery=EmailDeliveryConfig(
+                    override=custom_password_reset_email_override
                 )
             ),
             emailverification.init(

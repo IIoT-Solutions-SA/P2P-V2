@@ -37,15 +37,15 @@ export default function Navigation() {
     <>
       <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm z-50">
         <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-3 sm:py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-y-2">
             {/* Logo and Brand - Responsive */}
             <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
-              <img src="/logo.png" alt="P2P Sandbox Logo" className="h-8 sm:h-10 lg:h-12 w-auto" />
+              <img src="/logo.png" alt="P2P Sandbox Logo" className="h-8 sm:h-10 lg:h-12 w-auto flex-shrink-0" />
               <div className="flex items-end space-x-1 sm:space-x-2">
-                <span className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-800">
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-800 whitespace-nowrap">
                   <span className="text-blue-600">Peer</span>Link
                 </span>
-                <span className="hidden sm:block text-sm lg:text-base font-bold text-slate-400 mb-0.5">For SMEs</span>
+                <span className="text-sm lg:text-base font-bold text-slate-400 mb-0.5 whitespace-nowrap">For SMEs</span>
               </div>
             </div>
 
@@ -103,7 +103,7 @@ export default function Navigation() {
                   </Button>
                 </div>
               ) : (
-                <div className="hidden lg:flex items-center space-x-3">
+                <div className="hidden xl:flex items-center space-x-3">
                   <button
                     onClick={() => navigate('/dashboard')}
                     className="flex items-center space-x-3 hover:opacity-80 cursor-pointer"
@@ -113,7 +113,7 @@ export default function Navigation() {
                       name={`${user?.firstName} ${user?.lastName}`}
                       size="md"
                     />
-                    <div className="hidden xl:block text-left">
+                    <div className="text-left">
                       <div className="text-sm font-semibold text-slate-900">
                         {user?.firstName} {user?.lastName}
                       </div>
@@ -372,7 +372,7 @@ export function MobileBottomNav() {
   ]
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-40 safe-area-pb">
+    <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-40 safe-area-pb">
       <div className="grid grid-cols-5 gap-1 px-2 py-2">
         {navigationItems.map((item) => {
           const IconComponent = item.icon

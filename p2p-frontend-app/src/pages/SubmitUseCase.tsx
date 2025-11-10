@@ -297,7 +297,7 @@ export default function SubmitUseCase() {
   // Auto-save form data to localStorage on form value changes
   useEffect(() => {
     // Subscribe to form changes
-    const subscription = form.watch((value, { name, type }) => {
+    const subscription = form.watch((_value, { name: _name, type: _type }) => {
       // Trigger save whenever form values change
       setAutosaveStatus('saving')
 
@@ -527,16 +527,16 @@ export default function SubmitUseCase() {
       contactPerson: formValues.contactPerson,
       contactTitle: formValues.contactTitle,
       images: existingImages,
-      industryTags: formValues.industryTags,
-      technologyTags: formValues.technologyTags,
+      industryTags,
+      technologyTags,
       vendorProcess,
       vendorSelectionReasons,
       projectTeamInternal,
       projectTeamVendor,
       phases,
-      qualitativeImpacts: formValues.qualitativeImpacts,
-      roiTotalInvestment: formValues.roiTotalInvestment,
-      roiThreeYearRoi: formValues.roiThreeYearRoi
+      qualitativeImpacts,
+      roiTotalInvestment,
+      roiThreeYearRoi
     }
   }
 
@@ -590,7 +590,6 @@ export default function SubmitUseCase() {
       const fetchExistingUseCase = async () => {
         // Check if we have newer localStorage data first
         const saved = localStorage.getItem(FORM_STORAGE_KEY)
-        let hasNewerLocalData = false
 
         if (saved) {
           try {
@@ -598,7 +597,6 @@ export default function SubmitUseCase() {
             const timestamp = savedData.timestamp || 0
             // If localStorage data is less than 5 minutes old, prioritize it
             if (Date.now() - timestamp < 5 * 60 * 1000) {
-              hasNewerLocalData = true
               console.log('Edit Mode: Found recent localStorage data (< 5 min), skipping server fetch')
               setIsLoadingExistingData(false)
               return // Don't overwrite with server data

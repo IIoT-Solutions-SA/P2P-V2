@@ -17,6 +17,7 @@ export default function ResetPassword() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
+  // @ts-ignore - tenantId preserved for potential future multi-tenant support
   const tenantId = searchParams.get('tenantId') || 'public'
 
   const [newPassword, setNewPassword] = useState('')

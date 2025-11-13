@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     # CloudFront CDN (optional - use direct S3 URLs if not set)
     CLOUDFRONT_DOMAIN: Optional[str] = None
 
+    # Email Configuration
+    MAIL_USERNAME: Optional[str] = None
+    MAIL_PASSWORD: Optional[str] = None
+    MAIL_FROM: Optional[str] = None
+
     class Config:
         case_sensitive = True
         env_file = ".env"

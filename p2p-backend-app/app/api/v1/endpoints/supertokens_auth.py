@@ -383,3 +383,127 @@ async def reset_password(request: Request):
     except Exception as e:
         logger.error(f"Password reset error: {str(e)}", exc_info=True)
         return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Server error: {str(e)}"})
+
+
+@router.post("/resend-verification-email")
+async def resend_verification_email(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Resend email verification link to user
+    Accepts email in request body
+    """
+    try:
+        logger.info("Starting resend verification email process")
+        body = await request.json()
+        email = body.get("email")
+
+        if not email:
+            logger.warning("Missing email in resend verification request")
+            return JSONResponse(
+                status_code=400,
+                content={"status": "ERROR", "message": "Email is required"}
+            )
+
+        logger.info(f"Resend verification email request for: {email}")
+
+        # Look up the user to get their SuperTokens ID
+        try:
+            pg_user = await UserService.get_user_by_email_pg(db, email)
+
+            if not pg_user or not pg_user.supertokens_id:
+                logger.info(f"No user found with email: {email}")
+                # Return success anyway to avoid revealing if email exists
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "status": "OK",
+                        "message": "If an account exists with this email and is not yet verified, a verification email has been sent."
+                    }
+                )
+
+            # Check if email is already verified
+            from supertokens_python.recipe.emailverification.asyncio import is_email_verified
+            from supertokens_python.asyncio import get_user
+
+            # Get the full user object to access recipe_user_id
+            supertokens_user = await get_user(pg_user.supertokens_id)
+            if not supertokens_user:
+                logger.warning(f"Could not find SuperTokens user for ID: {pg_user.supertokens_id}")
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "status": "OK",
+                        "message": "If an account exists with this email and is not yet verified, a verification email has been sent."
+                    }
+                )
+
+            # Get the recipe_user_id from the first login method
+            if not supertokens_user.login_methods or len(supertokens_user.login_methods) == 0:
+                logger.warning(f"No login methods found for user: {pg_user.supertokens_id}")
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "status": "OK",
+                        "message": "If an account exists with this email and is not yet verified, a verification email has been sent."
+                    }
+                )
+
+            recipe_user_id = supertokens_user.login_methods[0].recipe_user_id
+
+            # Check if already verified
+            email_verified = await is_email_verified(recipe_user_id)
+            if email_verified:
+                logger.info(f"Email already verified for: {email}")
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "status": "OK",
+                        "message": "Email is already verified. You can log in now."
+                    }
+                )
+
+            # Create verification token and send via our custom email service
+            logger.info(f"Creating verification token for: {email}")
+            token_result = await create_email_verification_token("public", recipe_user_id, email)
+
+            if not hasattr(token_result, 'token'):
+                logger.error(f"Failed to create verification token for: {email}")
+                raise Exception("Could not create verification token")
+
+            # Build verification URL
+            from app.core.config import settings
+            verification_url = f"{settings.WEBSITE_DOMAIN}/auth/verify-email?token={token_result.token}&tenantId=public"
+
+            # Send using our custom email service
+            from app.services.email_verification_service import send_email_verification
+            logger.info(f"Sending verification email to: {email}")
+            await send_email_verification(
+                email=email,
+                email_verify_url=verification_url
+            )
+            logger.info(f"Verification email sent successfully to: {email}")
+
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "Verification email has been sent. Please check your inbox."
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to send verification email: {str(e)}")
+            # Still return success to avoid revealing if email exists
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "If an account exists with this email and is not yet verified, a verification email has been sent."
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"Resend verification email error: {str(e)}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"status": "ERROR", "message": f"Server error: {str(e)}"}
+        )

@@ -14,7 +14,7 @@ TEST_EMAIL = "hamzaferoze115+34@gmail.com"  # Using +34 suffix for test emails
 # Email configuration
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME", "p2p_c4ir@iiotsolutions.sa"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "spumhtayfcutpwva"),  # Gmail App Password
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "mribowelxmoctfem"),  # Gmail App Password
     # MAIL_FROM=os.getenv("MAIL_FROM", "P2P Manufacturing Platform <noreply@p2p-manufacturing.com>"),  # Future: custom domain
     MAIL_FROM=os.getenv("MAIL_FROM", "P2P-C4IR <p2p_c4ir@iiotsolutions.sa>"),  # Using business Gmail
     MAIL_PORT=587,

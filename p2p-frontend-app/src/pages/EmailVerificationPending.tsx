@@ -16,23 +16,26 @@ export default function EmailVerificationPending() {
     setMessage(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/user/email/verify/token`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/resend-verification-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({ email })
       })
+
+      const data = await response.json()
 
       if (response.ok) {
         setMessage({
           type: 'success',
-          text: 'Verification email sent! Please check your inbox.'
+          text: data.message || 'Verification email sent! Please check your inbox.'
         })
       } else {
         setMessage({
           type: 'error',
-          text: 'Failed to resend email. Please try again.'
+          text: data.message || 'Failed to resend email. Please try again.'
         })
       }
     } catch (error) {

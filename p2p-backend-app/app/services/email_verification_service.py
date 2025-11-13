@@ -8,7 +8,7 @@ import os
 # Email configuration - reuse same Gmail SMTP as invitations
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME", "p2p_c4ir@iiotsolutions.sa"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "spumhtayfcutpwva"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "mribowelxmoctfem"),
     MAIL_FROM=os.getenv("MAIL_FROM", "P2P-C4IR <p2p_c4ir@iiotsolutions.sa>"),
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",

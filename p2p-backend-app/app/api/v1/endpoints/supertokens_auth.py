@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Response, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from supertokens_python.recipe.emailpassword.asyncio import sign_in, sign_up, send_reset_password_email, reset_password_using_token
 from supertokens_python.recipe.session.asyncio import create_new_session
 from supertokens_python.recipe.emailverification.asyncio import create_email_verification_token, verify_email_using_token
@@ -11,6 +12,29 @@ from app.services.database_service import UserService
 from app.models.mongo_models import Invitation, User as MongoUser
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_error_message(error: Exception) -> str:
+    """
+    Sanitize error messages to prevent exposing sensitive database/system information.
+    Always log the full error but return a generic message to the user.
+    """
+    error_str = str(error).lower()
+
+    # Check for common database constraint violations
+    if "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
+        if "email" in error_str:
+            return "An account with this email already exists."
+        return "This record already exists."
+
+    if "foreign key" in error_str:
+        return "Invalid reference to related data."
+
+    if "not null" in error_str:
+        return "Required information is missing."
+
+    # Default generic message - NEVER expose the actual error
+    return "An unexpected error occurred. Please try again later."
 
 router = APIRouter()
 
@@ -27,7 +51,19 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
         password = body.get("password")
         
         logger.info(f"Sign-up attempt for email: {email}")
-        
+
+        # SECURITY: Check if user already exists in our database BEFORE calling SuperTokens
+        existing_pg_user = await UserService.get_user_by_email_pg(db, email)
+        if existing_pg_user:
+            logger.warning(f"Signup attempt for existing email: {email}")
+            return JSONResponse(status_code=409, content={"status": "ERROR", "message": "An account with this email already exists."})
+
+        # Also check MongoDB for existing user
+        existing_mongo_user = await MongoUser.find_one(MongoUser.email == email)
+        if existing_mongo_user:
+            logger.warning(f"Signup attempt for existing email (MongoDB): {email}")
+            return JSONResponse(status_code=409, content={"status": "ERROR", "message": "An account with this email already exists."})
+
         # Check if this is an invited member signup - presence of token is what matters
         invite_token = body.get("inviteToken")
         is_invited = bool(invite_token)  # If there's a token, they're invited
@@ -182,11 +218,17 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
         else:
             error_status = getattr(supertokens_result, 'status', 'Unknown error')
             logger.error(f"Sign-up failed with status: {error_status}")
-            return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Signup failed: {error_status}"})
+            return JSONResponse(status_code=500, content={"status": "ERROR", "message": "Signup failed. Please try again or contact support."})
             
+    except IntegrityError as e:
+        # Database constraint violation - likely duplicate email
+        logger.error(f"Sign-up database integrity error: {str(e)}", exc_info=True)
+        return JSONResponse(status_code=409, content={"status": "ERROR", "message": "An account with this email already exists."})
     except Exception as e:
+        # SECURITY: Log the full error but return a sanitized message to prevent info leakage
         logger.error(f"Sign-up error: {str(e)}", exc_info=True)
-        return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"An unexpected server error occurred: {str(e)}"})
+        safe_message = sanitize_error_message(e)
+        return JSONResponse(status_code=500, content={"status": "ERROR", "message": safe_message})
 
 
 @router.post("/custom-signin")
@@ -264,7 +306,8 @@ async def post_signin(request: Request, response: Response):
             
     except Exception as e:
         logger.error(f"Sign-in error: {str(e)}", exc_info=True)
-        return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Server error: {str(e)}"})
+        safe_message = sanitize_error_message(e)
+        return JSONResponse(status_code=500, content={"status": "ERROR", "message": safe_message})
 
 
 @router.post("/forgot-password")
@@ -324,7 +367,8 @@ async def forgot_password(request: Request, db: AsyncSession = Depends(get_db)):
 
     except Exception as e:
         logger.error(f"Forgot password error: {str(e)}", exc_info=True)
-        return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Server error: {str(e)}"})
+        safe_message = sanitize_error_message(e)
+        return JSONResponse(status_code=500, content={"status": "ERROR", "message": safe_message})
 
 
 @router.post("/reset-password")
@@ -354,11 +398,12 @@ async def reset_password(request: Request):
         if hasattr(result, 'status'):
             logger.info(f"Reset password result status: {result.status}")
 
-        # Check if the reset failed (invalid token error)
+        # Check if the reset failed
         # Check by type name since we can't import the specific result classes
         result_type_name = type(result).__name__
+        logger.info(f"Reset password result: {result_type_name}, full result: {result}")
 
-        if "InvalidToken" in result_type_name or "INVALID_TOKEN" in str(result):
+        if "InvalidToken" in result_type_name:
             logger.warning(f"Password reset failed - invalid token: {result_type_name}")
             return JSONResponse(
                 status_code=400,
@@ -367,8 +412,20 @@ async def reset_password(request: Request):
                     "message": "Invalid or expired reset token. Please request a new password reset link."
                 }
             )
-        else:
-            # Success case - password was reset
+        elif "PasswordPolicyViolation" in result_type_name:
+            # Password doesn't meet requirements
+            failure_reason = getattr(result, 'failure_reason', 'Password does not meet requirements')
+            logger.warning(f"Password reset failed - policy violation: {failure_reason}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "FIELD_ERROR",
+                    "message": "Password must be at least 8 characters long and contain a mix of letters and numbers.",
+                    "formFields": [{"id": "password", "error": str(failure_reason)}]
+                }
+            )
+        elif "Ok" in result_type_name:
+            # Success case - matches ResetPasswordUsingTokenOkResult
             user_id = getattr(result, 'user_id', None)
             logger.info(f"Password reset successful for user ID: {user_id}")
             return JSONResponse(
@@ -379,10 +436,21 @@ async def reset_password(request: Request):
                     "userId": user_id
                 }
             )
+        else:
+            # Unknown result type - log and return generic error
+            logger.error(f"Unknown password reset result type: {result_type_name}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "ERROR",
+                    "message": "Password reset failed. Please try again or request a new reset link."
+                }
+            )
 
     except Exception as e:
         logger.error(f"Password reset error: {str(e)}", exc_info=True)
-        return JSONResponse(status_code=500, content={"status": "ERROR", "message": f"Server error: {str(e)}"})
+        safe_message = sanitize_error_message(e)
+        return JSONResponse(status_code=500, content={"status": "ERROR", "message": safe_message})
 
 
 @router.post("/resend-verification-email")
@@ -503,7 +571,8 @@ async def resend_verification_email(request: Request, db: AsyncSession = Depends
 
     except Exception as e:
         logger.error(f"Resend verification email error: {str(e)}", exc_info=True)
+        safe_message = sanitize_error_message(e)
         return JSONResponse(
             status_code=500,
-            content={"status": "ERROR", "message": f"Server error: {str(e)}"}
+            content={"status": "ERROR", "message": safe_message}
         )

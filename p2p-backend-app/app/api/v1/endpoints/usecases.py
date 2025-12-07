@@ -728,7 +728,7 @@ async def get_draft(
         import traceback
         logger.error(f"Error getting draft {draft_id}: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Failed to get draft: {str(e)}")
+        raise HTTPException(status_code=500, detail="An error occurred while retrieving the draft. Please try again.")
 
 
 @router.delete("/drafts/{draft_id}", status_code=204)

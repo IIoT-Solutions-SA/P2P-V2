@@ -452,10 +452,11 @@ async def like_forum_post(
         )
         return {"success": True, **result}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"ValueError liking post {post_id}: {e}")
+        raise HTTPException(status_code=404, detail="Post not found")
     except Exception as e:
-        logger.error(f"Error liking post {post_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to like post")
+        logger.error(f"Error liking post {post_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An error occurred while liking the post. Please try again.")
 
 @router.post("/posts/{post_id}/replies")
 async def create_reply(
@@ -476,10 +477,11 @@ async def create_reply(
         )
         return {"success": True, "reply_id": str(reply.id)}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"ValueError creating reply: {e}")
+        raise HTTPException(status_code=404, detail="Post not found")
     except Exception as e:
-        logger.error(f"Error creating reply: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create reply")
+        logger.error(f"Error creating reply: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An error occurred while creating the reply. Please try again.")
 
 @router.post("/replies/{reply_id}/like")
 async def like_forum_reply(
@@ -498,10 +500,11 @@ async def like_forum_reply(
         )
         return {"success": True, **result}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"ValueError liking reply {reply_id}: {e}")
+        raise HTTPException(status_code=404, detail="Reply not found")
     except Exception as e:
-        logger.error(f"Error liking reply {reply_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to like reply")
+        logger.error(f"Error liking reply {reply_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An error occurred while liking the reply. Please try again.")
 
 @router.get("/stats")
 async def get_forum_stats(

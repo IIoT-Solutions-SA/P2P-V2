@@ -138,8 +138,8 @@ export default function Signup() {
         setError('Please fill in all required fields')
         return
       }
-      if (formData.password.length <= 5) {
-        setError('Password must be more than 5 characters')
+      if (formData.password.length < 8 || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+        setError('Password must be at least 8 characters with at least one lowercase letter and one number')
         return
       }
     } else if (currentStep === 2) {

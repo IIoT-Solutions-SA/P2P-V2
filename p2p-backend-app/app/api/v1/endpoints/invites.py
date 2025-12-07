@@ -95,9 +95,11 @@ async def send_invitation(
             created_at=result.created_at
         )
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to send invitation: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send invitation: {str(e)}"
+            detail="An error occurred while sending the invitation. Please try again."
         )
 
 @router.get("/validate/{token}", response_model=InvitationValidation)

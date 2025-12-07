@@ -80,8 +80,8 @@ class S3Service:
             return self._generate_url(s3_key)
 
         except ClientError as e:
-            logger.error(f"Failed to upload profile picture to S3: {e}")
-            raise HTTPException(500, f"Upload failed: {str(e)}")
+            logger.error(f"Failed to upload profile picture to S3: {e}", exc_info=True)
+            raise HTTPException(500, "Failed to upload profile picture. Please try again.")
 
     async def upload_forum_attachment(self, post_id: str, user_id: str, file_content: bytes,
                                     filename: str, content_type: str) -> tuple[str, str]:
@@ -130,8 +130,8 @@ class S3Service:
             return self._generate_url(s3_key), s3_key
 
         except ClientError as e:
-            logger.error(f"Failed to upload forum attachment to S3: {e}")
-            raise HTTPException(500, f"Upload failed: {str(e)}")
+            logger.error(f"Failed to upload forum attachment to S3: {e}", exc_info=True)
+            raise HTTPException(500, "Failed to upload attachment. Please try again.")
 
     async def upload_usecase_media(self, usecase_id: str, user_id: str, file_content: bytes,
                                  filename: str, content_type: str) -> tuple[str, str]:
@@ -182,8 +182,8 @@ class S3Service:
             return self._generate_url(s3_key), s3_key
 
         except ClientError as e:
-            logger.error(f"Failed to upload use case media to S3: {e}")
-            raise HTTPException(500, f"Upload failed: {str(e)}")
+            logger.error(f"Failed to upload use case media to S3: {e}", exc_info=True)
+            raise HTTPException(500, "Failed to upload media file. Please try again.")
 
     async def delete_file(self, s3_url: str, bucket: str):
         """

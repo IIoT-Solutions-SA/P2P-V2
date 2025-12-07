@@ -119,9 +119,11 @@ async def get_current_user(
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error fetching user profile: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Error fetching user profile: {str(e)}"
+            detail="An error occurred while fetching your profile. Please try again."
         )
 
 @router.put("/profile")
@@ -190,9 +192,11 @@ async def update_profile(
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error updating user profile: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Error updating user profile: {str(e)}"
+            detail="An error occurred while updating your profile. Please try again."
         )
 
 @router.put("/email")
@@ -251,9 +255,11 @@ async def update_email(
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error updating email: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Error updating email: {str(e)}"
+            detail="An error occurred while updating your email. Please try again."
         )
 
 @router.put("/password")
@@ -296,9 +302,11 @@ async def update_password(
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error updating password: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Error updating password: {str(e)}"
+            detail="An error occurred while updating your password. Please try again."
         )
 
 @router.get("/users/organization")
@@ -371,7 +379,9 @@ async def get_organization_members(
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error fetching organization members: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Error fetching organization members: {str(e)}"
+            detail="An error occurred while fetching organization members. Please try again."
         )

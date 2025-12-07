@@ -35,8 +35,8 @@ export default function ResetPassword() {
   }, [token])
 
   const validatePassword = (): boolean => {
-    if (newPassword.length <= 5) {
-      setError('Password must be more than 5 characters')
+    if (newPassword.length < 8 || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      setError('Password must be at least 8 characters with at least one lowercase letter and one number')
       return false
     }
     if (newPassword !== confirmPassword) {
@@ -77,6 +77,10 @@ export default function ResetPassword() {
             state: { message: 'Password reset successful! Please log in with your new password.' }
           })
         }, 3000)
+      } else if (result.status === 'FIELD_ERROR' && result.formFields) {
+        // Handle password policy violations
+        const passwordError = result.formFields.find((f: { id: string; error: string }) => f.id === 'password')
+        setError(passwordError?.error || result.message || 'Password does not meet requirements')
       } else {
         setError(result.message || 'Failed to reset password')
       }
@@ -157,7 +161,7 @@ export default function ResetPassword() {
                       </button>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      Must be more than 5 characters
+                      At least 8 characters, one lowercase letter, and one number
                     </p>
                   </div>
 

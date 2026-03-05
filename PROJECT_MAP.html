@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗺️ P2P Manufacturing Knowledge Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #6366f1; --secondary: #8b5cf6; --accent: #06b6d4;
+            --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
+            --bg-body: #0f0f1a; --bg-card: #1a1a2e; --bg-card-hover: #252538;
+            --bg-input: rgba(255,255,255,0.05);
+            --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+            --border: rgba(255,255,255,0.08); --shadow: rgba(0,0,0,0.3);
+        }
+        .light-mode {
+            --bg-body: #f8fafc; --bg-card: #ffffff; --bg-card-hover: #f1f5f9;
+            --bg-input: rgba(0,0,0,0.03);
+            --text: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
+            --border: rgba(0,0,0,0.08); --shadow: rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-body); color: var(--text);
+            min-height: 100vh; transition: all 0.3s;
+        }
+        .bg-gradient {
+            position: fixed; inset: 0; z-index: -1;
+            background: radial-gradient(ellipse at 20% 20%, rgba(99,102,241,0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.08) 0%, transparent 50%);
+        }
+        .bg-grid {
+            position: fixed; inset: 0; z-index: -1; opacity: 0.3;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        
+        /* Navbar */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 70px;
+            background: var(--bg-card); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 32px; z-index: 1000;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; margin-right: 40px; }
+        .logo-icon {
+            width: 42px; height: 42px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+        .logo-text { font-size: 1.2rem; font-weight: 700; }
+        .nav-tabs { display: flex; gap: 4px; flex: 1; }
+        .nav-tab {
+            padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500;
+            color: var(--text-secondary); cursor: pointer; border: none; background: transparent;
+            display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+        }
+        .nav-tab:hover { color: var(--text); background: var(--bg-input); }
+        .nav-tab.active {
+            color: white; background: linear-gradient(135deg, var(--primary), var(--secondary));
+            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+        .nav-right { display: flex; align-items: center; gap: 12px; }
+        .search-input {
+            width: 180px; padding: 10px 14px 10px 36px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); font-size: 14px; outline: none;
+        }
+        .search-input:focus { border-color: var(--primary); width: 240px; }
+        .search-box { position: relative; }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .theme-btn {
+            width: 42px; height: 42px; border-radius: 8px; background: var(--bg-input);
+            border: 1px solid var(--border); color: var(--text); cursor: pointer; font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .theme-btn:hover { border-color: var(--primary); }
+        
+        /* Main */
+        .main { padding-top: 70px; min-height: 100vh; }
+        .tab-content { display: none; padding: 32px 40px; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+        
+        /* Hero */
+        .hero { text-align: center; padding: 50px 40px 40px; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+            font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;
+        }
+        .hero-badge-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .hero-title {
+            font-size: 2.75rem; font-weight: 700; margin-bottom: 14px;
+            background: linear-gradient(135deg, var(--text), var(--primary), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle { font-size: 1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto 28px; line-height: 1.7; }
+        .hero-subtitle ol, .hero-subtitle ul { text-align: left; margin: 16px 0; padding-left: 28px; }
+        .hero-subtitle li { margin-bottom: 10px; }
+        .hero-stats { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .stat { text-align: center; padding: 14px 22px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        
+        /* Section */
+        .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .section-title { font-size: 1.3rem; font-weight: 600; }
+        .section-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        
+        /* Tech Grid */
+        .tech-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px; }
+        .tech-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; transition: all 0.2s; }
+        .tech-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+        .tech-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .tech-card-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .tech-card-icon.lang { background: rgba(99,102,241,0.15); }
+        .tech-card-icon.fw { background: rgba(139,92,246,0.15); }
+        .tech-card-icon.tool { background: rgba(6,182,212,0.15); }
+        .tech-card-icon.db { background: rgba(245,158,11,0.15); }
+        .tech-card-title { font-weight: 600; font-size: 14px; }
+        .tech-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tech-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; background: var(--bg-input); border: 1px solid var(--border); }
+        .tech-tag.lang { color: var(--primary); border-color: rgba(99,102,241,0.3); }
+        .tech-tag.fw { color: var(--secondary); border-color: rgba(139,92,246,0.3); }
+        .tech-tag.tool { color: var(--accent); border-color: rgba(6,182,212,0.3); }
+        .tech-tag.db { color: var(--warning); border-color: rgba(245,158,11,0.3); }
+        .tech-empty { color: var(--text-muted); font-size: 13px; font-style: italic; }
+        
+        /* Architecture */
+        .arch-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; margin-bottom: 40px; }
+        .arch-box pre { font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; color: var(--accent); margin: 0; }
+        
+        /* FILES - 2 Column Grid, No Collapse */
+        .files-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .file-box {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+            padding: 20px; transition: all 0.2s;
+        }
+        .file-box:hover { border-color: var(--primary); box-shadow: 0 8px 30px var(--shadow); }
+        .file-box.folder { border-left: 4px solid var(--primary); }
+        .file-box.source { border-left: 4px solid var(--success); }
+        .file-box.config { border-left: 4px solid var(--secondary); }
+        .file-box.doc { border-left: 4px solid var(--accent); }
+        .file-box.noise { border-left: 4px solid var(--text-muted); opacity: 0.7; }
+        .file-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+        .file-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+        .file-icon.folder { background: rgba(99,102,241,0.15); }
+        .file-icon.python { background: rgba(34,197,94,0.15); }
+        .file-icon.js { background: rgba(234,179,8,0.15); }
+        .file-icon.ts { background: rgba(6,182,212,0.15); }
+        .file-icon.config { background: rgba(139,92,246,0.15); }
+        .file-icon.doc { background: rgba(6,182,212,0.15); }
+        .file-icon.noise { background: rgba(100,116,139,0.15); }
+        .file-icon.other { background: rgba(148,163,184,0.15); }
+        .file-title { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .file-path { font-size: 12px; color: var(--text-muted); font-family: monospace; margin-top: 2px; }
+        .file-badge { font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
+        .file-badge.new { background: rgba(34,197,94,0.2); color: var(--success); }
+        .file-badge.updated { background: rgba(245,158,11,0.2); color: var(--warning); }
+        .file-section { margin-top: 14px; }
+        .file-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+        .file-purpose { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+        .file-list { color: var(--text-secondary); font-size: 13px; }
+        .file-list li { padding: 3px 0; display: flex; align-items: flex-start; gap: 6px; }
+        .file-list li::before { content: '→'; color: var(--primary); flex-shrink: 0; }
+        .file-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .file-tag { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-family: monospace; }
+        .file-tag.func { background: rgba(6,182,212,0.12); color: var(--accent); }
+        .file-tag.cls { background: rgba(139,92,246,0.12); color: var(--secondary); }
+        .file-integrates { display: flex; flex-wrap: wrap; gap: 6px; }
+        .file-link { padding: 4px 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px; font-size: 12px; color: var(--primary); cursor: pointer; }
+        .file-link:hover { background: rgba(99,102,241,0.1); }
+        
+        /* Docs Tab */
+        .docs-grid { display: grid; gap: 20px; }
+        .doc-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .doc-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .doc-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(6,182,212,0.15); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .doc-title { font-weight: 600; }
+        .doc-path { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+        .doc-content { padding: 20px; color: var(--text-secondary); font-size: 14px; line-height: 1.7; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: inherit; }
+        .doc-content code { background: var(--bg-input); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+        
+        /* Git Tab */
+        .git-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+        .git-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .git-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .git-stat-value { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .git-stat-value code { background: var(--bg-input); padding: 3px 8px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+        .commits-section { margin-bottom: 32px; }
+        .commits-title { font-size: 14px; color: var(--text-secondary); margin-bottom: 14px; font-weight: 500; }
+        .commits-list { display: flex; flex-direction: column; gap: 12px; }
+        .commit-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; gap: 14px; }
+        .commit-card:hover { border-color: var(--primary); }
+        .commit-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+        .commit-info { flex: 1; }
+        .commit-message { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+        .commit-meta { font-size: 12px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 14px; }
+        .commit-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .commit-file { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-family: monospace; }
+        .commit-file.added { background: rgba(34,197,94,0.12); color: var(--success); }
+        .commit-file.modified { background: rgba(245,158,11,0.12); color: var(--warning); }
+        .commit-file.deleted { background: rgba(239,68,68,0.12); color: var(--danger); }
+        .contributors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .contributor { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 12px; }
+        .contributor-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; }
+        .contributor-name { font-weight: 600; font-size: 14px; }
+        .contributor-commits { font-size: 12px; color: var(--text-muted); }
+        
+        /* Updates Tab */
+        .updates-timeline { position: relative; padding-left: 28px; }
+        .updates-timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+        .update-item { position: relative; padding-bottom: 28px; }
+        .update-item::before { content: ''; position: absolute; left: -28px; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: 3px solid var(--bg-body); }
+        .update-item.old::before { background: var(--text-muted); }
+        .update-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+        .update-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+        .update-date { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+        .update-badge { font-size: 10px; padding: 3px 10px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 4px; color: white; font-weight: 600; }
+        .update-commit { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+        .update-section { margin-bottom: 12px; }
+        .update-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .update-section-title.added { color: var(--success); }
+        .update-section-title.updated { color: var(--warning); }
+        .update-section-title.removed { color: var(--danger); }
+        .update-files { display: flex; flex-direction: column; gap: 4px; }
+        .update-file { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg-input); border-radius: 6px; font-size: 13px; }
+        .update-file-icon { font-size: 12px; }
+        .update-file-icon.added { color: var(--success); }
+        .update-file-icon.updated { color: var(--warning); }
+        .update-file-icon.removed { color: var(--danger); }
+        .update-file-path { font-family: monospace; font-size: 12px; }
+        .update-file-desc { color: var(--text-muted); font-size: 12px; margin-left: auto; }
+        
+        .empty { text-align: center; padding: 40px; color: var(--text-muted); }
+        .hidden { display: none !important; }
+        
+        @media (max-width: 1100px) { .files-grid, .tech-grid { grid-template-columns: 1fr; } .git-stats { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .navbar { padding: 0 16px; } .nav-tabs { display: none; } .tab-content { padding: 20px 16px; } .hero-title { font-size: 2rem; } .git-stats { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="light-mode">
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">🗺️</div>
+            <span class="logo-text">Project Map</span>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="overview">📋 Overview</button>
+            <button class="nav-tab" data-tab="files">📂 Files</button>
+            <button class="nav-tab" data-tab="docs">📚 Docs</button>
+            <button class="nav-tab" data-tab="git">🔀 Git</button>
+            <button class="nav-tab" data-tab="updates">📜 Updates</button>
+        </div>
+        <div class="nav-right">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" placeholder="Search..." id="searchInput">
+            </div>
+            <button class="theme-btn" id="themeBtn">🌙</button>
+        </div>
+    </nav>
+
+    <main class="main">
+        <!-- OVERVIEW -->
+        <div class="tab-content active" id="tab-overview">
+            <div class="hero">
+                <div class="hero-badge"><span class="hero-badge-dot"></span> Last updated: 2025-12-31</div>
+                <h1 class="hero-title">P2P Manufacturing Knowledge Platform</h1>
+                <div class="hero-subtitle">The P2P (Peer-to-Peer) Manufacturing Knowledge Platform is a comprehensive web application designed to connect manufacturers in Saudi Arabia, facilitate knowledge sharing, and enable collaborative problem-solving in the manufacturing industry. The platform enables verified users—factory owners, plant engineers, and operations managers—to share insights, solve problems through forums, and access Industry 4.0 case studies within a trusted, community-driven environment. The application follows a three-tier architecture with a React frontend, FastAPI backend, and a dual-database system using PostgreSQL for core user data and MongoDB for rich content like forum posts, use cases, and user profiles. Authentication is handled through SuperTokens with email/password authentication and email verification. The platform features an interactive map showing use case locations across Saudi Arabia, a forum system with replies and best answers, and a comprehensive use case submission wizard. The project is fully containerized with Docker, supporting both development and production deployments. It includes database seeding scripts for demo data, Alembic migrations for PostgreSQL schema management, and AWS S3 integration for media uploads including profile pictures and use case attachments.</div>
+                <div class="hero-stats">
+                    <div class="stat"><div class="stat-value">252</div><div class="stat-label">Files</div></div>
+                    <div class="stat"><div class="stat-value">40</div><div class="stat-label">Folders</div></div>
+                    <div class="stat"><div class="stat-value">63</div><div class="stat-label">Commits</div></div>
+                    <div class="stat"><div class="stat-value">1</div><div class="stat-label">Updates</div></div>
+                </div>
+            </div>
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">🛠️</div>
+                <h2 class="section-title">Tech Stack</h2>
+            </div>
+            <div class="tech-grid"><div class="tech-card"><div class="tech-card-header"><div class="tech-card-icon lang">💻</div><span class="tech-card-title">Languages</span></div><div class="tech-tags"><span class="tech-tag lang">Python 3.11</span><span class="tech-tag lang">TypeScript</span><span class="tech-tag lang">JavaScript</span></div></div><div class="tech-card"><div class="tech-card-header"><div class="tech-card-icon fw">⚡</div><span class="tech-card-title">Frameworks</span></div><div class="tech-tags"><span class="tech-tag fw">FastAPI</span><span class="tech-tag fw">React 18</span><span class="tech-tag fw">Vite 7</span></div></div><div class="tech-card"><div class="tech-card-header"><div class="tech-card-icon tool">🔧</div><span class="tech-card-title">Tools</span></div><div class="tech-tags"><span class="tech-tag tool">Docker</span><span class="tech-tag tool">Tailwind CSS 4</span><span class="tech-tag tool">Alembic</span><span class="tech-tag tool">Beanie ODM</span></div></div><div class="tech-card"><div class="tech-card-header"><div class="tech-card-icon db">🗄️</div><span class="tech-card-title">Databases</span></div><div class="tech-tags"><span class="tech-tag db">PostgreSQL 16</span><span class="tech-tag db">MongoDB 7</span><span class="tech-tag db">SuperTokens</span></div></div></div>
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, #ec4899, #f97316);">🏗️</div>
+                <h2 class="section-title">Architecture</h2>
+            </div>
+            <div class="arch-box"><pre>┌─────────────────────────────────────────────────────────────────────────┐
+│                              CLIENT LAYER                                │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │     React 18 + Vite + TypeScript + Tailwind CSS + Leaflet Maps     ││
+│  │         SuperTokens Auth React SDK  |  React Router                 ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼ HTTP/REST
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              API LAYER                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │                    FastAPI + Uvicorn                                ││
+│  │  ┌───────────┬───────────┬───────────┬───────────┬───────────────┐ ││
+│  │  │   Auth    │  Forum    │ Use Cases │  Media    │   Dashboard   │ ││
+│  │  │ Endpoints │ Endpoints │ Endpoints │ Endpoints │   Endpoints   │ ││
+│  │  └───────────┴───────────┴───────────┴───────────┴───────────────┘ ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────┘
+          │                    │                    │
+          ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  SuperTokens    │  │   PostgreSQL    │  │    MongoDB      │
+│  (Auth Core)    │  │  (Core Users,   │  │  (Profiles,     │
+│                 │  │   Sessions)     │  │   Forums,       │
+│                 │  │                 │  │   Use Cases)    │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+                                                    │
+                                                    ▼
+                                         ┌─────────────────┐
+                                         │    AWS S3       │
+                                         │  (Media Files)  │
+                                         └─────────────────┘</pre></div>
+        </div>
+
+        <!-- FILES -->
+        <div class="tab-content" id="tab-files">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--success), var(--accent));">📂</div>
+                <h2 class="section-title">Directory Structure</h2>
+            </div>
+            <div class="files-grid">
+        <div class="file-box folder">
+            <div class="file-header">
+                <div class="file-icon folder">📂</div>
+                <div>
+                    <div class="file-title">p2p-backend-app/ </div>
+                    <div class="file-path">p2p-backend-app</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Python FastAPI backend application containing all API endpoints, services, and database models.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Provides RESTful API endpoints for authentication, forums, use cases, and media uploads</li><li>Manages dual-database architecture with PostgreSQL and MongoDB</li><li>Processes file uploads to AWS S3</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/app/ </div>
+                    <div class="file-path">📂 p2p-backend-app/app/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Main application source code directory containing the FastAPI application structure.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Houses the FastAPI app initialization and configuration</li><li>Contains all API routes organized by version</li><li>Stores database models for both PostgreSQL and MongoDB</li><li>Implements business logic services</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">main.py </div>
+                    <div class="file-path">p2p-backend-app/app/main.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">FastAPI application entry point and configuration.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Initializes the FastAPI application with lifespan management</li><li>Configures CORS middleware with SuperTokens headers</li><li>Sets up SuperTokens authentication middleware</li><li>Manages database connections on startup/shutdown</li></ul></div>
+            <div class="file-section"><div class="file-section-title">Key Functions</div><div class="file-tags"><span class="file-tag func">lifespan()</span><span class="file-tag func">root()</span></div></div>
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">core/config.py</span><span class="file-link">core/database.py</span><span class="file-link">core/supertokens.py</span><span class="file-link">api/v1/api.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/app/core/ </div>
+                    <div class="file-path">📂 p2p-backend-app/app/core/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Core application configuration and infrastructure modules.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Manages application settings and environment variables</li><li>Handles database connections with retry logic</li><li>Configures SuperTokens authentication</li><li>Sets up logging infrastructure</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">config.py </div>
+                    <div class="file-path">p2p-backend-app/app/core/config.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Application settings and environment configuration using Pydantic.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Defines all application settings with defaults</li><li>Loads configuration from environment variables and .env file</li><li>Configures CORS origins, database URLs, and AWS credentials</li><li>Manages SuperTokens and email service settings</li></ul></div>
+            
+            <div class="file-section"><div class="file-section-title">Key Classes</div><div class="file-tags"><span class="file-tag cls">Settings</span></div></div>
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">database.py </div>
+                    <div class="file-path">p2p-backend-app/app/core/database.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Database connection management for PostgreSQL and MongoDB.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Initializes async SQLAlchemy engine for PostgreSQL</li><li>Sets up Motor async client for MongoDB with Beanie ODM</li><li>Implements connection retry logic with exponential backoff</li><li>Provides dependency injection for database sessions</li></ul></div>
+            <div class="file-section"><div class="file-section-title">Key Functions</div><div class="file-tags"><span class="file-tag func">init_postgres()</span><span class="file-tag func">init_mongodb()</span><span class="file-tag func">get_db()</span></div></div>
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">models/pg_models.py</span><span class="file-link">models/mongo_models.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">supertokens.py </div>
+                    <div class="file-path">p2p-backend-app/app/core/supertokens.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">SuperTokens authentication initialization and email delivery customization.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Initializes SuperTokens with email/password recipe</li><li>Configures email verification as required mode</li><li>Customizes email delivery for verification and password reset</li><li>Sets up session management with cookie configuration</li></ul></div>
+            <div class="file-section"><div class="file-section-title">Key Functions</div><div class="file-tags"><span class="file-tag func">init_supertokens()</span><span class="file-tag func">custom_email_delivery_override()</span><span class="file-tag func">custom_password_reset_email_override()</span></div></div>
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/email_verification_service.py</span><span class="file-link">services/password_reset_service.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/app/api/v1/ </div>
+                    <div class="file-path">📂 p2p-backend-app/app/api/v1/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">API version 1 route definitions and endpoint implementations.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Organizes all API endpoints by feature domain</li><li>Provides the main API router that aggregates all sub-routers</li><li>Implements authentication, forum, use case, and media endpoints</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">api.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/api.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Main API router that aggregates all endpoint routers.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Creates the main APIRouter instance</li><li>Includes all feature routers with appropriate prefixes</li><li>Organizes endpoints into tagged groups for OpenAPI docs</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">endpoints/auth.py</span><span class="file-link">endpoints/supertokens_auth.py</span><span class="file-link">endpoints/forum.py</span><span class="file-link">endpoints/usecases.py</span><span class="file-link">endpoints/media.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/app/api/v1/endpoints/ </div>
+                    <div class="file-path">📂 p2p-backend-app/app/api/v1/endpoints/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Individual API endpoint implementations organized by feature.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">supertokens_auth.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/endpoints/supertokens_auth.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Custom authentication endpoints for signup, signin, and password management.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Implements custom signup flow creating users in SuperTokens and both databases</li><li>Handles member invitation validation during signup</li><li>Manages email verification token creation and verification</li><li>Provides password reset functionality</li></ul></div>
+            <div class="file-section"><div class="file-section-title">Key Functions</div><div class="file-tags"><span class="file-tag func">post_signup()</span><span class="file-tag func">post_signin()</span><span class="file-tag func">send_verification_email()</span><span class="file-tag func">reset_password()</span></div></div>
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/database_service.py</span><span class="file-link">models/mongo_models.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">auth.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/endpoints/auth.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">User profile management and session information endpoints.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Provides current user profile endpoint (/me)</li><li>Handles profile updates including profile picture</li><li>Manages organization member listing</li><li>Implements user deletion with cascade cleanup</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/database_service.py</span><span class="file-link">services/s3_service.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">forum.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/endpoints/forum.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Forum post and reply management endpoints.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Creates, reads, updates, and deletes forum posts</li><li>Manages replies with nested threading support</li><li>Handles post/reply likes and best answer marking</li><li>Supports draft post functionality</li><li>Processes media attachments for posts and replies</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/forum_service.py</span><span class="file-link">models/mongo_models.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">usecases.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/endpoints/usecases.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Use case submission and management endpoints.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Creates comprehensive use cases with multi-step wizard data</li><li>Retrieves use cases with filtering by region, category, and tags</li><li>Manages use case drafts with autosave functionality</li><li>Handles use case media uploads and bookmarking</li><li>Provides slug-based URL routing for SEO-friendly URLs</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/usecase_service.py</span><span class="file-link">models/mongo_models.py</span><span class="file-link">services/s3_service.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">media.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/endpoints/media.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Media file upload and management endpoints.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Handles profile picture uploads with image validation</li><li>Manages forum and use case media attachments</li><li>Generates presigned URLs for direct S3 uploads</li><li>Tracks uploaded files in PostgreSQL for user association</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/s3_service.py</span><span class="file-link">models/pg_models.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">dashboard.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/endpoints/dashboard.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Dashboard analytics and activity feed endpoints.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Provides platform statistics (users, posts, use cases)</li><li>Returns recent forum activity feed</li><li>Calculates user engagement metrics</li><li>Aggregates trending topics and categories</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/user_activity_service.py</span><span class="file-link">models/mongo_models.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">invites.py </div>
+                    <div class="file-path">p2p-backend-app/app/api/v1/endpoints/invites.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Organization member invitation management.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Creates invitation tokens for new members</li><li>Sends invitation emails with signup links</li><li>Validates invitation tokens during signup</li><li>Lists pending and used invitations for admins</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">services/invitation_service.py</span><span class="file-link">services/email_service.py</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/app/models/ </div>
+                    <div class="file-path">📂 p2p-backend-app/app/models/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Database model definitions for PostgreSQL and MongoDB.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">pg_models.py </div>
+                    <div class="file-path">p2p-backend-app/app/models/pg_models.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">SQLAlchemy models for PostgreSQL core data.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Defines User model linked to SuperTokens via supertokens_id</li><li>Manages user sessions and media file tracking</li><li>Provides system configuration storage</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">mongo_models.py </div>
+                    <div class="file-path">p2p-backend-app/app/models/mongo_models.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Beanie document models for MongoDB rich content.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Defines extended user profiles with organization linkage</li><li>Models forum posts with attachments, likes, and best answers</li><li>Stores comprehensive use case data with location coordinates</li><li>Tracks user activities, stats, and bookmarks</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/app/services/ </div>
+                    <div class="file-path">📂 p2p-backend-app/app/services/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Business logic services implementing core functionality.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">database_service.py </div>
+                    <div class="file-path">p2p-backend-app/app/services/database_service.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">User and content management service layer.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Creates users in both PostgreSQL and MongoDB atomically</li><li>Manages organization creation/linking by email domain</li><li>Enforces single admin per organization rule</li><li>Provides forum and use case CRUD operations</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">s3_service.py </div>
+                    <div class="file-path">p2p-backend-app/app/services/s3_service.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">AWS S3 file upload and management service.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Uploads files to appropriate S3 buckets by type</li><li>Generates unique S3 keys with timestamps</li><li>Creates presigned URLs for direct uploads</li><li>Validates file types and sizes</li></ul></div>
+            <div class="file-section"><div class="file-section-title">Key Functions</div><div class="file-tags"><span class="file-tag func">upload_file()</span><span class="file-tag func">generate_presigned_url()</span><span class="file-tag func">delete_file()</span></div></div>
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">email_service.py </div>
+                    <div class="file-path">p2p-backend-app/app/services/email_service.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Email sending service using SMTP.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Sends HTML emails for verification and invitations</li><li>Supports password reset email templates</li><li>Handles SMTP connection with TLS</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/scripts/ </div>
+                    <div class="file-path">📂 p2p-backend-app/scripts/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Database seeding and utility scripts for development and demos.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Seeds demo users and team members</li><li>Populates use cases and forum posts</li><li>Verifies existing users for testing</li><li>Migrates use case field structures</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon python">🐍</div>
+                <div>
+                    <div class="file-title">seed_all.py </div>
+                    <div class="file-path">p2p-backend-app/scripts/seed_all.py</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Master seeding script that runs all seed operations.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Orchestrates complete demo data seeding</li><li>Seeds 24 users, 34 use cases, forums, and activities</li><li>Verifies all users for immediate login access</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-backend-app/alembic/ </div>
+                    <div class="file-path">📂 p2p-backend-app/alembic/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">PostgreSQL database migration management.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Tracks schema changes with versioned migrations</li><li>Handles initial table creation and modifications</li><li>Supports profile picture and media table additions</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box folder">
+            <div class="file-header">
+                <div class="file-icon folder">📂</div>
+                <div>
+                    <div class="file-title">p2p-frontend-app/ </div>
+                    <div class="file-path">p2p-frontend-app</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">React TypeScript frontend application with Vite build tooling.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Provides the user interface for the P2P platform</li><li>Implements authentication flows with SuperTokens</li><li>Renders interactive Saudi Arabia map with use cases</li><li>Manages forum discussions and use case submissions</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-frontend-app/src/ </div>
+                    <div class="file-path">📂 p2p-frontend-app/src/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Frontend source code including components, pages, and configuration.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 App.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/App.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Main React application component with routing configuration.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Sets up React Router with all application routes</li><li>Wraps app in AuthProvider for authentication state</li><li>Configures protected routes requiring authentication</li><li>Renders Navigation and MobileBottomNav components</li><li>Public routes: LandingPage, Login, Signup, MemberSignup, ForgotPassword</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">contexts/AuthContext.ts</span><span class="file-link">components/Navigation.ts</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 main.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/main.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Application entry point rendering root component.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Initializes React DOM rendering</li><li>Wraps app in SuperTokensWrapper for auth SDK</li><li>Imports global CSS and SuperTokens configuration</li></ul></div>
+            
+            
+            <div class="file-section"><div class="file-section-title">Integrates With</div><div class="file-integrates"><span class="file-link">App.ts</span><span class="file-link">config/supertokens.ts</span></div></div>
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-frontend-app/src/config/ </div>
+                    <div class="file-path">📂 p2p-frontend-app/src/config/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Application configuration modules.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 environment.ts </div>
+                    <div class="file-path">p2p-frontend-app/src/config/environment.ts</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Smart environment detection and API URL configuration.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Detects production vs development based on hostname</li><li>Provides API_BASE_URL and WEBSITE_BASE_URL exports</li><li>Offers helper functions for building URLs</li></ul></div>
+            <div class="file-section"><div class="file-section-title">Key Functions</div><div class="file-tags"><span class="file-tag func">buildApiUrl()</span><span class="file-tag func">buildWebsiteUrl()</span></div></div>
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 supertokens.ts </div>
+                    <div class="file-path">p2p-frontend-app/src/config/supertokens.ts</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">SuperTokens frontend SDK initialization.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Configures SuperTokens with app info and recipes</li><li>Sets up EmailPassword and EmailVerification recipes</li><li>Initializes Session recipe for auth state</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-frontend-app/src/contexts/ </div>
+                    <div class="file-path">📂 p2p-frontend-app/src/contexts/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">React context providers for global state management.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 AuthContext.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/contexts/AuthContext.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Authentication state management context.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Manages user authentication state globally</li><li>Provides login, signup, and logout functions</li><li>Fetches and caches user profile from API</li><li>Handles session checking on app load</li></ul></div>
+            <div class="file-section"><div class="file-section-title">Key Functions</div><div class="file-tags"><span class="file-tag func">login()</span><span class="file-tag func">signup()</span><span class="file-tag func">logout()</span><span class="file-tag func">refreshProfile()</span></div></div>
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-frontend-app/src/components/ </div>
+                    <div class="file-path">📂 p2p-frontend-app/src/components/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Reusable React components.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 Navigation.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/components/Navigation.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Main navigation header and mobile bottom nav.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Renders responsive navigation with desktop and mobile variants</li><li>Shows user avatar and profile dropdown when authenticated</li><li>Provides edit profile slide-over panel</li><li>Handles logout and navigation actions</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 InteractiveMap.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/components/InteractiveMap.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Leaflet-based interactive map of Saudi Arabia showing use cases.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Renders map with OpenStreetMap tiles</li><li>Displays use case markers with clustering</li><li>Shows popup cards with use case details</li><li>Handles marker click navigation to use case detail</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 EditProfilePanel.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/components/EditProfilePanel.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Slide-over panel for editing user profile.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Provides form for updating profile information</li><li>Handles profile picture upload with preview</li><li>Manages account settings like password change</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-frontend-app/src/components/ui/ </div>
+                    <div class="file-path">📂 p2p-frontend-app/src/components/ui/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">UI primitive components based on shadcn/ui patterns.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Provides Button, Card, Input, Select, Dialog components</li><li>Contains custom components like FileDropZone, MediaGallery</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">📂 p2p-frontend-app/src/pages/ </div>
+                    <div class="file-path">📂 p2p-frontend-app/src/pages/</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Page-level components for each route.</p></div>
+            
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 LandingPage.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/LandingPage.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Public landing page with platform overview.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Displays hero section with call-to-action</li><li>Shows interactive map with featured use cases</li><li>Presents platform features and benefits</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 Dashboard.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/Dashboard.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">User dashboard with activity feed and stats.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Shows user&#x27;s recent activity and contributions</li><li>Displays platform statistics and metrics</li><li>Provides quick access to common actions</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 Forum.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/Forum.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Forum discussion board with posts and replies.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Lists forum posts with filtering by category</li><li>Supports post creation with rich text and attachments</li><li>Manages replies with nested threading</li><li>Handles likes and best answer marking</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 UseCases.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/UseCases.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Use case library listing page.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Displays use case cards with filtering options</li><li>Provides search by title, category, and tags</li><li>Shows use case locations on map view</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 SubmitUseCase.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/SubmitUseCase.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Multi-step wizard for submitting new use cases.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Guides users through 7-step submission process</li><li>Handles autosave of drafts to server</li><li>Manages media uploads for images and videos</li><li>Validates required fields at each step</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 UseCaseDetail.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/UseCaseDetail.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Detailed view of a single use case.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Displays all use case sections and media</li><li>Shows implementation phases and results</li><li>Provides bookmark and share functionality</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 Login.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/Login.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">User login page.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Provides email/password login form</li><li>Handles authentication errors</li><li>Links to signup and password reset</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 Signup.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/Signup.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Admin/organization signup page.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Collects organization and personal information</li><li>Creates admin user with new organization</li><li>Triggers email verification for admins</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 MemberSignup.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/MemberSignup.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Invited member signup page.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Validates invitation token from URL</li><li>Creates member user in inviter&#x27;s organization</li><li>Auto-verifies email for invited users</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon ts">📘</div>
+                <div>
+                    <div class="file-title">🟦 UserManagement.tsx </div>
+                    <div class="file-path">p2p-frontend-app/src/pages/UserManagement.tsx</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Admin page for managing organization members.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Lists organization members</li><li>Provides member invitation functionality</li><li>Shows pending and used invitations</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box folder">
+            <div class="file-header">
+                <div class="file-icon folder">📂</div>
+                <div>
+                    <div class="file-title">docker/ </div>
+                    <div class="file-path">docker</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Docker configuration files for containerized deployment.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Defines development and production compose configurations</li><li>Provides Dockerfiles for backend and frontend services</li><li>Configures PostgreSQL, MongoDB, and SuperTokens containers</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box config">
+            <div class="file-header">
+                <div class="file-icon config">⚙️</div>
+                <div>
+                    <div class="file-title">️ development_docker-compose.yml </div>
+                    <div class="file-path">docker/development_docker-compose.yml</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Docker Compose configuration for local development.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Orchestrates all services with hot reload support</li><li>Configures PostgreSQL 16, MongoDB 7, SuperTokens</li><li>Sets up volume mounts for live code changes</li><li>Defines health checks and service dependencies</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box config">
+            <div class="file-header">
+                <div class="file-icon config">⚙️</div>
+                <div>
+                    <div class="file-title">️ docker-compose.yml </div>
+                    <div class="file-path">docker/docker-compose.yml</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Docker Compose configuration for production deployment.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Builds optimized production images</li><li>Configures production environment variables</li><li>Uses nginx for frontend static serving</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">🐳 backend.Dockerfile </div>
+                    <div class="file-path">docker/backend.Dockerfile</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Multi-stage Dockerfile for Python FastAPI backend.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Defines development and production build stages</li><li>Installs Python dependencies with pip</li><li>Runs Uvicorn server with appropriate workers</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">🐳 frontend.Dockerfile </div>
+                    <div class="file-path">docker/frontend.Dockerfile</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Multi-stage Dockerfile for React frontend.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Defines development stage with Vite dev server</li><li>Builds production assets with npm</li><li>Uses nginx for production static file serving</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box source">
+            <div class="file-header">
+                <div class="file-icon other">📄</div>
+                <div>
+                    <div class="file-title">init-db.sql </div>
+                    <div class="file-path">docker/init-db.sql</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">PostgreSQL initialization script.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Creates the supertokens database for auth service</li><li>Runs automatically on first container start</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box folder">
+            <div class="file-header">
+                <div class="file-icon folder">📂</div>
+                <div>
+                    <div class="file-title">backend docs/ </div>
+                    <div class="file-path">backend docs</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Implementation documentation for completed development stories.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Documents each story&#x27;s implementation details</li><li>Records architecture decisions and changes</li><li>Provides troubleshooting guides</li></ul></div>
+            
+            
+            
+        </div>
+        <div class="file-box folder">
+            <div class="file-header">
+                <div class="file-icon folder">📂</div>
+                <div>
+                    <div class="file-title">docs/ </div>
+                    <div class="file-path">docs</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose">Project documentation including PRD, architecture, and user stories.</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Contains product requirements document</li><li>Defines system architecture</li><li>Organizes user stories by epic</li></ul></div>
+            
+            
+            
+        </div></div>
+        </div>
+
+        <!-- DOCS -->
+        <div class="tab-content" id="tab-docs">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--accent), var(--primary));">📚</div>
+                <h2 class="section-title">Documentation</h2>
+            </div>
+            <div class="docs-grid"><div class="files-grid">
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">📖</div>
+                <div>
+                    <div class="file-title">README.md</div>
+                    <div class="file-path">p2p-frontend-app/README.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># React + TypeScript + Vite</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>[@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh</li><li>[@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh</li></ul></div>
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">📖</div>
+                <div>
+                    <div class="file-title">README.md</div>
+                    <div class="file-path">README.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># P2P Sandbox - Manufacturing Knowledge Platform</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>Docker Desktop installed and running</li><li>Git (to clone the repository)</li><li>**Frontend:** http://15.185.167.236:5173 (accessible to everyone)</li><li>**Backend API:** http://15.185.167.236:8000</li><li>**API Documentation:** http://15.185.167.236:8000/docs</li><li>Uses production-optimized Docker builds</li></ul></div>
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">📄</div>
+                <div>
+                    <div class="file-title">1 Use Case Submission – IoT Kit for OEE Tracking.md</div>
+                    <div class="file-path">p2p-backend-app/scripts/usecases/1 Use Case Submission – IoT Kit for OEE Tracking.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># **Use Case Submission – IoT Kit for OEE Tracking**</p></div>
+            
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">🏗️</div>
+                <div>
+                    <div class="file-title">1-system-overview.md</div>
+                    <div class="file-path">docs/architecture/1-system-overview.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># 1. System Overview</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>**Frontend (Presentation Layer)**: React + Vite-based, i18n-ready, optimized for desktop/mobile.</li><li>**Backend (Business Logic Layer)**: FastAPI with SuperTokens for authentication.</li><li>**Database &amp; Storage (Persistence Layer)**: PostgreSQL, MongoDB, and S3-compatible object storage.</li></ul></div>
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">📄</div>
+                <div>
+                    <div class="file-title">2 Use Case for Digital Performance Engine.md</div>
+                    <div class="file-path">p2p-backend-app/scripts/usecases/2 Use Case for Digital Performance Engine.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># **Use Case Submission \- Digital Performance Engine**</p></div>
+            
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">🏗️</div>
+                <div>
+                    <div class="file-title">2-tech-stack.md</div>
+                    <div class="file-path">docs/architecture/2-tech-stack.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># 2. Tech Stack</p></div>
+            <div class="file-section"><div class="file-section-title">What it does</div><ul class="file-list"><li>React.js + Vite</li><li>Tailwind CSS + shadcn/ui</li><li>i18n localization (Arabic/English)</li><li>SuperTokens frontend SDK</li><li>Leaflet.js + OpenStreetMap (for interactive Saudi Arabia map)</li><li>Python + FastAPI</li></ul></div>
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">📄</div>
+                <div>
+                    <div class="file-title">3 Use Case – Machine Level MES.md</div>
+                    <div class="file-path">p2p-backend-app/scripts/usecases/3 Use Case – Machine Level MES.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># **Use Case Submission – Machine Level MES**</p></div>
+            
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">🏗️</div>
+                <div>
+                    <div class="file-title">3-system-components-services.md</div>
+                    <div class="file-path">docs/architecture/3-system-components-services.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># 3. System Components &amp; Services</p></div>
+            
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">📄</div>
+                <div>
+                    <div class="file-title">3D Printer Farm Management System.md</div>
+                    <div class="file-path">p2p-backend-app/scripts/usecases/3D Printer Farm Management System.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># **Use Case Submission: Robotic 3D Printer Farm for Drone Arm Production**</p></div>
+            
+        </div>
+        <div class="file-box doc">
+            <div class="file-header">
+                <div class="file-icon doc">📄</div>
+                <div>
+                    <div class="file-title">4 Use Case  – Machine Working Status Tracking.md</div>
+                    <div class="file-path">p2p-backend-app/scripts/usecases/4 Use Case  – Machine Working Status Tracking.md</div>
+                </div>
+            </div>
+            <div class="file-section"><div class="file-section-title">Purpose</div><p class="file-purpose"># **Use Case Submission – Machine Working Status Tracking**</p></div>
+            
+        </div></div></div>
+        </div>
+
+        <!-- GIT -->
+        <div class="tab-content" id="tab-git">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--warning), var(--danger));">🔀</div>
+                <h2 class="section-title">Git History</h2>
+            </div>
+            
+    <div class="git-stats">
+        <div class="git-stat"><div class="git-stat-label">Branch</div><div class="git-stat-value">🌿 hamza-backend</div></div>
+        <div class="git-stat"><div class="git-stat-label">Last Commit</div><div class="git-stat-value"><code>e808252</code></div></div>
+        <div class="git-stat"><div class="git-stat-label">Total Commits</div><div class="git-stat-value">63</div></div>
+        <div class="git-stat"><div class="git-stat-label">Contributors</div><div class="git-stat-value">2</div></div>
+    </div><div class="commits-section"><div class="commits-title">Recent Commits</div><div class="commits-list">
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--primary)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Fix critical security vulnerabilities and improve password reset flow</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 December 07, 2025</span>
+                        <span>🔖 e808252</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--secondary)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Implement email verification resend functionality with custom email service</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 November 13, 2025</span>
+                        <span>🔖 a7aa78d</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--accent)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Fix TypeScript compilation errors in ResetPassword and SubmitUseCase</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 November 10, 2025</span>
+                        <span>🔖 2a692a9</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--success)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Fix responsive navigation breakpoints to prevent UI crowding on medium screens</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 November 10, 2025</span>
+                        <span>🔖 3af39b5</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--warning)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Add to gitignore</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 November 09, 2025</span>
+                        <span>🔖 630b374</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--primary)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Implement complete draft system with autosave, server storage, and &quot;Start New Use Case&quot; feature</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 November 09, 2025</span>
+                        <span>🔖 cc48165</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--secondary)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Fix login image import to use Vite asset handling</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 October 29, 2025</span>
+                        <span>🔖 5a9a764</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--accent)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Implement single admin per organization restriction and login UI improvements</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 October 29, 2025</span>
+                        <span>🔖 64a591e</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--success)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Fix TypeScript compilation errors across frontend components</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 October 23, 2025</span>
+                        <span>🔖 d8e7cfc</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div>
+            <div class="commit-card">
+                <div class="commit-dot" style="background:var(--warning)"></div>
+                <div class="commit-info">
+                    <div class="commit-message">Switch S3 buckets from development to production</div>
+                    <div class="commit-meta">
+                        <span>👤 Hamza Feroze</span>
+                        <span>📅 October 23, 2025</span>
+                        <span>🔖 eda5d9f</span>
+                    </div>
+                    <div class="commit-files"></div>
+                </div>
+            </div></div></div><div class="commits-title" style="margin-top:28px">Top Contributors</div><div class="contributors-grid">
+            <div class="contributor">
+                <div class="contributor-avatar">HF</div>
+                <div><div class="contributor-name">Hamza Feroze</div><div class="contributor-commits">36 commits</div></div>
+            </div>
+            <div class="contributor">
+                <div class="contributor-avatar">HF</div>
+                <div><div class="contributor-name">Hamza Feroze</div><div class="contributor-commits">27 commits</div></div>
+            </div></div>
+        </div>
+
+        <!-- UPDATES -->
+        <div class="tab-content" id="tab-updates">
+            <div class="section-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, var(--success), var(--primary));">📜</div>
+                <h2 class="section-title">Update History</h2>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">Changes tracked each time the Project Map was updated</p>
+            <div class="updates-timeline">
+        <div class="update-item ">
+            <div class="update-card">
+                <div class="update-header">
+                    <div class="update-date">December 31, 2025 <span class="update-badge">Latest</span></div>
+                    <div class="update-commit"></div>
+                </div><p style="color:var(--text-secondary);font-size:14px;margin-top:10px;line-height:1.6">Initial project map created with 252 files across 40 folders.</p></div></div></div>
+        </div>
+    </main>
+
+    <script>
+        const themeBtn = document.getElementById('themeBtn');
+        let isDark = false;
+        themeBtn.addEventListener('click', () => {
+            isDark = !isDark;
+            document.body.classList.toggle('light-mode', !isDark);
+            themeBtn.textContent = isDark ? '☀️' : '🌙';
+        });
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+        document.getElementById('searchInput').addEventListener('input', e => {
+            const q = e.target.value.toLowerCase();
+            document.querySelectorAll('.file-box, .doc-card, .commit-card, .update-item').forEach(el => {
+                el.style.display = q && !el.textContent.toLowerCase().includes(q) ? 'none' : '';
+            });
+        });
+    </script>
+</body>
+</html>

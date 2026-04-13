@@ -4,21 +4,20 @@ Email service for sending invitations and notifications
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 from typing import List, Dict, Any
-import os
 from datetime import datetime
+from app.core.config import settings
 
 # TEST MODE: Override recipient email
 TEST_MODE = False  # Set to True to redirect all emails to TEST_EMAIL
 TEST_EMAIL = "hamzaferoze115+34@gmail.com"  # Using +34 suffix for test emails
 
-# Email configuration
+# Email configuration - centralized from settings
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME", "p2p_c4ir@iiotsolutions.sa"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "mribowelxmoctfem"),  # Gmail App Password
-    # MAIL_FROM=os.getenv("MAIL_FROM", "P2P Manufacturing Platform <noreply@p2p-manufacturing.com>"),  # Future: custom domain
-    MAIL_FROM=os.getenv("MAIL_FROM", "P2P-C4IR <p2p_c4ir@iiotsolutions.sa>"),  # Using business Gmail
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
+    MAIL_USERNAME=settings.MAIL_USERNAME,
+    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+    MAIL_FROM=settings.MAIL_FROM,
+    MAIL_PORT=settings.MAIL_PORT,
+    MAIL_SERVER=settings.MAIL_SERVER,
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,

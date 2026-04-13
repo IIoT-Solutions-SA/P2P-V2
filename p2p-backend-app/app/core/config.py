@@ -57,10 +57,15 @@ class Settings(BaseSettings):
     # CloudFront CDN (optional - use direct S3 URLs if not set)
     CLOUDFRONT_DOMAIN: Optional[str] = None
 
-    # Email Configuration
-    MAIL_USERNAME: Optional[str] = None
-    MAIL_PASSWORD: Optional[str] = None
-    MAIL_FROM: Optional[str] = None
+    # Email Configuration (single source of truth for all email services)
+    MAIL_USERNAME: str = "p2p_c4ir@iiotsolutions.sa"
+    MAIL_PASSWORD: str = ""  # Gmail App Password - set in .env
+    MAIL_FROM: str = "P2P-C4IR <p2p_c4ir@iiotsolutions.sa>"
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_PORT: int = 587
+
+    # Production URL base (used in email links - verification, password reset, invitations)
+    PRODUCTION_URL: str = "http://localhost:5173"
 
     class Config:
         case_sensitive = True

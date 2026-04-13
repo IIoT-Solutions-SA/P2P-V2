@@ -3,15 +3,15 @@ Email verification service for sending verification emails
 """
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from typing import Dict, Any
-import os
+from app.core.config import settings
 
-# Email configuration - reuse same Gmail SMTP as invitations
+# Email configuration - centralized from settings
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME", "p2p_c4ir@iiotsolutions.sa"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "mribowelxmoctfem"),
-    MAIL_FROM=os.getenv("MAIL_FROM", "P2P-C4IR <p2p_c4ir@iiotsolutions.sa>"),
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
+    MAIL_USERNAME=settings.MAIL_USERNAME,
+    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+    MAIL_FROM=settings.MAIL_FROM,
+    MAIL_PORT=settings.MAIL_PORT,
+    MAIL_SERVER=settings.MAIL_SERVER,
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
@@ -40,8 +40,8 @@ async def send_email_verification(
     token = query_params.get('token', [''])[0]
     tenant_id = query_params.get('tenantId', ['public'])[0]
 
-    # Production URL for email (hardcoded)
-    production_verify_url = f"http://15.185.167.236:5173/auth/verify-email?token={token}&tenantId={tenant_id}"
+    # Production URL for email (from central config)
+    production_verify_url = f"{settings.PRODUCTION_URL}/auth/verify-email?token={token}&tenantId={tenant_id}"
 
     # Localhost URL for terminal logs
     localhost_verify_url = f"http://localhost:5173/auth/verify-email?token={token}&tenantId={tenant_id}"

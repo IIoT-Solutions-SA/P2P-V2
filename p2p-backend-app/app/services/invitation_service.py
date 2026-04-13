@@ -52,9 +52,8 @@ async def create_invitation(
     # Save to database
     await invitation.create()
 
-    # ALWAYS use production URL for invitation links
-    # Hardcode the production IP for emails
-    invite_link = f"http://15.185.167.236:5173/join?token={token}&email={email}"
+    # Use production URL from central config for invitation links
+    invite_link = f"{settings.PRODUCTION_URL}/join?token={token}&email={email}"
 
     # Also generate localhost link for development testing (console only)
     localhost_link = f"http://localhost:5173/join?token={token}&email={email}"

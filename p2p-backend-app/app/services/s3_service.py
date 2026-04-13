@@ -10,23 +10,24 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 class S3Service:
-    """Service for handling AWS S3 file uploads and management"""
+    """Service for handling file uploads via S3-compatible API (OCI Object Storage)"""
 
     def __init__(self):
-        """Initialize S3 client with AWS credentials"""
+        """Initialize S3-compatible client"""
         try:
             if not settings.AWS_ACCESS_KEY_ID or not settings.AWS_SECRET_ACCESS_KEY:
-                logger.warning("AWS credentials not configured - S3 uploads will fail")
+                logger.warning("S3 credentials not configured - uploads will fail")
                 self.s3_client = None
             else:
                 self.s3_client = boto3.client(
                     's3',
                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                    region_name=settings.AWS_REGION
+                    region_name=settings.AWS_REGION,
+                    endpoint_url=settings.S3_ENDPOINT_URL
                 )
         except NoCredentialsError:
-            logger.error("AWS credentials not found")
+            logger.error("S3 credentials not found")
             self.s3_client = None
 
     def _check_s3_client(self):
@@ -213,13 +214,12 @@ class S3Service:
             # Don't fail the request if file deletion fails
 
     def _generate_url(self, s3_key: str) -> str:
-        """Generate CDN URL or direct S3 URL for a file"""
+        """Generate public URL for a file in OCI Object Storage"""
         if settings.CLOUDFRONT_DOMAIN:
             return f"https://{settings.CLOUDFRONT_DOMAIN}/{s3_key}"
         else:
-            # Fallback to direct S3 URL for development
             bucket = self._get_bucket_from_key(s3_key)
-            return f"https://{bucket}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
+            return f"https://objectstorage.{settings.AWS_REGION}.oraclecloud.com/n/{settings.OCI_NAMESPACE}/b/{bucket}/o/{s3_key}"
 
     def _get_bucket_from_key(self, s3_key: str) -> str:
         """Determine which bucket to use based on S3 key prefix"""
@@ -233,12 +233,14 @@ class S3Service:
             return settings.S3_PROFILE_PICTURES_BUCKET  # Default
 
     def _extract_s3_key_from_url(self, url: str) -> str:
-        """Extract S3 key from CDN or S3 URL"""
+        """Extract object key from OCI Object Storage URL or CDN URL"""
         if settings.CLOUDFRONT_DOMAIN and settings.CLOUDFRONT_DOMAIN in url:
-            # CloudFront URL: https://d123.cloudfront.net/profile-pictures/user/file.jpg
             return url.split(settings.CLOUDFRONT_DOMAIN + '/')[-1]
+        elif '/o/' in url:
+            # OCI URL: https://objectstorage.region.oraclecloud.com/n/namespace/b/bucket/o/key
+            return url.split('/o/')[-1]
         else:
-            # Direct S3 URL: https://bucket.s3.region.amazonaws.com/key
+            # Legacy AWS URL fallback
             return url.split('.amazonaws.com/')[-1]
 
     def get_file_info(self, s3_url: str) -> Optional[dict]:

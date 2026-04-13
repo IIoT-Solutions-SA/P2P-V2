@@ -434,13 +434,18 @@ class UseCaseSubmissionService:
                 region_name=settings.AWS_REGION,
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                endpoint_url=settings.S3_ENDPOINT_URL,
             )
 
             for image_url in use_case.images:
                 try:
-                    # Extract S3 key from the URL
-                    if image_url and "amazonaws.com/" in image_url:
+                    # Extract object key from the URL
+                    if image_url and "/o/" in image_url:
+                        s3_key = image_url.split("/o/")[-1]
+                    elif image_url and "amazonaws.com/" in image_url:
                         s3_key = image_url.split("amazonaws.com/")[-1]
+                    else:
+                        continue
                         s3_client.delete_object(
                             Bucket=settings.S3_USECASE_MEDIA_BUCKET,
                             Key=s3_key

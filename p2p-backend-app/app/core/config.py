@@ -39,22 +39,19 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
-    # AWS Configuration
-    AWS_ACCESS_KEY_ID: Optional[str] = None
-    AWS_SECRET_ACCESS_KEY: Optional[str] = None
-    AWS_REGION: str = "me-south-1"
+    # OCI Object Storage (S3-compatible) Configuration
+    AWS_ACCESS_KEY_ID: Optional[str] = None  # OCI Customer Secret Key Access Key
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None  # OCI Customer Secret Key Secret
+    AWS_REGION: str = "me-riyadh-1"
+    S3_ENDPOINT_URL: str = "https://axps0kpwrxvp.compat.objectstorage.me-riyadh-1.oraclecloud.com"
+    OCI_NAMESPACE: str = "axps0kpwrxvp"
 
-    # S3 Bucket Names - PRODUCTION
-    S3_PROFILE_PICTURES_BUCKET: str = "p2p-prod-profile-images"
-    S3_FORUM_MEDIA_BUCKET: str = "p2p-prod-forum-media"
-    S3_USECASE_MEDIA_BUCKET: str = "p2p-prod-usecase-media"
+    # S3 Bucket Names (OCI Object Storage)
+    S3_PROFILE_PICTURES_BUCKET: str = "p2p-profile-images"
+    S3_FORUM_MEDIA_BUCKET: str = "p2p-forum-media"
+    S3_USECASE_MEDIA_BUCKET: str = "p2p-usecase-media"
 
-    # S3 Bucket Names - DEVELOPMENT (Keep for local testing)
-    #S3_PROFILE_PICTURES_BUCKET: str = "p2p-dev-profile-images"
-    #S3_FORUM_MEDIA_BUCKET: str = "p2p-dev-forum-media"
-    #S3_USECASE_MEDIA_BUCKET: str = "p2p-dev-usecase-media"
-
-    # CloudFront CDN (optional - use direct S3 URLs if not set)
+    # CloudFront CDN (not used with OCI - kept for compatibility)
     CLOUDFRONT_DOMAIN: Optional[str] = None
 
     # Email Configuration (single source of truth for all email services)

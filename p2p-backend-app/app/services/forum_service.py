@@ -171,14 +171,19 @@ class ForumService:
                 region_name=settings.AWS_REGION,
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                endpoint_url=settings.S3_ENDPOINT_URL,
             )
 
             for attachment in post.attachments:
                 try:
-                    # Extract S3 key from the URL
+                    # Extract object key from the URL
                     s3_url = attachment.get("url", "")
-                    if s3_url and "amazonaws.com/" in s3_url:
+                    if s3_url and "/o/" in s3_url:
+                        s3_key = s3_url.split("/o/")[-1]
+                    elif s3_url and "amazonaws.com/" in s3_url:
                         s3_key = s3_url.split("amazonaws.com/")[-1]
+                    else:
+                        continue
                         s3_client.delete_object(
                             Bucket=settings.S3_FORUM_MEDIA_BUCKET,
                             Key=s3_key

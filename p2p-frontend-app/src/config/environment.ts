@@ -6,10 +6,10 @@ const isProductionServer = window.location.hostname === '145.241.154.18';
 
 // Use environment variables if set, otherwise use smart detection based on hostname
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  (isProductionServer ? 'http://145.241.154.18:8000' : 'http://localhost:8000');
+  (isProductionServer ? 'http://145.241.154.18' : 'http://localhost:8000');
 
 export const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL ||
-  (isProductionServer ? 'http://145.241.154.18:5173' : 'http://localhost:5173');
+  (isProductionServer ? 'http://145.241.154.18' : 'http://localhost:5173');
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string): string => {

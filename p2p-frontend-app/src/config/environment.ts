@@ -2,14 +2,14 @@
 // Smart environment detection based on hostname - automatically determines if running locally or on production server
 
 // Smart environment detection based on hostname
-const isProductionServer = window.location.hostname === '145.241.154.18';
+const isProductionServer = window.location.hostname === 'peerlink.c4ir.sa';
 
 // Use environment variables if set, otherwise use smart detection based on hostname
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  (isProductionServer ? 'http://145.241.154.18' : 'http://localhost:8000');
+  (isProductionServer ? 'https://peerlink.c4ir.sa' : 'http://localhost:8000');
 
 export const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL ||
-  (isProductionServer ? 'http://145.241.154.18' : 'http://localhost:5173');
+  (isProductionServer ? 'https://peerlink.c4ir.sa' : 'http://localhost:5173');
 
 // Helper function to build API URLs
 export const buildApiUrl = (path: string): string => {

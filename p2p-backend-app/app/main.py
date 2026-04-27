@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 from supertokens_python.framework.fastapi import get_middleware
 # from supertokens_python.recipe import emailpassword  # Imported in custom endpoints
@@ -43,6 +44,18 @@ app = FastAPI(
 
 # SuperTokens middleware (MUST BE FIRST - handles auth endpoints)
 app.add_middleware(get_middleware())
+
+# Trusted host middleware - allows current direct-IP access plus future hostname cutover
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=[
+        "localhost",
+        "127.0.0.1",
+        "145.241.154.18",
+        "peerlink.c4ir.sa",
+        "p2p.iiotsolutions.sa",
+    ],
+)
 
 # CORS middleware (AFTER SuperTokens - adds headers to all responses)
 if settings.BACKEND_CORS_ORIGINS:

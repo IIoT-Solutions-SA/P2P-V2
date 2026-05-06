@@ -15,7 +15,7 @@ sys.path.append(usecases_dir)
 
 # Import all seed functions
 from seed_db_users import seed_users
-from seed_team_members import seed_team_members
+# from seed_team_members import seed_team_members
 from verify_existing_users import verify_existing_users
 from seed_forums import seed_forums
 from seed_usecases import seed_usecases
@@ -81,10 +81,10 @@ async def seed_all():
         print("✅ Users seeded successfully!\n")
 
         # Step 2: Seed team members (6 IIoT Solutions team)
-        print("\n👥 Step 2/13: Seeding team members (6 team members)...")
-        print("-" * 70)
-        await seed_team_members()
-        print("✅ Team members seeded successfully!\n")
+        # print("\n👥 Step 2/13: Seeding team members (6 team members)...")
+        # print("-" * 70)
+        # await seed_team_members()
+        # print("✅ Team members seeded successfully!\n")
 
         # Step 3: Verify all users' emails
         print("\n🔐 Step 3/13: Verifying all user emails...")

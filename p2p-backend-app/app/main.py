@@ -54,6 +54,8 @@ app.add_middleware(
         "145.241.154.18",
         "peerlink.c4ir.sa",
         "p2p.iiotsolutions.sa",
+        "backend",
+        "p2p-backend",
     ],
 )
 

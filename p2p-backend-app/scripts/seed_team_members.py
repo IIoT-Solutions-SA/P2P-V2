@@ -58,7 +58,7 @@ async def seed_team_members():
         await db_manager.init_mongodb()
         logger.info("MongoDB connection established")
 
-        # Team members for the 19 comprehensive use cases
+        # Team members for the 19 comprehensive use cases (real data's)
         team_members = [
             {
                 "email": "aadil@iiotsolutions.sa",

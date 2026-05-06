@@ -55,9 +55,9 @@ class Settings(BaseSettings):
     CLOUDFRONT_DOMAIN: Optional[str] = None
 
     # Email Configuration (single source of truth for all email services)
-    MAIL_USERNAME: str = "coding@iiotsolutions.sa"
+    MAIL_USERNAME: str = "uxmr28@gmail.com"#"coding@iiotsolutions.sa"
     MAIL_PASSWORD: str = ""  # Gmail App Password - set in .env
-    MAIL_FROM: str = "P2P <coding@iiotsolutions.sa>"
+    MAIL_FROM: str = "P2P <uxmr28@gmail.com>"#"P2P <coding@iiotsolutions.sa>"
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_PORT: int = 587
 

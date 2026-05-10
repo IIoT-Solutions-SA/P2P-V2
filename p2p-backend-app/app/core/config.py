@@ -39,6 +39,33 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
+    # Email verification behavior
+    EMAIL_VERIFICATION_SEND: bool = False
+    DEV_EMAIL_VERIFICATION_ENDPOINT: bool = True
+    DEV_SEND_EMAILS: bool = False
+
+    # Email domain restrictions
+    BLOCKED_EMAIL_DOMAINS: List[str] = Field(default=[
+        "gmail.com",
+        "yahoo.com",
+        "hotmail.com",
+        "outlook.com",
+        "protonmail.com",
+        "icloud.com",
+        "live.com",
+        "msn.com"
+    ])
+
+    @validator("BLOCKED_EMAIL_DOMAINS", pre=True)
+    def assemble_blocked_domains(cls, v: str | List[str]) -> List[str] | str:
+        if v is None:
+            return []
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",") if i.strip()]
+        elif isinstance(v, (list, str)):
+            return v
+        raise ValueError(v)
+
     # OCI Object Storage (S3-compatible) Configuration
     AWS_ACCESS_KEY_ID: Optional[str] = None  # OCI Customer Secret Key Access Key
     AWS_SECRET_ACCESS_KEY: Optional[str] = None  # OCI Customer Secret Key Secret

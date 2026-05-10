@@ -37,6 +37,7 @@ export default function UserManagement() {
   
   const [inviteEmail, setInviteEmail] = useState<string>('')
   const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState<string>('')
   const [realInvitations, setRealInvitations] = useState<any[]>([])
   const [organizationMembers, setOrganizationMembers] = useState<any[]>([])
 
@@ -94,6 +95,7 @@ export default function UserManagement() {
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault()
     setInviting(true)
+    setInviteError('')
     
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/invites/send`, {
@@ -110,25 +112,16 @@ export default function UserManagement() {
         setNotification({ show: true, message: 'Invitation sent successfully!', type: 'success' })
         setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
         setInviteEmail('')
+        setInviteError('')
         setShowInviteForm(false)
         fetchInvitations() // Refresh the invitations list
       } else {
         const error = await response.json()
-        setNotification({
-          show: true,
-          message: `Failed to send invitation: ${error.detail || 'Unknown error'}`,
-          type: 'error'
-        })
-        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
+        setInviteError(error.detail || 'Failed to send invitation. Please try again.')
       }
     } catch (error) {
       console.error('Error inviting user:', error)
-      setNotification({
-        show: true,
-        message: 'Failed to send invitation. Please try again.',
-        type: 'error'
-      })
-      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 5000)
+      setInviteError('Failed to send invitation. Please try again.')
     } finally {
       setInviting(false)
     }
@@ -330,12 +323,20 @@ export default function UserManagement() {
                       type="email"
                       placeholder="Enter email address to invite"
                       value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
+                        onChange={(e) => {
+                          setInviteEmail(e.target.value)
+                          if (inviteError) {
+                            setInviteError('')
+                          }
+                        }}
                       className="pl-10"
                       required
                       disabled={inviting}
                     />
                   </div>
+                    {inviteError && (
+                      <p className="text-sm text-red-600 mt-2">{inviteError}</p>
+                    )}
                   <p className="text-xs text-slate-500 mt-2">
                     The invited user will receive an email with a link to sign up and automatically join as a member.
                   </p>
@@ -345,7 +346,10 @@ export default function UserManagement() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowInviteForm(false)}
+                    onClick={() => {
+                      setShowInviteForm(false)
+                      setInviteError('')
+                    }}
                     className="flex-1"
                     disabled={inviting}
                   >

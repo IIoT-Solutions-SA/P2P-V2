@@ -53,6 +53,10 @@ async def send_password_reset_email(
     print(f"   {localhost_reset_url}")
     print(f"{'='*80}\n")
 
+    if settings.ENVIRONMENT != "production" and not settings.DEV_SEND_EMAILS:
+        print("📭 Dev mode: email sending disabled (set DEV_SEND_EMAILS=true to enable)")
+        return
+
     # HTML template matching email verification style
     html = f"""
     <!DOCTYPE html>

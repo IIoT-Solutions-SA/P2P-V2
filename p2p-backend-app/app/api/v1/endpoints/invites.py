@@ -14,6 +14,8 @@ from app.schemas.invitation import (
 from app.services import invitation_service
 from app.api.v1.endpoints.auth import get_current_user
 from app.models.mongo_models import Invitation
+from app.core.config import settings
+from app.core.email_domains import get_email_domain, is_blocked_domain
 
 router = APIRouter()
 
@@ -44,6 +46,28 @@ async def send_invitation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This email has already been invited"
         )
+
+    inviter_email = user_data.get("email", "")
+    inviter_domain = get_email_domain(inviter_email)
+    invited_domain = get_email_domain(invitation.email)
+
+    if not invited_domain:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email address"
+        )
+
+    if is_blocked_domain(invited_domain, settings.BLOCKED_EMAIL_DOMAINS):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please use your company email or request an invite from your organization."
+        )
+
+    if inviter_domain and invited_domain != inviter_domain:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invited members must use the same company domain as the administrator."
+        )
     
     # Create invitation
     try:
@@ -73,7 +97,6 @@ async def send_invitation(
         }
 
         # Use environment variable for website URL (dynamic based on environment)
-        from app.core.config import settings
         website_url = settings.WEBSITE_DOMAIN
 
         result = await invitation_service.create_invitation(

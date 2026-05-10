@@ -34,6 +34,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailError, setEmailError] = useState('')
   const [profilePicture, setProfilePicture] = useState<File | null>(null)
   
   const [formData, setFormData] = useState<SignupData>({
@@ -77,6 +78,45 @@ export default function Signup() {
 
   const handleInputChange = (field: keyof SignupData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    if (field === 'email' && emailError) {
+      setEmailError('')
+    }
+    if (field === 'email') {
+      setEmailError(getEmailError(value))
+    }
+  }
+
+  const isValidEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+  }
+
+  const isBlockedDomain = (value: string) => {
+    const blockedDomains = [
+      'gmail.com',
+      'yahoo.com',
+      'hotmail.com',
+      'outlook.com',
+      'protonmail.com',
+      'icloud.com',
+      'live.com',
+      'msn.com'
+    ]
+    const domain = value.split('@')[1]?.toLowerCase() || ''
+    return blockedDomains.includes(domain)
+  }
+
+  const getEmailError = (value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return ''
+    }
+    if (!isValidEmail(trimmed)) {
+      return 'Please enter a valid email address'
+    }
+    if (isBlockedDomain(trimmed)) {
+      return 'Please use your company email address'
+    }
+    return ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,8 +174,19 @@ export default function Signup() {
   const nextStep = () => {
     // Validation for each step
     if (currentStep === 1) {
+      setEmailError('')
       if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password.trim()) {
         setError('Please fill in all required fields')
+        return
+      }
+      if (!isValidEmail(formData.email.trim())) {
+        setEmailError('Please enter a valid email address')
+        setError('')
+        return
+      }
+      if (isBlockedDomain(formData.email.trim())) {
+        setEmailError('Please use your company email address')
+        setError('')
         return
       }
       if (formData.password.length < 8 || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
@@ -262,6 +313,9 @@ export default function Signup() {
                         required
                       />
                     </div>
+                    {emailError && (
+                      <p className="text-sm text-red-600 mt-2">{emailError}</p>
+                    )}
                   </div>
 
                   <div>

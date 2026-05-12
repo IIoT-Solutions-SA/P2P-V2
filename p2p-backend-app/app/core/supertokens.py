@@ -15,6 +15,13 @@ def custom_email_delivery_override(original_implementation):
     async def send_email(template_vars, user_context: Dict[str, Any]):
         """Send verification email using our custom service"""
         try:
+            if not settings.EMAIL_VERIFICATION_SEND:
+                logger.info(
+                    "Email verification sending disabled. Skipping email to %s",
+                    template_vars.user.email
+                )
+                return
+
             from app.services.email_verification_service import send_email_verification
 
             # Send using our custom email service
@@ -26,7 +33,8 @@ def custom_email_delivery_override(original_implementation):
         except Exception as e:
             logger.error(f"Failed to send verification email: {str(e)}")
             # Fallback to original implementation if custom fails
-            await original_send_email(template_vars, user_context)
+            if settings.EMAIL_VERIFICATION_SEND:
+                await original_send_email(template_vars, user_context)
 
     original_implementation.send_email = send_email
     return original_implementation

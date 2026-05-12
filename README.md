@@ -89,6 +89,12 @@ docker-compose down -v
   ```
 - Development Docker target with hot reload and source maps
 
+### Email Domain Restrictions
+- Configure blocked personal email providers with `BLOCKED_EMAIL_DOMAINS` (comma-separated)
+- Example:
+  - PowerShell: `$env:BLOCKED_EMAIL_DOMAINS="gmail.com,yahoo.com,hotmail.com"`
+  - Bash: `BLOCKED_EMAIL_DOMAINS="gmail.com,yahoo.com,hotmail.com"`
+
 ### IP Address Changes
 If the EC2 IP address changes, update the hardcoded IP in:
 `p2p-frontend-app/src/config/environment.ts`

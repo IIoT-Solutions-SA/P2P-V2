@@ -8,6 +8,8 @@ from supertokens_python.recipe.emailverification.asyncio import create_email_ver
 import logging
 
 from app.core.database import get_db
+from app.core.config import settings
+from app.core.email_domains import get_email_domain, is_blocked_domain
 from app.services.database_service import UserService
 from app.models.mongo_models import Invitation, User as MongoUser
 
@@ -52,6 +54,22 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
         
         logger.info(f"Sign-up attempt for email: {email}")
 
+        if not email or not password:
+            logger.warning("Missing email or password in sign-up")
+            return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Email and password required"})
+
+        email_domain = get_email_domain(email)
+        if not email_domain:
+            logger.warning("Invalid email format in sign-up")
+            return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Invalid email address"})
+
+        if is_blocked_domain(email_domain, settings.BLOCKED_EMAIL_DOMAINS):
+            logger.warning(f"Blocked email domain signup attempt: {email_domain}")
+            return JSONResponse(
+                status_code=403,
+                content={"status": "ERROR", "message": "Please use your company email or request an invite from your organization."}
+            )
+
         # SECURITY: Check if user already exists in our database BEFORE calling SuperTokens
         existing_pg_user = await UserService.get_user_by_email_pg(db, email)
         if existing_pg_user:
@@ -87,6 +105,18 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
             if invitation.email != email:
                 logger.error(f"Email mismatch: invitation for {invitation.email}, signup with {email}")
                 return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Email does not match invitation"})
+
+            inviter_domain = get_email_domain(invitation.invited_by_email)
+            if inviter_domain and inviter_domain != email_domain:
+                logger.error(
+                    "Invited member domain mismatch: inviter=%s, signup=%s",
+                    inviter_domain,
+                    email_domain
+                )
+                return JSONResponse(
+                    status_code=403,
+                    content={"status": "ERROR", "message": "Please use your company email that matches your organization's domain."}
+                )
                 
             # Get the inviter's user to find their organization
             inviter = await MongoUser.find_one(MongoUser.email == invitation.invited_by_email)
@@ -187,23 +217,29 @@ async def post_signup(request: Request, db: AsyncSession = Depends(get_db)):
                 })
             else:
                 # Admin signup: Send verification email
-                logger.info(f"Admin signup - sending verification email to: {email}")
+                if settings.EMAIL_VERIFICATION_SEND:
+                    logger.info(f"Admin signup - sending verification email to: {email}")
 
-                try:
-                    from supertokens_python.recipe.emailverification.asyncio import send_email_verification_email
+                    try:
+                        from supertokens_python.recipe.emailverification.asyncio import send_email_verification_email
 
-                    # Manually trigger verification email send
-                    # Parameters: tenant_id, user_id, recipe_user_id, email
-                    await send_email_verification_email(
-                        "public",
-                        supertokens_user.id,
-                        supertokens_result.recipe_user_id,
+                        # Manually trigger verification email send
+                        # Parameters: tenant_id, user_id, recipe_user_id, email
+                        await send_email_verification_email(
+                            "public",
+                            supertokens_user.id,
+                            supertokens_result.recipe_user_id,
+                            email
+                        )
+                        logger.info(f"Verification email sent successfully to: {email}")
+                    except Exception as e:
+                        logger.error(f"Failed to send verification email: {str(e)}")
+                        # Still return success - user is created, they can resend email later
+                else:
+                    logger.info(
+                        "Email verification sending disabled. Skipping email for: %s",
                         email
                     )
-                    logger.info(f"Verification email sent successfully to: {email}")
-                except Exception as e:
-                    logger.error(f"Failed to send verification email: {str(e)}")
-                    # Still return success - user is created, they can resend email later
 
                 return JSONResponse(status_code=200, content={
                     "status": "OK",
@@ -473,6 +509,19 @@ async def resend_verification_email(request: Request, db: AsyncSession = Depends
 
         logger.info(f"Resend verification email request for: {email}")
 
+        if not settings.EMAIL_VERIFICATION_SEND:
+            logger.info(
+                "Email verification sending disabled. Skipping resend for: %s",
+                email
+            )
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "Email sending is disabled in development. Use manual verification if needed."
+                }
+            )
+
         # Look up the user to get their SuperTokens ID
         try:
             pg_user = await UserService.get_user_by_email_pg(db, email)
@@ -538,7 +587,6 @@ async def resend_verification_email(request: Request, db: AsyncSession = Depends
                 raise Exception("Could not create verification token")
 
             # Build verification URL
-            from app.core.config import settings
             verification_url = f"{settings.WEBSITE_DOMAIN}/auth/verify-email?token={token_result.token}&tenantId=public"
 
             # Send using our custom email service
@@ -571,6 +619,77 @@ async def resend_verification_email(request: Request, db: AsyncSession = Depends
 
     except Exception as e:
         logger.error(f"Resend verification email error: {str(e)}", exc_info=True)
+        safe_message = sanitize_error_message(e)
+        return JSONResponse(
+            status_code=500,
+            content={"status": "ERROR", "message": safe_message}
+        )
+
+
+@router.post("/dev/verify-email")
+async def dev_verify_email(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Dev-only manual verification endpoint (no email sent).
+    Accepts email in request body.
+    """
+    if settings.ENVIRONMENT != "development" or not settings.DEV_EMAIL_VERIFICATION_ENDPOINT:
+        return JSONResponse(
+            status_code=403,
+            content={"status": "ERROR", "message": "Endpoint not available."}
+        )
+
+    try:
+        body = await request.json()
+        email = body.get("email")
+
+        if not email:
+            return JSONResponse(
+                status_code=400,
+                content={"status": "ERROR", "message": "Email is required"}
+            )
+
+        pg_user = await UserService.get_user_by_email_pg(db, email)
+        if not pg_user or not pg_user.supertokens_id:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "If an account exists with this email, it has been verified."
+                }
+            )
+
+        from supertokens_python.asyncio import get_user
+        from supertokens_python.recipe.emailverification.asyncio import is_email_verified
+
+        supertokens_user = await get_user(pg_user.supertokens_id)
+        if not supertokens_user or not supertokens_user.login_methods:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "OK",
+                    "message": "If an account exists with this email, it has been verified."
+                }
+            )
+
+        recipe_user_id = supertokens_user.login_methods[0].recipe_user_id
+        if await is_email_verified(recipe_user_id):
+            return JSONResponse(
+                status_code=200,
+                content={"status": "OK", "message": "Email is already verified."}
+            )
+
+        token_result = await create_email_verification_token("public", recipe_user_id, email)
+        if not hasattr(token_result, "token"):
+            raise Exception("Could not create verification token")
+
+        await verify_email_using_token("public", token_result.token)
+        return JSONResponse(
+            status_code=200,
+            content={"status": "OK", "message": "Email verified successfully."}
+        )
+
+    except Exception as e:
+        logger.error(f"Dev verify email error: {str(e)}", exc_info=True)
         safe_message = sanitize_error_message(e)
         return JSONResponse(
             status_code=500,

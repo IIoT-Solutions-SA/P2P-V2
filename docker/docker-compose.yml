@@ -103,12 +103,12 @@ services:
       - DATABASE_URL=postgresql+asyncpg://p2p_user:iiot123@postgres:5432/p2p_sandbox
       - MONGODB_URL=mongodb://p2p_user:iiot123@mongodb:27017/p2p_sandbox?authSource=admin
       - SUPERTOKENS_CONNECTION_URI=http://supertokens:3567
-      - BACKEND_CORS_ORIGINS=["https://peerlink.c4ir.sa"]
+      - BACKEND_CORS_ORIGINS=["http://145.241.154.18","http://p2p.iiotsolutions.sa","https://p2p.iiotsolutions.sa","https://peerlink.c4ir.sa"]
       - SECRET_KEY=your-secret-key-here-change-in-production
       - DEBUG=true
       - LOG_LEVEL=DEBUG
-      - API_DOMAIN=https://peerlink.c4ir.sa
-      - WEBSITE_DOMAIN=https://peerlink.c4ir.sa
+      - API_DOMAIN=http://p2p.iiotsolutions.sa
+      - WEBSITE_DOMAIN=http://p2p.iiotsolutions.sa
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s
@@ -153,3 +153,4 @@ volumes:
 networks:
   p2p-network:
     driver: bridge
+

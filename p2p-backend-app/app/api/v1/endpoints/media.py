@@ -9,15 +9,19 @@ import logging
 from app.core.database import get_db
 from app.services.s3_service import s3_service
 from app.models.pg_models import User, UserMedia
-from app.models.mongo_models import User as MongoUser, ForumPost
+from app.models.mongo_models import User as MongoUser, ForumPost, UseCase
 from sqlalchemy import select
 from bson import ObjectId
+from app.core.upload_validation import validate_upload_file
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB for images
 MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB for videos
+ALLOWED_PROFILE_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_FORUM_ATTACHMENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"}
+ALLOWED_USECASE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"}
 
 @router.post("/profile-picture")
 async def upload_profile_picture(
@@ -32,12 +36,13 @@ async def upload_profile_picture(
     Max size: 5MB
     """
     try:
-        # Validate file
-        if file.content_type not in ['image/jpeg', 'image/png', 'image/webp']:
-            raise HTTPException(400, "Invalid file type. Only JPEG, PNG, WebP allowed.")
-
-        if file.size and file.size > MAX_FILE_SIZE:
-            raise HTTPException(400, f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB.")
+        # Validate actual file bytes before trusting user-controlled metadata
+        validated_file = await validate_upload_file(
+            file,
+            allowed_mime_types=ALLOWED_PROFILE_IMAGE_TYPES,
+            max_size=MAX_FILE_SIZE,
+            purpose="profile picture",
+        )
 
         # Get user from session
         supertokens_user_id = session.get_user_id()
@@ -49,10 +54,7 @@ async def upload_profile_picture(
         if not user:
             raise HTTPException(404, "User not found")
 
-        # Read file content
-        file_content = await file.read()
-        if len(file_content) > MAX_FILE_SIZE:
-            raise HTTPException(400, f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB.")
+        file_content = validated_file.content
 
         # Delete old profile picture if exists
         if user.profile_picture_url:
@@ -76,8 +78,8 @@ async def upload_profile_picture(
         cdn_url = await s3_service.upload_profile_picture(
             user_id=str(user.id),
             file_content=file_content,
-            filename=file.filename or "profile.jpg",
-            content_type=file.content_type
+            filename=validated_file.safe_filename,
+            content_type=validated_file.mime_type
         )
 
         # Update PostgreSQL user record
@@ -88,11 +90,11 @@ async def upload_profile_picture(
         media_record = UserMedia(
             user_id=user.id,
             file_type="profile_picture",
-            original_filename=file.filename or "profile.jpg",
+            original_filename=validated_file.original_filename,
             s3_key=s3_service._extract_s3_key_from_url(cdn_url),
             s3_url=cdn_url,
             file_size=len(file_content),
-            mime_type=file.content_type,
+            mime_type=validated_file.mime_type,
             context_id=str(user.id)
         )
         db.add(media_record)
@@ -132,17 +134,19 @@ async def upload_forum_attachment(
     Max size: 5MB for images, 50MB for videos
     """
     try:
-        # Validate file type
-        allowed_image_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-        allowed_video_types = ['video/mp4', 'video/webm']
-        allowed_types = allowed_image_types + allowed_video_types
+        # Validate actual file bytes before trusting user-controlled metadata
+        preliminary_allowed_video_types = {"video/mp4", "video/webm"}
+        preliminary_max_size = MAX_VIDEO_SIZE if file.content_type in preliminary_allowed_video_types else MAX_FILE_SIZE
+        validated_file = await validate_upload_file(
+            file,
+            allowed_mime_types=ALLOWED_FORUM_ATTACHMENT_TYPES,
+            max_size=preliminary_max_size,
+            purpose="forum attachment",
+        )
 
-        if file.content_type not in allowed_types:
-            raise HTTPException(400, "Invalid file type. Allowed: images (JPEG, PNG, WebP, GIF) and videos (MP4, WebM)")
-
-        # Check file size based on type
-        max_size = MAX_VIDEO_SIZE if file.content_type in allowed_video_types else MAX_FILE_SIZE
-        if file.size and file.size > max_size:
+        # Enforce final size limit using the verified MIME type
+        max_size = MAX_VIDEO_SIZE if validated_file.mime_type.startswith("video/") else MAX_FILE_SIZE
+        if len(validated_file.content) > max_size:
             max_mb = max_size // (1024 * 1024)
             raise HTTPException(400, f"File too large. Maximum size is {max_mb}MB for this file type.")
 
@@ -156,30 +160,40 @@ async def upload_forum_attachment(
         if not user:
             raise HTTPException(404, "User not found")
 
-        # Read file content
-        file_content = await file.read()
-        if len(file_content) > max_size:
-            max_mb = max_size // (1024 * 1024)
-            raise HTTPException(400, f"File too large. Maximum size is {max_mb}MB for this file type.")
+        mongo_user = await MongoUser.find_one(MongoUser.email == user.email)
+        if not mongo_user:
+            raise HTTPException(404, "User profile not found")
+
+        try:
+            forum_post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+        except Exception:
+            raise HTTPException(400, "Invalid forum post ID")
+
+        if not forum_post:
+            raise HTTPException(404, "Forum post not found")
+        if forum_post.author_id != str(mongo_user.id) and user.role != "admin":
+            raise HTTPException(403, "Only the forum post owner can upload attachments")
+
+        file_content = validated_file.content
 
         # Upload to S3
         file_url, s3_key = await s3_service.upload_forum_attachment(
             post_id=post_id,
             user_id=str(user.id),
             file_content=file_content,
-            filename=file.filename or "attachment",
-            content_type=file.content_type
+            filename=validated_file.safe_filename,
+            content_type=validated_file.mime_type
         )
 
         # Create media tracking record
         media_record = UserMedia(
             user_id=user.id,
             file_type="forum_attachment",
-            original_filename=file.filename or "attachment",
+            original_filename=validated_file.original_filename,
             s3_key=s3_key,
             s3_url=file_url,
             file_size=len(file_content),
-            mime_type=file.content_type,
+            mime_type=validated_file.mime_type,
             context_id=post_id
         )
         db.add(media_record)
@@ -191,8 +205,8 @@ async def upload_forum_attachment(
             if forum_post:
                 attachment_data = {
                     "url": file_url,
-                    "filename": file.filename or "attachment",
-                    "type": file.content_type,
+                    "filename": validated_file.original_filename,
+                    "type": validated_file.mime_type,
                     "size": len(file_content)
                 }
 
@@ -203,7 +217,7 @@ async def upload_forum_attachment(
 
                 # Save the updated post
                 await forum_post.save()
-                logger.info(f"Added attachment to MongoDB ForumPost {post_id}: {file.filename}")
+                logger.info(f"Added attachment to MongoDB ForumPost {post_id}: {validated_file.original_filename}")
             else:
                 logger.warning(f"ForumPost {post_id} not found in MongoDB when trying to add attachment")
         except Exception as e:
@@ -215,8 +229,8 @@ async def upload_forum_attachment(
             "message": "Attachment uploaded successfully",
             "attachment": {
                 "url": file_url,
-                "filename": file.filename or "attachment",
-                "type": file.content_type,
+                "filename": validated_file.original_filename,
+                "type": validated_file.mime_type,
                 "size": len(file_content)
             }
         }
@@ -255,54 +269,68 @@ async def upload_usecase_media(
         if not user:
             raise HTTPException(404, "User not found")
 
+        mongo_user = await MongoUser.find_one(MongoUser.email == user.email)
+        if not mongo_user:
+            raise HTTPException(404, "User profile not found")
+
+        try:
+            use_case = await UseCase.find_one(UseCase.id == ObjectId(usecase_id))
+        except Exception:
+            raise HTTPException(400, "Invalid use case ID")
+
+        if not use_case:
+            raise HTTPException(404, "Use case not found")
+        if use_case.submitted_by != str(mongo_user.id) and user.role != "admin":
+            raise HTTPException(403, "Only the use case owner can upload media")
+
         uploaded_files = []
 
         for file in files:
-            # Validate file type
-            allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']
-            if file.content_type not in allowed_types:
-                raise HTTPException(400, f"Invalid file type for {file.filename}. Allowed: images and videos")
+            # Validate actual file bytes before trusting user-controlled metadata
+            preliminary_allowed_video_types = {"video/mp4", "video/webm"}
+            preliminary_max_size = MAX_VIDEO_SIZE if file.content_type in preliminary_allowed_video_types else MAX_FILE_SIZE
+            validated_file = await validate_upload_file(
+                file,
+                allowed_mime_types=ALLOWED_USECASE_MEDIA_TYPES,
+                max_size=preliminary_max_size,
+                purpose="use case media",
+            )
 
-            # Check file size
-            is_video = file.content_type.startswith('video/')
+            # Enforce final size limit using the verified MIME type
+            is_video = validated_file.mime_type.startswith('video/')
             max_size = MAX_VIDEO_SIZE if is_video else MAX_FILE_SIZE
-
-            if file.size and file.size > max_size:
+            if len(validated_file.content) > max_size:
                 max_mb = max_size // (1024 * 1024)
-                raise HTTPException(400, f"File {file.filename} too large. Maximum size is {max_mb}MB.")
+                raise HTTPException(400, f"File {validated_file.original_filename} too large. Maximum size is {max_mb}MB.")
 
-            # Read file content
-            file_content = await file.read()
-            if len(file_content) > max_size:
-                max_mb = max_size // (1024 * 1024)
-                raise HTTPException(400, f"File {file.filename} too large. Maximum size is {max_mb}MB.")
+            file_content = validated_file.content
 
             # Upload to S3
             file_url, s3_key = await s3_service.upload_usecase_media(
                 usecase_id=usecase_id,
                 user_id=str(user.id),
                 file_content=file_content,
-                filename=file.filename or "media",
-                content_type=file.content_type
+                filename=validated_file.safe_filename,
+                content_type=validated_file.mime_type
             )
 
             # Create media tracking record
             media_record = UserMedia(
                 user_id=user.id,
                 file_type="usecase_media",
-                original_filename=file.filename or "media",
+                original_filename=validated_file.original_filename,
                 s3_key=s3_key,
                 s3_url=file_url,
                 file_size=len(file_content),
-                mime_type=file.content_type,
+                mime_type=validated_file.mime_type,
                 context_id=usecase_id
             )
             db.add(media_record)
 
             uploaded_files.append({
                 "url": file_url,
-                "filename": file.filename or "media",
-                "type": file.content_type,
+                "filename": validated_file.original_filename,
+                "type": validated_file.mime_type,
                 "size": len(file_content),
                 "is_video": is_video
             })
@@ -311,11 +339,7 @@ async def upload_usecase_media(
 
         # Update MongoDB UseCase to include the media URLs
         try:
-            from app.models.mongo_models import UseCase
-            from bson import ObjectId
-
             logger.info(f"Attempting to update UseCase {usecase_id} with media")
-            use_case = await UseCase.find_one(UseCase.id == ObjectId(usecase_id))
             if use_case:
                 logger.info(f"Found UseCase {usecase_id}. Current images: {len(use_case.images) if use_case.images else 0}")
 

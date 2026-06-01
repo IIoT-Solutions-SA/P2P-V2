@@ -9,6 +9,15 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+SAFE_CONTENT_TYPE_EXTENSIONS = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+}
+
 class S3Service:
     """Service for handling file uploads via S3-compatible API (OCI Object Storage)"""
 
@@ -56,8 +65,9 @@ class S3Service:
         if content_type not in allowed_types:
             raise HTTPException(400, f"Invalid file type. Allowed: {', '.join(allowed_types)}")
 
-        # Generate unique S3 key
-        file_extension = filename.split('.')[-1].lower() if '.' in filename else 'jpg'
+        # Generate unique S3 key with an extension derived from verified content type,
+        # not from the user-controlled original filename.
+        file_extension = SAFE_CONTENT_TYPE_EXTENSIONS[content_type]
         s3_key = f"profile-pictures/{user_id}/{uuid.uuid4()}.{file_extension}"
 
         try:
@@ -106,8 +116,9 @@ class S3Service:
         if content_type not in allowed_types:
             raise HTTPException(400, f"Invalid file type. Allowed: images and videos")
 
-        # Generate unique S3 key
-        file_extension = filename.split('.')[-1].lower() if '.' in filename else 'jpg'
+        # Generate unique S3 key with an extension derived from verified content type,
+        # not from the user-controlled original filename.
+        file_extension = SAFE_CONTENT_TYPE_EXTENSIONS[content_type]
         s3_key = f"forum-attachments/{post_id}/{uuid.uuid4()}.{file_extension}"
 
         try:
@@ -156,8 +167,9 @@ class S3Service:
         if content_type not in allowed_types:
             raise HTTPException(400, f"Invalid file type. Allowed: images and videos")
 
-        # Generate unique S3 key based on file type
-        file_extension = filename.split('.')[-1].lower() if '.' in filename else 'jpg'
+        # Generate unique S3 key based on verified file type. The extension is
+        # derived from content type, not from the user-controlled original filename.
+        file_extension = SAFE_CONTENT_TYPE_EXTENSIONS[content_type]
         media_type = 'videos' if content_type.startswith('video/') else 'images'
         s3_key = f"usecase-{media_type}/{usecase_id}/{uuid.uuid4()}.{file_extension}"
 

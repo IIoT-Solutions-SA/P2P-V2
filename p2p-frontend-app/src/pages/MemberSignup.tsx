@@ -105,29 +105,27 @@ export default function MemberSignup() {
     setIsLoading(true)
 
     try {
-      // Use real organization data from the inviter
       const signupPayload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
         title: formData.title || 'Team Member',
-        // Use actual organization data from inviter
         organizationName: invitationData?.organization_name || 'Organization',
         industry: invitationData?.industry || 'Manufacturing',
         organizationSize: invitationData?.organization_size || 'medium',
         city: invitationData?.city || 'Riyadh',
         country: invitationData?.country || 'Saudi Arabia',
-        // Add invitation token
         inviteToken,
         role: 'member',
         isInvited: true
       }
-      
+
+      // AuthContext.signup() handles member path:
+      // backend creates session, AuthContext fetches profile, returns { requiresEmailVerification: false }
       await signup(signupPayload as any)
-      
-      // Invitation is marked as used in the backend during signup
-      
+
+      // Session is live — go straight to dashboard
       navigate('/dashboard')
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Signup failed')

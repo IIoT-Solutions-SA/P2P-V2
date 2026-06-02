@@ -5,6 +5,7 @@ import Signup from './pages/Signup'
 import MemberSignup from './pages/MemberSignup'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import OtpVerification from './pages/OtpVerification'
 import EmailVerificationPending from './pages/EmailVerificationPending'
 import EmailVerificationSuccess from './pages/EmailVerificationSuccess'
 import Dashboard from './pages/Dashboard'
@@ -36,7 +37,10 @@ function App() {
               <Route path="/join" element={<MemberSignup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/verify-email" element={<EmailVerificationPending />} />
+              {/* OTP verification — shared for signup_verify and login_mfa */}
+              <Route path="/verify-otp" element={<OtpVerification />} />
+              {/* Legacy redirect — old link-based verification page */}
+              <Route path="/verify-email" element={<Navigate to="/login" replace />} />
               <Route path="/auth/verify-email" element={<EmailVerificationSuccess />} />
 
               {/* Protected Routes */}

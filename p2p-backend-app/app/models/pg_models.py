@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 import uuid
+from datetime import datetime
 
 class TimestampMixin:
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -61,3 +62,37 @@ class SystemConfig(Base, TimestampMixin):
     key = Column(String(255), unique=True, nullable=False)
     value = Column(Text, nullable=False)
     description = Column(Text)
+
+
+class OtpCode(Base):
+    """
+    Stores hashed 6-digit OTP codes for:
+    - signup_verify: email verification after admin signup
+    - login_mfa: MFA challenge on first login from a new device
+    """
+    __tablename__ = "otp_codes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), nullable=False, index=True)
+    purpose = Column(String(50), nullable=False)  # 'signup_verify' | 'login_mfa'
+    code_hash = Column(String(64), nullable=False)  # SHA-256 hex digest
+    challenge_id = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4, index=True)
+    attempts = Column(Integer, nullable=False, default=0)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class TrustedDevice(Base):
+    """
+    Tracks devices/browsers that have completed MFA.
+    A long-lived HttpOnly cookie ('trusted_device') stores the device_token.
+    If the token is present and unexpired, login skips the OTP step.
+    """
+    __tablename__ = "trusted_devices"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_email = Column(String(255), nullable=False, index=True)
+    device_token = Column(String(128), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

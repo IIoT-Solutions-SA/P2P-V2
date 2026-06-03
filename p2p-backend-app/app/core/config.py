@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 
     # Email domain restrictions
     BLOCKED_EMAIL_DOMAINS: List[str] = Field(default=[
-        # "gmail.com",
+        "gmail.com",
         "yahoo.com",
         "hotmail.com",
         "outlook.com",

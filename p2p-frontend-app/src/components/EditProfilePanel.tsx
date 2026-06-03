@@ -15,7 +15,9 @@ interface EditProfilePanelProps {
 
 export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profile' }: EditProfilePanelProps) {
   const { user, refreshProfile } = useAuth()
-  const [loading, setLoading] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [passwordLoading, setPasswordLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [tagInput, setTagInput] = useState('')
@@ -70,7 +72,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setProfileLoading(true)
     setError(null)
 
     try {
@@ -94,7 +96,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update profile')
     } finally {
-      setLoading(false)
+      setProfileLoading(false)
     }
   }
 
@@ -115,11 +117,49 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
     }))
   }
 
+  // Blocked personal email domains (mirrors backend list)
+  const BLOCKED_EMAIL_DOMAINS = [
+    'gmail.com',
+    'yahoo.com',
+    'hotmail.com',
+    'outlook.com',
+    'protonmail.com',
+    'icloud.com',
+    'live.com',
+    'msn.com'
+  ]
+
+  const getEmailDomain = (email: string) => {
+    if (!email || !email.includes('@')) return ''
+    return email.split('@').pop()?.trim().toLowerCase() || ''
+  }
+
+  const isBlockedDomain = (email: string) => {
+    const domain = getEmailDomain(email)
+    return BLOCKED_EMAIL_DOMAINS.includes(domain)
+  }
+
   const handleEmailUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setEmailLoading(true)
     setError(null)
     setSuccessMessage(null)
+
+    // Client-side validation: block personal email domains
+    if (isBlockedDomain(emailForm.newEmail)) {
+      setError('Personal email addresses are not allowed. Please use your company email.')
+      setEmailLoading(false)
+      return
+    }
+
+    // Client-side validation: check domain matches current org domain
+    const currentDomain = getEmailDomain(user?.email || '')
+    const newDomain = getEmailDomain(emailForm.newEmail)
+    if (currentDomain && newDomain && currentDomain !== newDomain) {
+      setError(`New email must match your organization domain (@${currentDomain}).`)
+      setEmailLoading(false)
+      return
+    }
 
     try {
       const response = await fetch(buildApiUrl('/api/v1/auth/email'), {
@@ -143,7 +183,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update email')
     } finally {
-      setLoading(false)
+      setEmailLoading(false)
     }
   }
 
@@ -155,7 +195,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
       return
     }
     
-    setLoading(true)
+    setPasswordLoading(true)
     setError(null)
     setSuccessMessage(null)
 
@@ -183,7 +223,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update password')
     } finally {
-      setLoading(false)
+      setPasswordLoading(false)
     }
   }
 
@@ -230,7 +270,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
           <button 
             onClick={onClose} 
             className="text-white/80 hover:text-white transition-colors"
-            disabled={loading}
+            disabled={profileLoading || emailLoading || passwordLoading}
           >
             <X size={24} />
           </button>
@@ -287,7 +327,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                   currentImageUrl={user?.profilePictureUrl || undefined}
                   onImageUpload={handleProfilePictureUpload}
                   size="lg"
-                  disabled={loading}
+                  disabled={profileLoading}
                 />
               </div>
 
@@ -417,10 +457,10 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
             <div className="mt-8 flex gap-3">
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={profileLoading}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {loading ? (
+                {profileLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
@@ -435,7 +475,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
               <Button
                 type="button"
                 onClick={onClose}
-                disabled={loading}
+                disabled={profileLoading}
                 variant="outline"
                 className="flex-1"
               >
@@ -475,10 +515,29 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                       type="email"
                       value={emailForm.newEmail}
                       onChange={(e) => setEmailForm(prev => ({ ...prev, newEmail: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter new email"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                        emailForm.newEmail && (isBlockedDomain(emailForm.newEmail) || (getEmailDomain(emailForm.newEmail) && getEmailDomain(user?.email || '') && getEmailDomain(emailForm.newEmail) !== getEmailDomain(user?.email || '')))
+                          ? 'border-red-300 focus:ring-red-500'
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                      placeholder={`Enter new email (must be @${getEmailDomain(user?.email || '') || 'your-company.com'})`}
                       required
                     />
+                    {emailForm.newEmail && isBlockedDomain(emailForm.newEmail) && (
+                      <p className="mt-1 text-xs text-red-600">
+                        Personal email addresses (Gmail, Yahoo, etc.) are not allowed.
+                      </p>
+                    )}
+                    {emailForm.newEmail && !isBlockedDomain(emailForm.newEmail) && getEmailDomain(emailForm.newEmail) && getEmailDomain(user?.email || '') && getEmailDomain(emailForm.newEmail) !== getEmailDomain(user?.email || '') && (
+                      <p className="mt-1 text-xs text-red-600">
+                        Email must match your organization domain (@{getEmailDomain(user?.email || '')}).
+                      </p>
+                    )}
+                    {!emailForm.newEmail && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        New email must use your organization domain (@{getEmailDomain(user?.email || '')}).
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -495,10 +554,10 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                   </div>
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={emailLoading}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {loading ? (
+                    {emailLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Updating Email...
@@ -585,10 +644,10 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                   </div>
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={passwordLoading}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {loading ? (
+                    {passwordLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Updating Password...

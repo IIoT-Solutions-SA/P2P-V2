@@ -84,12 +84,38 @@ async def post_signup(request: Request, response: Response, db: AsyncSession = D
 
         # Check if user already exists BEFORE calling SuperTokens
         existing_pg_user = await UserService.get_user_by_email_pg(db, email)
+        
         if existing_pg_user:
-            return JSONResponse(status_code=409, content={"status": "ERROR", "message": "An account with this email already exists."})
-
-        existing_mongo_user = await MongoUser.find_one(MongoUser.email == email)
-        if existing_mongo_user:
-            return JSONResponse(status_code=409, content={"status": "ERROR", "message": "An account with this email already exists."})
+            if existing_pg_user.is_verified:
+                return JSONResponse(status_code=409, content={"status": "ERROR", "message": "An account with this email already exists."})
+            else:
+                logger.info(f"Unverified user {email} trying to sign up again. Deleting old records.")
+                # Delete from SuperTokens
+                if existing_pg_user.supertokens_id:
+                    try:
+                        from supertokens_python.asyncio import delete_user
+                        await delete_user(existing_pg_user.supertokens_id)
+                    except Exception as e:
+                        logger.warning(f"Could not delete SuperTokens user: {e}")
+                
+                # Delete from PG
+                await UserService.delete_user_pg(db, existing_pg_user.id)
+                
+                # Delete from Mongo
+                existing_mongo_user = await MongoUser.find_one(MongoUser.email == email)
+                if existing_mongo_user:
+                    await existing_mongo_user.delete()
+                
+                # Reset invitation if it exists so member can reuse their invite link
+                from app.models.mongo_models import Invitation
+                invitation = await Invitation.find_one(Invitation.email == email)
+                if invitation and invitation.used:
+                    invitation.used = False
+                    await invitation.save()
+        else:
+            existing_mongo_user = await MongoUser.find_one(MongoUser.email == email)
+            if existing_mongo_user:
+                return JSONResponse(status_code=409, content={"status": "ERROR", "message": "An account with this email already exists."})
 
         invite_token = body.get("inviteToken")
         is_invited = bool(invite_token)
@@ -261,7 +287,7 @@ async def verify_signup_otp(request: Request, response: Response, db: AsyncSessi
                 await db.commit()
 
                 # ---- NEW: Auto-login after signup verification ----
-                session = await create_new_session(request, response, recipe_user_id)
+                session = await create_new_session(request, "public", recipe_user_id)
                 logger.info(f"Session created for new admin {email}: {session.get_handle()}")
 
                 # Create trusted device record + set cookie (same as login)
@@ -363,7 +389,7 @@ async def post_signin(request: Request, response: Response, db: AsyncSession = D
             if is_trusted:
                 # Known device — skip OTP, create session immediately
                 logger.info(f"Trusted device recognised for {email} — skipping MFA")
-                session = await create_new_session(request, response, result.recipe_user_id)
+                session = await create_new_session(request, "public", result.recipe_user_id)
                 logger.info(f"Session created (trusted device): {session.get_handle()}")
 
                 import json
@@ -459,7 +485,7 @@ async def verify_login_otp(request: Request, response: Response, db: AsyncSessio
         recipe_user_id = st_user.login_methods[0].recipe_user_id
 
         # Create SuperTokens session
-        session = await create_new_session(request, response, recipe_user_id)
+        session = await create_new_session(request, "public", recipe_user_id)
         logger.info(f"Session created after MFA for {email}: {session.get_handle()}")
 
         # Create trusted device record + set cookie

@@ -120,11 +120,13 @@ export default function OtpVerification() {
         const res = await fetch(buildApiUrl('/api/v1/auth/verify-signup-otp'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ email: emailParam, code })
         })
         const data = await res.json()
 
         if (data.status === 'OK') {
+          await fetchProfile()
           setSuccess(true)
           setTimeout(() => navigate('/dashboard', { replace: true }), 800)
         } else if (data.status === 'INVALID_CODE') {

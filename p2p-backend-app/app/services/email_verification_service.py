@@ -196,9 +196,22 @@ async def send_otp_email(
         purpose: 'signup_verify' or 'login_mfa'
     """
     purpose_label = "Email Verification" if purpose == "signup_verify" else "Login"
-    subject_emoji = "🔐" if purpose == "signup_verify" else "🛡️"
-    action_text = "verify your email address" if purpose == "signup_verify" else "sign in to your account"
+    subject_emoji = "🔐"
     expires_text = f"This code expires in {settings.OTP_EXPIRY_MINUTES} minutes."
+
+    if purpose == "signup_verify":
+        header_title = "🎉 Welcome to P2P Platform!"
+        body_intro = "<p>Welcome to P2P Manufacturing Platform! We're excited to have you on board.</p><p>Use the code below to verify your email address:</p>"
+        extra_alert = ""
+    else:
+        header_title = "🔐 Login Verification Required"
+        body_intro = "<p>A sign-in attempt was made to your account. Use the code below to complete login:</p>"
+        extra_alert = """
+                <div class="warning" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0 0 0; font-size: 14px; border-radius: 0 6px 6px 0;">
+                    ⚠️ <strong>Didn't request this code?</strong><br>
+                    Someone may be trying to sign in to your account. If this wasn't you, please reset your password immediately.
+                </div>
+                """
 
     # ── Always log to terminal/Docker in a clearly visible banner ──────────
     print(f"\n{'='*70}")
@@ -248,14 +261,14 @@ async def send_otp_email(
                 background: linear-gradient(135deg, #f0f4ff 0%, #f5f0ff 100%);
                 border: 2px solid #667eea;
                 border-radius: 12px;
-                padding: 24px;
+                padding: 16px;
                 text-align: center;
-                margin: 24px 0;
+                margin: 20px 0;
             }}
             .code {{
-                font-size: 42px;
+                font-size: 32px;
                 font-weight: 800;
-                letter-spacing: 12px;
+                letter-spacing: 8px;
                 color: #667eea;
                 font-family: 'Courier New', Courier, monospace;
             }}
@@ -284,23 +297,24 @@ async def send_otp_email(
     <body>
         <div class="container">
             <div class="header">
-                <h1>{subject_emoji} P2P Platform — {purpose_label} Code</h1>
+                <h1>{header_title}</h1>
             </div>
             <div class="content">
-                <p>Use the code below to {action_text}:</p>
+                {body_intro}
                 <div class="code-box">
                     <div class="code">{code}</div>
                     <div class="code-label">{expires_text} Do not share this code.</div>
-                </div>
-                <div class="warning">
-                    ⚠️ <strong>Security notice:</strong> We will never ask for this code by phone or chat.
-                    If you did not request this code, ignore this email.
                 </div>
                 <p style="color: #666; font-size: 14px;">
                     This code can only be used once and will expire in
                     <strong>{settings.OTP_EXPIRY_MINUTES} minutes</strong>.
                     You have a maximum of {settings.OTP_MAX_ATTEMPTS} attempts.
                 </p>
+                <div class="warning">
+                    ⚠️ <strong>Security notice:</strong> We will never ask for this code by phone or chat.
+                    If you did not request this code, ignore this email.
+                </div>
+                {extra_alert}
             </div>
             <div class="footer">
                 <p style="font-weight: bold;">⚠️ Do not reply — this is an automated message</p>
@@ -312,7 +326,7 @@ async def send_otp_email(
     """
 
     message = MessageSchema(
-        subject=f"{subject_emoji} Your {purpose_label} Code — P2P Platform",
+        subject="🎉 Welcome! Verify Your Email — P2P Platform" if purpose == "signup_verify" else "🔐 Login Verification Required — P2P Platform",
         recipients=[email],
         body=html,
         subtype=MessageType.html

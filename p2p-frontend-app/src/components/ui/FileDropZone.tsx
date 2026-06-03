@@ -224,8 +224,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
 
       {/* Error display */}
       {error && (
-        <div className="mt-4 flex items-center text-sm text-red-600">
-          <AlertCircle className="h-4 w-4 mr-2" />
+        <div className="mt-4 text-sm text-red-500">
           {error}
         </div>
       )}

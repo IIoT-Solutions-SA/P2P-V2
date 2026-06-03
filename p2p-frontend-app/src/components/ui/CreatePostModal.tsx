@@ -329,7 +329,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
                   }`}
                 />
                 {titleError && (
-                  <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                  <p className="text-red-500 text-sm mt-1">
                     {titleError}
                   </p>
                 )}
@@ -375,7 +375,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
                   }`}
                 />
                 {contentError && (
-                  <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                  <p className="text-red-500 text-sm mt-1">
                     {contentError}
                   </p>
                 )}

@@ -1044,7 +1044,7 @@ export default function Forum() {
                         placeholder="Enter a clear, descriptive title..."
                       />
                       {editTitleError && (
-                        <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                        <p className="text-red-500 text-sm mt-1">
                           {editTitleError}
                         </p>
                       )}
@@ -1060,7 +1060,7 @@ export default function Forum() {
                         placeholder="Share your thoughts, questions, or insights..."
                       />
                       {editContentError && (
-                        <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                        <p className="text-red-500 text-sm mt-1">
                           {editContentError}
                         </p>
                       )}

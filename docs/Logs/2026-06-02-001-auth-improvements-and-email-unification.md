@@ -14,8 +14,7 @@ Implemented significant UX and architectural improvements to the authentication 
 Key changes include:
 1. **Auto-Login on Admin Signup**: Admin users are now automatically logged in (session created and trusted-device cookie set) immediately upon verifying their signup OTP, preventing redundant login prompts and double MFA screens.
 2. **OTP Verification UI Refined**: Restyled the OTP page from its previous purple gradient design to a clean, modern white background with blue accents. Removed the automatic form submission upon typing the 6th digit — users now explicitly click "Verify" or press Enter.
-3. **Gmail Domain Allowed**: Permitted signup and login using `@gmail.com` email addresses for development and testing by commenting out `gmail.com` from the blocked domains list in both backend and frontend.
-4. **Email Delivery Fixed**: Configured SMTP credentials and set `DEV_SEND_EMAILS=true` in `.env` so OTP codes and verification links are delivered to real email addresses during development (in addition to always being printed to Docker logs).
+3. **Email Delivery Fixed**: Configured SMTP credentials and set `DEV_SEND_EMAILS=true` in `.env` so OTP codes and verification links are delivered to real email addresses during development (in addition to always being printed to Docker logs).
 
 ---
 
@@ -40,7 +39,7 @@ p2p-frontend-app/src/pages/Signup.tsx
 Changes to the `/verify-signup-otp` endpoint:
 
 - After successful OTP verification, the endpoint now calls `create_new_session()` to establish an active SuperTokens session immediately.
-- Generates a `trusted_device` HttpOnly cookie (30-day lifetime) so the admin's next login on the same browser skips MFA.
+- Generates a `trusted_device` HttpOnly cookie (7-day lifetime) so the admin's next login on the same browser skips MFA.
 
 ```text
 Lines 287–305: Session creation + trusted device cookie logic added

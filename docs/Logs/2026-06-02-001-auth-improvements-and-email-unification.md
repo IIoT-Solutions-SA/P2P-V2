@@ -41,7 +41,6 @@ Changes to the `/verify-signup-otp` endpoint:
 
 - After successful OTP verification, the endpoint now calls `create_new_session()` to establish an active SuperTokens session immediately.
 - Generates a `trusted_device` HttpOnly cookie (30-day lifetime) so the admin's next login on the same browser skips MFA.
-- Frontend redirects to `/dashboard` instead of `/login` after verification.
 
 ```text
 Lines 287–305: Session creation + trusted device cookie logic added

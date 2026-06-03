@@ -121,12 +121,13 @@ export default function MemberSignup() {
         isInvited: true
       }
 
-      // AuthContext.signup() handles member path:
-      // backend creates session, AuthContext fetches profile, returns { requiresEmailVerification: false }
-      await signup(signupPayload as any)
+      const signupResponse = await signup(signupPayload as any)
 
-      // Session is live — go straight to dashboard
-      navigate('/dashboard')
+      if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresOTPVerification) {
+        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}`)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Signup failed')
     } finally {

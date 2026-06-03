@@ -159,51 +159,27 @@ async def post_signup(request: Request, response: Response, db: AsyncSession = D
                     logger.warning(f"Could not delete SuperTokens user: {delete_error}")
                 return JSONResponse(status_code=400, content={"status": "ERROR", "message": str(ve)})
 
-            # ── Member path: auto-verify email + create session immediately ─────────
+            # ── Mark invitation as used (if member path) ────────────────────────
             if invite_token:
                 from app.services import invitation_service
                 await invitation_service.mark_invitation_used(invite_token)
                 logger.info(f"Marked invitation as used: {invite_token}")
 
-                # Auto-verify email via SuperTokens token
-                try:
-                    token_result = await create_email_verification_token("public", supertokens_result.recipe_user_id, email)
-                    if hasattr(token_result, 'token'):
-                        await verify_email_using_token("public", token_result.token)
-                        logger.info(f"Auto-verified email for invited member: {email}")
-                except Exception as e:
-                    logger.warning(f"Could not auto-verify invited member email: {str(e)}")
+            # ── Send OTP for email verification (Both Admin & Member) ─────────────
+            try:
+                plain_code, challenge_id = await otp_service.create_otp(db, email, "signup_verify")
+                await send_otp_email(email, plain_code, "signup_verify")
+                logger.info(f"Signup OTP sent to: {email}")
+            except Exception as e:
+                logger.error(f"Failed to send signup OTP: {str(e)}")
+                # User is created — return success so they can use resend
 
-                # Create session immediately — member proved identity via invite link
-                session = await create_new_session(request, response, supertokens_result.recipe_user_id)
-                logger.info(f"Session created for member: {session.get_handle()}")
-
-                import json
-                response.status_code = 200
-                response.body = json.dumps({
-                    "status": "OK",
-                    "message": "Account created successfully. Welcome!",
-                    "requiresEmailVerification": False
-                }).encode()
-                response.headers["content-type"] = "application/json"
-                return response
-
-            # ── Admin path: send OTP for email verification ───────────────────────
-            else:
-                try:
-                    plain_code, challenge_id = await otp_service.create_otp(db, email, "signup_verify")
-                    await send_otp_email(email, plain_code, "signup_verify")
-                    logger.info(f"Signup OTP sent to admin: {email}")
-                except Exception as e:
-                    logger.error(f"Failed to send signup OTP: {str(e)}")
-                    # User is created — return success so they can use resend
-
-                return JSONResponse(status_code=200, content={
-                    "status": "OK",
-                    "message": "Account created. Please check your email for a 6-digit verification code.",
-                    "requiresOTPVerification": True,
-                    "email": email
-                })
+            return JSONResponse(status_code=200, content={
+                "status": "OK",
+                "message": "Account created. Please check your email for a 6-digit verification code.",
+                "requiresOTPVerification": True,
+                "email": email
+            })
 
         elif hasattr(supertokens_result, 'status') and supertokens_result.status == "EMAIL_ALREADY_EXISTS_ERROR":
             return JSONResponse(status_code=409, content={"status": "ERROR", "message": "Email already exists"})
@@ -346,6 +322,17 @@ async def post_signin(request: Request, response: Response, db: AsyncSession = D
 
         if not email or not password:
             return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Email and password required"})
+
+        from app.core.email_domains import get_email_domain, is_blocked_domain
+        from app.core.config import settings
+        
+        email_domain = get_email_domain(email)
+        if email_domain and is_blocked_domain(email_domain, settings.BLOCKED_EMAIL_DOMAINS):
+            logger.warning(f"Login attempt blocked for personal email domain: {email}")
+            return JSONResponse(
+                status_code=403,
+                content={"status": "ERROR", "message": "Personal email addresses are not allowed. Please use your company email."}
+            )
 
         result = await sign_in("public", email, password)
 

@@ -26,9 +26,35 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailError, setEmailError] = useState('')
+
+  const isBlockedDomain = (value: string) => {
+    const blockedDomains = [
+      'gmail.com',
+      'yahoo.com',
+      'hotmail.com',
+      'outlook.com',
+      'protonmail.com',
+      'icloud.com',
+      'live.com',
+      'msn.com'
+    ]
+    const domain = value.split('@')[1]?.toLowerCase() || ''
+    return blockedDomains.includes(domain)
+  }
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+    if (value && isBlockedDomain(value)) {
+      setEmailError('Personal email addresses are not allowed.')
+    } else {
+      setEmailError('')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (emailError) return
     setError('')
     setIsLoading(true)
 
@@ -131,11 +157,14 @@ export default function Login() {
                         type="email"
                         placeholder="your.email@company.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        className={`pl-10 ${emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         required
                       />
                     </div>
+                    {emailError && (
+                      <p className="text-sm text-red-600 mt-2">{emailError}</p>
+                    )}
                   </div>
 
                   <div>

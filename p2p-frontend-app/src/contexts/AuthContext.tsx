@@ -189,6 +189,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    try {
+      await fetch(buildApiUrl('/api/v1/auth/custom-signout'), { 
+        method: 'POST', 
+        credentials: 'include' 
+      });
+    } catch (e) {
+      console.error('Failed to clear trusted device cookie', e);
+    }
     await Session.signOut();
     setAuthState({
       user: null,

@@ -621,3 +621,33 @@ async def reset_password(request: Request):
     except Exception as e:
         logger.error(f"Password reset error: {str(e)}", exc_info=True)
         return JSONResponse(status_code=500, content={"status": "ERROR", "message": sanitize_error_message(e)})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CUSTOM SIGNOUT (Clear trusted device)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.post("/custom-signout")
+async def custom_signout(request: Request, response: Response):
+    """
+    Clears the trusted_device cookie when the user logs out manually.
+    This ensures that OTP will be required on the next login.
+    """
+    try:
+        import json
+        response.status_code = 200
+        response.set_cookie(
+            key="trusted_device",
+            value="",
+            httponly=True,
+            secure=settings.ENVIRONMENT != "development",
+            samesite="lax",
+            expires=0,
+            max_age=0,
+        )
+        response.body = json.dumps({"status": "OK", "message": "Signout preparation complete."}).encode()
+        response.headers["content-type"] = "application/json"
+        return response
+    except Exception as e:
+        logger.error(f"Custom signout error: {str(e)}", exc_info=True)
+        return JSONResponse(status_code=500, content={"status": "ERROR", "message": sanitize_error_message(e)})

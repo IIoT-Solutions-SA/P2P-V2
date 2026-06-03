@@ -14,7 +14,9 @@ from typing import List, Optional
 from app.schemas.forum import ForumPostCreate
 from app.services.user_activity_service import UserActivityService
 from app.services.forum_service import ForumService
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Optional, Annotated
+from app.core.input_validation import check_safe_text, check_safe_tag
 import logging
 from datetime import datetime
 import re
@@ -25,16 +27,34 @@ router = APIRouter()
 
 
 class ReplyCreate(BaseModel):
-    content: str
+    content: Annotated[str, Field(min_length=2, max_length=3000)]
     parent_reply_id: Optional[str] = None
+
+    @field_validator('content')
+    @classmethod
+    def validate_safe_strings(cls, v):
+        return check_safe_text(v)
 
 
 class PostUpdate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
+    title: Optional[Annotated[str, Field(min_length=8, max_length=150)]] = None
+    content: Optional[Annotated[str, Field(min_length=20, max_length=5000)]] = None
     category: Optional[str] = None
-    tags: Optional[List[str]] = None
-    attachments: Optional[List[dict]] = None
+    tags: Optional[Annotated[List[str], Field(max_length=5)]] = None
+    attachments: Optional[Annotated[List[dict], Field(max_length=5)]] = None
+
+    @field_validator('title', 'content', 'category')
+    @classmethod
+    def validate_safe_strings(cls, v):
+        return check_safe_text(v) if v is not None else v
+
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, v):
+        if v is not None:
+            for item in v:
+                check_safe_tag(item)
+        return v
 
 
 def _normalize_category_name(raw: str) -> str:

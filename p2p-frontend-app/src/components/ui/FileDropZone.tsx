@@ -210,7 +210,13 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
           {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
         </p>
         <p className="text-xs text-gray-500">
-          {acceptedTypes.map(type => type.split('/')[1].toUpperCase()).join(', ')} •
+          {acceptedTypes
+            .map(type => {
+              if (type.endsWith('/*')) return type.split('/')[0].toUpperCase()
+              const ext = type.split('/')[1]
+              return ext === '*' ? type.split('/')[0].toUpperCase() : ext.toUpperCase()
+            })
+            .join(', ')} •
           Max {maxSize / (1024 * 1024)}MB •
           {allowMultiple ? `Up to ${maxFiles} files` : '1 file'}
         </p>

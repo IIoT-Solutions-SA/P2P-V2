@@ -160,6 +160,7 @@ export default function SubmitUseCase() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoadingExistingData, setIsLoadingExistingData] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Autosave status tracking
   const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
@@ -1056,8 +1057,27 @@ export default function SubmitUseCase() {
     form.setValue('images', files)
   }
 
+  /** Parse a FastAPI 422 validation error body into a human-readable string */
+  const parseApiError = async (response: Response): Promise<string> => {
+    try {
+      const data = await response.json()
+      if (Array.isArray(data?.detail)) {
+        return data.detail
+          .map((e: any) => {
+            const field = e.loc?.filter((l: any) => l !== 'body').join(' → ') || 'field'
+            return `${field}: ${e.msg?.replace('Value error, ', '') ?? 'Invalid value'}`
+          })
+          .join('\n')
+      }
+      if (data?.message) return data.message
+      if (data?.detail && typeof data.detail === 'string') return data.detail
+    } catch {}
+    return `Request failed (${response.status})`
+  }
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
+    setSubmitError(null)
     try {
       // First, create the use case WITHOUT images to get the ID
       // Debug: Log lessons learned and roadmap
@@ -1153,8 +1173,9 @@ export default function SubmitUseCase() {
         body: JSON.stringify(payload)
       })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || `${isEditMode ? 'Update' : 'Submission'} failed`)
+        const message = await parseApiError(res)
+        setSubmitError(message)
+        return
       }
 
       const useCaseResult = await res.json()
@@ -1236,6 +1257,7 @@ export default function SubmitUseCase() {
       }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'submitting'} use case:`, error)
+      setSubmitError('An unexpected error occurred. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -1255,6 +1277,68 @@ export default function SubmitUseCase() {
   const handleNext = async () => {
     const fields = stepFields[currentStep] || []
     let hasValidationErrors = false
+
+    // --- Security: check all string fields for injection patterns ---
+    const DANGEROUS_RE = [
+      /<\s*script/i,
+      /javascript\s*:/i,
+      /on(error|load|click|mouseover|keydown|submit|focus|blur|change)\s*=/i,
+      /\.\.\//,
+      /\/etc\/passwd/,
+      /oastify\.com/i,
+      /<!--#\w+/i,
+      /[\x00]/
+    ]
+    const hasDangerousPattern = (val: string) => DANGEROUS_RE.some(re => re.test(val))
+
+    const currentValues = form.getValues()
+    const stepStringFields: Record<number, string[]> = {
+      1: ['title', 'subtitle', 'description', 'factoryName'],
+      2: ['industryContext', 'financialLoss'],
+      3: ['selectedVendor', 'implementationTime', 'totalBudget', 'methodology'],
+      4: [],
+      5: [],
+      6: [],
+      7: []
+    }
+
+    for (const fieldName of (stepStringFields[currentStep] || [])) {
+      const val = (currentValues as any)[fieldName]
+      if (typeof val === 'string' && hasDangerousPattern(val)) {
+        form.setError(fieldName as keyof FormData, {
+          type: 'manual',
+          message: 'Input contains disallowed characters or patterns (e.g. script tags)'
+        })
+        hasValidationErrors = true
+      }
+    }
+
+    // Check dynamic array fields for current step
+    if (currentStep === 2) {
+      specificProblems.forEach((p, i) => {
+        if (hasDangerousPattern(p)) {
+          form.setError('specificProblems', { type: 'manual', message: `Problem ${i + 1} contains disallowed characters` })
+          hasValidationErrors = true
+        }
+      })
+    }
+    if (currentStep === 3) {
+      selectionCriteria.forEach((c, i) => {
+        if (hasDangerousPattern(c)) {
+          form.setError('selectionCriteria', { type: 'manual', message: `Criteria ${i + 1} contains disallowed characters` })
+          hasValidationErrors = true
+        }
+      })
+      technologyComponents.forEach((c, i) => {
+        if (hasDangerousPattern(c)) {
+          form.setError('technologyComponents', { type: 'manual', message: `Component ${i + 1} contains disallowed characters` })
+          hasValidationErrors = true
+        }
+      })
+    }
+
+    if (hasValidationErrors) return
+    // --- End security check ---
     
     // For step validation, we need to manually validate dynamic arrays
     // since they're not automatically synced with form state
@@ -3306,6 +3390,13 @@ export default function SubmitUseCase() {
                     Start New Use Case
                   </Button>
 
+                  {/* Submit validation error */}
+                  {submitError && (
+                    <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-2">
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">⚠️</span>
+                      <div className="whitespace-pre-line">{submitError}</div>
+                    </div>
+                  )}
                   {currentStep < 7 ? (
                     <Button
                       type="button"

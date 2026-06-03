@@ -34,6 +34,16 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
   const [isLoading, setIsLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [contentError, setContentError] = useState<string | null>(null);
+
+  const DANGEROUS_RE = [
+    /<\s*script/i,
+    /javascript\s*:/i,
+    /on(error|load|click|mouseover|keydown|submit|focus|blur|change)\s*=/i,
+    /\.\.\//, /\/etc\/passwd/, /oastify\.com/i, /<!--#\w+/i, /[\x00]/
+  ]
+  const hasDanger = (val: string) => DANGEROUS_RE.some(re => re.test(val))
 
   // Additional predefined categories for comprehensive manufacturing coverage
   const predefinedCategories = [
@@ -91,14 +101,62 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     setTitle(initialTitle || "");
     setContent(initialContent || "");
     setCategoryId(initialCategoryId || "");
+    setTitleError(null);
+    setContentError(null);
+    setError(null);
   }, [isOpen, initialTitle, initialContent, initialCategoryId]);
 
+  /** Parse a FastAPI 422 validation error body into a human-readable string */
+  const parseApiError = async (response: Response): Promise<string> => {
+    try {
+      const data = await response.json()
+      if (Array.isArray(data?.detail)) {
+        return data.detail
+          .map((e: any) => e.msg?.replace('Value error, ', '') ?? 'Invalid value')
+          .join('\n')
+      }
+      if (data?.message) return data.message
+      if (data?.detail && typeof data.detail === 'string') return data.detail
+    } catch {}
+    return `Request failed (${response.status})`
+  }
+
   const handleSubmit = async () => {
-    if (!title.trim() || !content.trim() || !categoryId) {
-      setError("Please fill in all fields.");
-      return;
+    // Clear previous errors
+    setTitleError(null)
+    setContentError(null)
+    setError(null)
+
+    let hasFieldError = false
+
+    // Title validation
+    if (!title.trim()) {
+      setTitleError('Title is required')
+      hasFieldError = true
+    } else if (hasDanger(title)) {
+      setTitleError('Input contains disallowed characters or patterns (e.g. script tags)')
+      hasFieldError = true
+    } else if (title.trim().length < 8) {
+      setTitleError(`Title should have at least 8 characters (${title.trim().length}/8)`)
+      hasFieldError = true
     }
-    setError(null);
+
+    // Content validation — always checked, independent of title
+    if (!content.trim()) {
+      setContentError('Content is required')
+      hasFieldError = true
+    } else if (hasDanger(content)) {
+      setContentError('Input contains disallowed characters or patterns (e.g. script tags)')
+      hasFieldError = true
+    } else if (content.trim().length < 20) {
+      setContentError(`Content should have at least 20 characters (${content.trim().length}/20)`)
+      hasFieldError = true
+    }
+
+    if (!categoryId) { setError('Please select a category.'); hasFieldError = true }
+
+    if (hasFieldError) return
+
     setIsLoading(true);
     try {
       // First create the post without attachments
@@ -114,8 +172,28 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to create post.");
+        // Map per-field errors from 422 back to the correct field
+        try {
+          const data = await response.json()
+          if (Array.isArray(data?.detail)) {
+            data.detail.forEach((e: any) => {
+              const loc: string[] = e.loc ?? []
+              const raw = e.msg?.replace('Value error, ', '') ?? 'Invalid value'
+              // Replace generic Pydantic messages with field-specific ones
+              const msg = raw
+                .replace(/String should have at least (\d+)/i, 'Should have at least $1')
+                .replace(/String should have at most (\d+)/i, 'Should have at most $1')
+              if (loc.includes('title')) setTitleError(msg)
+              else if (loc.includes('content')) setContentError(msg)
+              else setError(msg)
+            })
+            return
+          }
+          setError(data?.message || data?.detail || `Request failed (${response.status})`)
+        } catch {
+          setError(`Request failed (${response.status})`)
+        }
+        return
       }
 
       const postResult = await response.json()
@@ -144,8 +222,9 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
               size: result.attachment.size
             })
           } else {
-            const errorData = await uploadResponse.json().catch(() => ({}))
-            throw new Error(errorData.detail || `Failed to upload attachment: ${file.name}`)
+            const message = await parseApiError(uploadResponse)
+            setError(message)
+            return
           }
         }
 
@@ -244,9 +323,16 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
                   id="title" 
                   placeholder="e.g., How to improve manufacturing efficiency?" 
                   value={title} 
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="h-12 text-base border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  onChange={(e) => { setTitle(e.target.value); setTitleError(null) }}
+                  className={`h-12 text-base border-2 rounded-xl focus:ring-2 transition-all ${
+                    titleError ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-200'
+                  }`}
                 />
+                {titleError && (
+                  <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                    {titleError}
+                  </p>
+                )}
               </div>
 
               {/* Category field */}
@@ -283,9 +369,16 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
                   id="content" 
                   placeholder="Share your detailed question, problem, solution, or insight here. The more specific you are, the better help you'll receive from the community..."
                   value={content} 
-                  onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[180px] text-base border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
+                  onChange={(e) => { setContent(e.target.value); setContentError(null) }}
+                  className={`min-h-[180px] text-base border-2 rounded-xl focus:ring-2 transition-all resize-none ${
+                    contentError ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-200'
+                  }`}
                 />
+                {contentError && (
+                  <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                    {contentError}
+                  </p>
+                )}
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center space-x-4 text-slate-500">
                     <span>💡 Tip: Be specific and clear</span>
@@ -312,7 +405,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
               {/* Error message */}
               {error && (
                 <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
-                  <p className="text-red-700 text-sm font-medium">⚠️ {error}</p>
+                  <p className="text-red-700 text-sm font-medium whitespace-pre-line">⚠️ {error}</p>
                 </div>
               )}
             </div>

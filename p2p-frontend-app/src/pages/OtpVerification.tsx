@@ -23,6 +23,7 @@ export default function OtpVerification() {
 
   const purpose = searchParams.get('purpose') || 'login_mfa'
   const emailParam = searchParams.get('email') || ''
+  const inviteToken = searchParams.get('inviteToken') || (location.state as any)?.inviteToken || ''
   const [challengeId, setChallengeId] = useState<string>((location.state as any)?.challengeId || '')
 
   // 6 individual digit state
@@ -121,7 +122,7 @@ export default function OtpVerification() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ email: emailParam, code })
+          body: JSON.stringify({ email: emailParam, code, ...(inviteToken && { inviteToken }) })
         })
         const data = await res.json()
 
@@ -153,7 +154,7 @@ export default function OtpVerification() {
     } finally {
       setIsVerifying(false)
     }
-  }, [isComplete, isVerifying, isLoginMfa, emailParam, challengeId, code, navigate, verifyLoginOtp])
+  }, [isComplete, isVerifying, isLoginMfa, emailParam, inviteToken, challengeId, code, navigate, verifyLoginOtp])
 
   // Removed auto-submit when all 6 digits entered
   // User must explicitly click the Verify button

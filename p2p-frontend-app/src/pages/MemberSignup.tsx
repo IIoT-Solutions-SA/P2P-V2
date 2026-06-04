@@ -124,7 +124,7 @@ export default function MemberSignup() {
       const signupResponse = await signup(signupPayload as any)
 
       if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresOTPVerification) {
-        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}`)
+        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}&inviteToken=${encodeURIComponent(inviteToken || '')}`)
       } else {
         navigate('/dashboard')
       }

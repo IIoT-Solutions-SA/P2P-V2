@@ -160,6 +160,7 @@ export default function SubmitUseCase() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoadingExistingData, setIsLoadingExistingData] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Autosave status tracking
   const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
@@ -1056,8 +1057,27 @@ export default function SubmitUseCase() {
     form.setValue('images', files)
   }
 
+  /** Parse a FastAPI 422 validation error body into a human-readable string */
+  const parseApiError = async (response: Response): Promise<string> => {
+    try {
+      const data = await response.json()
+      if (Array.isArray(data?.detail)) {
+        return data.detail
+          .map((e: any) => {
+            const field = e.loc?.filter((l: any) => l !== 'body').join(' → ') || 'field'
+            return `${field}: ${e.msg?.replace('Value error, ', '') ?? 'Invalid value'}`
+          })
+          .join('\n')
+      }
+      if (data?.message) return data.message
+      if (data?.detail && typeof data.detail === 'string') return data.detail
+    } catch {}
+    return `Request failed (${response.status})`
+  }
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
+    setSubmitError(null)
     try {
       // First, create the use case WITHOUT images to get the ID
       // Debug: Log lessons learned and roadmap
@@ -1153,8 +1173,9 @@ export default function SubmitUseCase() {
         body: JSON.stringify(payload)
       })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || `${isEditMode ? 'Update' : 'Submission'} failed`)
+        const message = await parseApiError(res)
+        setSubmitError(message)
+        return
       }
 
       const useCaseResult = await res.json()
@@ -1236,6 +1257,7 @@ export default function SubmitUseCase() {
       }
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'submitting'} use case:`, error)
+      setSubmitError('An unexpected error occurred. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -1255,6 +1277,68 @@ export default function SubmitUseCase() {
   const handleNext = async () => {
     const fields = stepFields[currentStep] || []
     let hasValidationErrors = false
+
+    // --- Security: check all string fields for injection patterns ---
+    const DANGEROUS_RE = [
+      /<\s*script/i,
+      /javascript\s*:/i,
+      /on(error|load|click|mouseover|keydown|submit|focus|blur|change)\s*=/i,
+      /\.\.\//,
+      /\/etc\/passwd/,
+      /oastify\.com/i,
+      /<!--#\w+/i,
+      /[\x00]/
+    ]
+    const hasDangerousPattern = (val: string) => DANGEROUS_RE.some(re => re.test(val))
+
+    const currentValues = form.getValues()
+    const stepStringFields: Record<number, string[]> = {
+      1: ['title', 'subtitle', 'description', 'factoryName'],
+      2: ['industryContext', 'financialLoss'],
+      3: ['selectedVendor', 'implementationTime', 'totalBudget', 'methodology'],
+      4: [],
+      5: [],
+      6: [],
+      7: []
+    }
+
+    for (const fieldName of (stepStringFields[currentStep] || [])) {
+      const val = (currentValues as any)[fieldName]
+      if (typeof val === 'string' && hasDangerousPattern(val)) {
+        form.setError(fieldName as keyof FormData, {
+          type: 'manual',
+          message: 'Input contains disallowed characters or patterns (e.g. script tags)'
+        })
+        hasValidationErrors = true
+      }
+    }
+
+    // Check dynamic array fields for current step
+    if (currentStep === 2) {
+      specificProblems.forEach((p, i) => {
+        if (hasDangerousPattern(p)) {
+          form.setError('specificProblems', { type: 'manual', message: `Problem ${i + 1} contains disallowed characters` })
+          hasValidationErrors = true
+        }
+      })
+    }
+    if (currentStep === 3) {
+      selectionCriteria.forEach((c, i) => {
+        if (hasDangerousPattern(c)) {
+          form.setError('selectionCriteria', { type: 'manual', message: `Criteria ${i + 1} contains disallowed characters` })
+          hasValidationErrors = true
+        }
+      })
+      technologyComponents.forEach((c, i) => {
+        if (hasDangerousPattern(c)) {
+          form.setError('technologyComponents', { type: 'manual', message: `Component ${i + 1} contains disallowed characters` })
+          hasValidationErrors = true
+        }
+      })
+    }
+
+    if (hasValidationErrors) return
+    // --- End security check ---
     
     // For step validation, we need to manually validate dynamic arrays
     // since they're not automatically synced with form state
@@ -1682,7 +1766,7 @@ export default function SubmitUseCase() {
                             A clear, compelling title that describes your success story
                           </FormDescription>
                           <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/100 characters</div>
-                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                          <FormMessage className="text-red-500 text-sm mt-1" />
                         </FormItem>
                       )}
                     />
@@ -1703,7 +1787,7 @@ export default function SubmitUseCase() {
                             A descriptive subtitle explaining the technology or approach used
                           </FormDescription>
                           <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/150 characters</div>
-                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                          <FormMessage className="text-red-500 text-sm mt-1" />
                         </FormItem>
                       )}
                     />
@@ -1732,7 +1816,7 @@ export default function SubmitUseCase() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                          <FormMessage className="text-red-500 text-sm mt-1" />
                         </FormItem>
                       )}
                     />
@@ -1747,7 +1831,7 @@ export default function SubmitUseCase() {
                             <Input placeholder="e.g., Advanced Electronics Co." {...field} />
                           </FormControl>
                           <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/80 characters</div>
-                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                          <FormMessage className="text-red-500 text-sm mt-1" />
                         </FormItem>
                       )}
                     />
@@ -1769,7 +1853,7 @@ export default function SubmitUseCase() {
                             A comprehensive summary of your implementation and its business impact
                           </FormDescription>
                           <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/500 characters</div>
-                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                          <FormMessage className="text-red-500 text-sm mt-1" />
                         </FormItem>
                       )}
                     />
@@ -1803,7 +1887,7 @@ export default function SubmitUseCase() {
                             Explain the industry pressures and market conditions driving the need for this solution
                           </FormDescription>
                           <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/500 characters</div>
-                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                          <FormMessage className="text-red-500 text-sm mt-1" />
                         </FormItem>
                       )}
                     />
@@ -1853,7 +1937,7 @@ export default function SubmitUseCase() {
                       </div>
                       {/* Show validation error for specific problems */}
                       {form.formState.errors.specificProblems && (
-                        <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                        <div className="text-red-500 text-sm mt-1">
                           {form.formState.errors.specificProblems.message || "Please add at least 2 problems (minimum 10 characters each)"}
                         </div>
                       )}
@@ -1875,7 +1959,7 @@ export default function SubmitUseCase() {
                             Quantify the financial impact of the problems (losses, inefficiencies, opportunity costs)
                           </FormDescription>
                           <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/5 characters</div>
-                          <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                          <FormMessage className="text-red-500 text-sm mt-1" />
                         </FormItem>
                       )}
                     />
@@ -1939,7 +2023,7 @@ export default function SubmitUseCase() {
                         </div>
                         {/* Show validation error for selection criteria */}
                         {form.formState.errors.selectionCriteria && (
-                          <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                          <div className="text-red-500 text-sm mt-1">
                             {form.formState.errors.selectionCriteria.message || "Please add at least 2 selection criteria (minimum 10 characters each)"}
                           </div>
                         )}
@@ -1961,7 +2045,7 @@ export default function SubmitUseCase() {
                               Name of the technology vendor or implementation partner
                             </FormDescription>
                             <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/2 characters</div>
-                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                            <FormMessage className="text-red-500 text-sm mt-1" />
                           </FormItem>
                         )}
                       />
@@ -2045,7 +2129,7 @@ export default function SubmitUseCase() {
                         </div>
                         {/* Show validation error for technology components */}
                         {form.formState.errors.technologyComponents && (
-                          <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                          <div className="text-red-500 text-sm mt-1">
                             {form.formState.errors.technologyComponents.message || "Please add at least 1 technology component (minimum 20 characters)"}
                           </div>
                         )}
@@ -2071,7 +2155,7 @@ export default function SubmitUseCase() {
                               <Input placeholder="e.g., 6 months implementation" {...field} />
                             </FormControl>
                             <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/3 characters</div>
-                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                            <FormMessage className="text-red-500 text-sm mt-1" />
                           </FormItem>
                         )}
                       />
@@ -2089,7 +2173,7 @@ export default function SubmitUseCase() {
                               Total project budget (amount only, currency symbol will be added automatically)
                             </FormDescription>
                             <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/3 characters</div>
-                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                            <FormMessage className="text-red-500 text-sm mt-1" />
                           </FormItem>
                         )}
                       />
@@ -2111,7 +2195,7 @@ export default function SubmitUseCase() {
                               Describe the project management approach and methodology used
                             </FormDescription>
                             <div className="text-xs text-gray-500 mt-1">{field.value?.length || 0}/20 characters</div>
-                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                            <FormMessage className="text-red-500 text-sm mt-1" />
                           </FormItem>
                         )}
                       />
@@ -2470,7 +2554,7 @@ export default function SubmitUseCase() {
                         </div>
                         {/* Show validation error for quantitative results */}
                         {form.formState.errors.quantitativeResults && (
-                          <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                          <div className="text-red-500 text-sm mt-1">
                             {form.formState.errors.quantitativeResults.message || 
                              "Please add at least 2 quantitative results with all fields filled"}
                           </div>
@@ -2487,7 +2571,7 @@ export default function SubmitUseCase() {
                               <FormControl>
                                 <Input placeholder="e.g., 250% ROI in first year" {...field} />
                               </FormControl>
-                              <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                              <FormMessage className="text-red-500 text-sm mt-1" />
                             </FormItem>
                           )}
                         />
@@ -2504,7 +2588,7 @@ export default function SubmitUseCase() {
                               <FormDescription>
                                 Annual cost savings amount (number only)
                               </FormDescription>
-                              <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                              <FormMessage className="text-red-500 text-sm mt-1" />
                             </FormItem>
                           )}
                         />
@@ -2661,7 +2745,7 @@ export default function SubmitUseCase() {
                       </div>
                       {/* Show validation error for challenges & solutions */}
                       {form.formState.errors.challengesSolutions && (
-                        <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                        <div className="text-red-500 text-sm mt-1">
                           {form.formState.errors.challengesSolutions.message || "Please add at least 1 challenge with all fields filled"}
                         </div>
                       )}
@@ -2895,7 +2979,7 @@ export default function SubmitUseCase() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                            <FormMessage className="text-red-500 text-sm mt-1" />
                           </FormItem>
                         )}}
                       />
@@ -3051,7 +3135,7 @@ export default function SubmitUseCase() {
                     </p>
                     {/* Show validation error for images */}
                     {form.formState.errors.images && (
-                      <div className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2">
+                      <div className="text-red-500 text-sm mt-1">
                         {form.formState.errors.images.message || "Please upload at least 1 image"}
                       </div>
                     )}
@@ -3074,7 +3158,7 @@ export default function SubmitUseCase() {
                             <FormControl>
                               <Input placeholder="e.g., Ahmed Al-Faisal" {...field} />
                             </FormControl>
-                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                            <FormMessage className="text-red-500 text-sm mt-1" />
                           </FormItem>
                         )}
                       />
@@ -3088,7 +3172,7 @@ export default function SubmitUseCase() {
                             <FormControl>
                               <Input placeholder="e.g., Operations Manager" {...field} />
                             </FormControl>
-                            <FormMessage className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500 mt-2" />
+                            <FormMessage className="text-red-500 text-sm mt-1" />
                           </FormItem>
                         )}
                       />
@@ -3306,6 +3390,13 @@ export default function SubmitUseCase() {
                     Start New Use Case
                   </Button>
 
+                  {/* Submit validation error */}
+                  {submitError && (
+                    <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-2">
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">⚠️</span>
+                      <div className="whitespace-pre-line">{submitError}</div>
+                    </div>
+                  )}
                   {currentStep < 7 ? (
                     <Button
                       type="button"

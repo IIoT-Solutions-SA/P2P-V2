@@ -123,6 +123,9 @@ export default function Forum() {
   const [editCategory, setEditCategory] = useState("")
   const [editAttachments, setEditAttachments] = useState<File[]>([])
   const [existingAttachments, setExistingAttachments] = useState<Array<{url: string, filename: string, type: string, size?: number}>>([])
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editTitleError, setEditTitleError] = useState<string | null>(null)
+  const [editContentError, setEditContentError] = useState<string | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [postToDelete, setPostToDelete] = useState<ForumPost | null>(null)
 
@@ -210,11 +213,49 @@ export default function Forum() {
     setEditCategory(post.category)
     setExistingAttachments(post.attachments || [])
     setEditAttachments([])
+    setEditError(null)
+    setEditTitleError(null)
+    setEditContentError(null)
     setOpenDropdown(null)
   }
 
+  const DANGEROUS_RE = [
+    /<\s*script/i,
+    /javascript\s*:/i,
+    /on(error|load|click|mouseover|keydown|submit|focus|blur|change)\s*=/i,
+    /\.\.\//, /\/etc\/passwd/, /oastify\.com/i, /<!--#\w+/i, /[\x00]/
+  ]
+  const hasDanger = (val: string) => DANGEROUS_RE.some(re => re.test(val))
+
   const handleSaveEdit = async () => {
     if (!editingPost) return
+    setEditError(null)
+    setEditTitleError(null)
+    setEditContentError(null)
+
+    // Client-side validation
+    let hasFieldError = false
+    if (!editTitle.trim()) {
+      setEditTitleError('Title is required')
+      hasFieldError = true
+    } else if (hasDanger(editTitle)) {
+      setEditTitleError('Input contains disallowed characters or patterns (e.g. script tags)')
+      hasFieldError = true
+    } else if (editTitle.trim().length < 8) {
+      setEditTitleError(`Title should have at least 8 characters (${editTitle.trim().length}/8)`)
+      hasFieldError = true
+    }
+    if (!editContent.trim()) {
+      setEditContentError('Content is required')
+      hasFieldError = true
+    } else if (hasDanger(editContent)) {
+      setEditContentError('Input contains disallowed characters or patterns (e.g. script tags)')
+      hasFieldError = true
+    } else if (editContent.trim().length < 20) {
+      setEditContentError(`Content should have at least 20 characters (${editContent.trim().length}/20)`)
+      hasFieldError = true
+    }
+    if (hasFieldError) return
 
     try {
       // First update the post content
@@ -277,6 +318,7 @@ export default function Forum() {
         setEditCategory('')
         setEditAttachments([])
         setExistingAttachments([])
+        setEditError(null)
         
         // Show success message
         const successMessage = document.createElement('div')
@@ -299,7 +341,26 @@ export default function Forum() {
         document.body.appendChild(successMessage)
         setTimeout(() => successMessage.remove(), 3000)
       } else {
-        alert('❌ Failed to update post. Please try again.')
+        // Map 422 per-field errors to the correct field
+        try {
+          const data = await response.json()
+          if (Array.isArray(data?.detail)) {
+            data.detail.forEach((e: any) => {
+              const loc: string[] = e.loc ?? []
+              const raw = e.msg?.replace('Value error, ', '') ?? 'Invalid value'
+              const msg = raw
+                .replace(/String should have at least (\d+)/i, 'Should have at least $1')
+                .replace(/String should have at most (\d+)/i, 'Should have at most $1')
+              if (loc.includes('title')) setEditTitleError(msg)
+              else if (loc.includes('content')) setEditContentError(msg)
+              else setEditError(msg)
+            })
+            return
+          }
+          setEditError(data?.message || data?.detail || `Request failed (${response.status})`)
+        } catch {
+          setEditError(`Request failed (${response.status})`)
+        }
       }
     } catch (error) {
       console.error('Error updating post:', error)
@@ -956,19 +1017,33 @@ export default function Forum() {
                       <input
                         type="text"
                         value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
+                        onChange={(e) => { setEditTitle(e.target.value); setEditTitleError(null) }}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 transition-all bg-white shadow-sm ${
+                          editTitleError ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
                         placeholder="Enter a clear, descriptive title..."
                       />
+                      {editTitleError && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {editTitleError}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Content</label>
                       <Textarea
                         value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="min-h-[120px] border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
+                        onChange={(e) => { setEditContent(e.target.value); setEditContentError(null) }}
+                        className={`min-h-[120px] border-2 rounded-xl focus:ring-2 transition-all bg-white shadow-sm ${
+                          editContentError ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500'
+                        }`}
                         placeholder="Share your thoughts, questions, or insights..."
                       />
+                      {editContentError && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {editContentError}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
@@ -1019,6 +1094,12 @@ export default function Forum() {
                         allowMultiple={true}
                       />
                     </div>
+                    {/* General error (not field-specific) */}
+                    {editError && (
+                      <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500">
+                        {editError}
+                      </p>
+                    )}
                     <div className="flex gap-3 pt-2">
                       <Button 
                         onClick={handleSaveEdit} 

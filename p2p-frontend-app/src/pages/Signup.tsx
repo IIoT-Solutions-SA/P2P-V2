@@ -8,12 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { 
-  Factory, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
+import {
+  Factory,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
   Loader2,
   AlertCircle,
   ArrowRight,
@@ -25,7 +25,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import type { SignupData } from '@/types/auth'
 import { ProfilePictureEditor } from '@/components/ui/ProfilePictureEditor'
-import { buildApiUrl } from '@/config/environment'
 
 export default function Signup() {
   const navigate = useNavigate()
@@ -36,7 +35,7 @@ export default function Signup() {
   const [error, setError] = useState('')
   const [emailError, setEmailError] = useState('')
   const [profilePicture, setProfilePicture] = useState<File | null>(null)
-  
+
   const [formData, setFormData] = useState<SignupData>({
     firstName: '',
     lastName: '',
@@ -72,7 +71,7 @@ export default function Signup() {
   ]
 
   const saudiCities = [
-    'Riyadh', 'Jeddah', 'Dammam', 'Mecca', 'Medina', 'Khobar', 'Tabuk', 
+    'Riyadh', 'Jeddah', 'Dammam', 'Mecca', 'Medina', 'Khobar', 'Tabuk',
     'Buraidah', 'Khamis Mushait', 'Hail', 'Jubail', 'Abha', 'Yanbu', 'Other'
   ]
 
@@ -125,12 +124,11 @@ export default function Signup() {
     setIsLoading(true)
 
     try {
-      // Step 1: Create account
       const signupResponse = await signup(formData)
 
-      // Check if email verification is required (admin signup)
-      if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresEmailVerification) {
-        // Store profile picture in localStorage for upload after email verification
+      // Admin signup — OTP verification required
+      if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresOTPVerification) {
+        // Store profile picture in localStorage for upload after login
         if (profilePicture) {
           const reader = new FileReader()
           reader.onload = () => {
@@ -139,29 +137,10 @@ export default function Signup() {
           }
           reader.readAsDataURL(profilePicture)
         }
-        // Redirect to verification pending page
-        navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)
+        // Redirect to OTP verification page
+        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}`)
       } else {
-        // Invited member - no verification needed, upload profile picture now
-        if (profilePicture && signupResponse) {
-          try {
-            const formData = new FormData()
-            formData.append('file', profilePicture)
-
-            const response = await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
-              method: 'POST',
-              body: formData,
-              credentials: 'include'
-            })
-
-            if (!response.ok) {
-              console.warn('Profile picture upload failed, but account was created')
-            }
-          } catch (uploadError) {
-            console.warn('Profile picture upload failed:', uploadError)
-          }
-        }
-        // Go to dashboard
+        // This path should not be reached for admin; member signup goes to dashboard via AuthContext
         navigate('/dashboard')
       }
     } catch (error) {
@@ -199,7 +178,7 @@ export default function Signup() {
         return
       }
     }
-    
+
     setError('')
     if (currentStep < 3) setCurrentStep(currentStep + 1)
   }
@@ -218,24 +197,23 @@ export default function Signup() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="flex items-center justify-center min-h-screen p-6">
         <div className="w-full max-w-2xl mx-auto">
-          
+
           {/* Progress Steps */}
           <div className="flex items-center justify-center space-x-8 mb-12">
             {steps.map((step, index) => {
               const IconComponent = step.icon
               const isActive = currentStep === step.number
               const isCompleted = currentStep > step.number
-              
+
               return (
                 <div key={step.number} className="flex items-center">
                   <div className={`flex items-center space-x-3 ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                      isActive 
-                        ? 'border-blue-600 bg-blue-50' 
-                        : isCompleted 
-                        ? 'border-green-600 bg-green-50' 
-                        : 'border-slate-300 bg-white'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isActive
+                        ? 'border-blue-600 bg-blue-50'
+                        : isCompleted
+                          ? 'border-green-600 bg-green-50'
+                          : 'border-slate-300 bg-white'
+                      }`}>
                       <IconComponent className="h-5 w-5" />
                     </div>
                     <div className="hidden sm:block">
@@ -243,9 +221,8 @@ export default function Signup() {
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`hidden sm:block w-16 h-0.5 mx-4 ${
-                      currentStep > step.number ? 'bg-green-600' : 'bg-slate-300'
-                    }`} />
+                    <div className={`hidden sm:block w-16 h-0.5 mx-4 ${currentStep > step.number ? 'bg-green-600' : 'bg-slate-300'
+                      }`} />
                   )}
                 </div>
               )
@@ -261,7 +238,7 @@ export default function Signup() {
             )}
 
             <form onSubmit={handleSubmit}>
-              
+
               {/* Step 1: Personal Information */}
               {currentStep === 1 && (
                 <div className="space-y-6">
@@ -405,8 +382,8 @@ export default function Signup() {
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Industry
                     </label>
-                    <Select 
-                      value={formData.industry} 
+                    <Select
+                      value={formData.industry}
                       onValueChange={(value) => handleInputChange('industry', value)}
                     >
                       <SelectTrigger className="h-11">
@@ -426,8 +403,8 @@ export default function Signup() {
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Organization Size
                     </label>
-                    <Select 
-                      value={formData.organizationSize} 
+                    <Select
+                      value={formData.organizationSize}
                       onValueChange={(value) => handleInputChange('organizationSize', value)}
                     >
                       <SelectTrigger className="h-11">
@@ -461,8 +438,8 @@ export default function Signup() {
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         City
                       </label>
-                      <Select 
-                        value={formData.city} 
+                      <Select
+                        value={formData.city}
                         onValueChange={(value) => handleInputChange('city', value)}
                       >
                         <SelectTrigger className="h-11">
@@ -508,15 +485,15 @@ export default function Signup() {
                       <ul className="text-sm text-blue-700 space-y-2">
                         <li className="flex items-center space-x-2">
                           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span>Your organization will be created with you as the admin</span>
+                          <span>A 6-digit code will be sent to your email</span>
+                        </li>
+                        <li className="flex items-center space-x-2">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                          <span>Enter the code to verify your account</span>
                         </li>
                         <li className="flex items-center space-x-2">
                           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                           <span>You can invite team members to join your organization</span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span>Start sharing and collaborating on use cases</span>
                         </li>
                         <li className="flex items-center space-x-2">
                           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>

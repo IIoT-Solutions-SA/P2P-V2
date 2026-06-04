@@ -19,46 +19,73 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || '/dashboard'
+  const successMessage = location.state?.message || ''
   const { login, refreshProfile } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailError, setEmailError] = useState('')
+
+  const isBlockedDomain = (value: string) => {
+    const blockedDomains = [
+      'gmail.com',
+      'yahoo.com',
+      'hotmail.com',
+      'outlook.com',
+      'protonmail.com',
+      'icloud.com',
+      'live.com',
+      'msn.com'
+    ]
+    const domain = value.split('@')[1]?.toLowerCase() || ''
+    return blockedDomains.includes(domain)
+  }
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+    if (value && isBlockedDomain(value)) {
+      setEmailError('Personal email addresses are not allowed.')
+    } else {
+      setEmailError('')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (emailError) return
     setError('')
     setIsLoading(true)
 
     try {
-      await login({ email, password })
+      const result = await login({ email, password })
 
-      // Check for pending profile picture upload
+      // New device — MFA required
+      if (result && result.mfaRequired) {
+        navigate(`/verify-otp?purpose=login_mfa&email=${encodeURIComponent(result.email)}`, {
+          state: { challengeId: result.challengeId }
+        })
+        return
+      }
+
+      // Trusted device — session created, upload pending profile picture if any
       const pendingPicture = localStorage.getItem('pendingProfilePicture')
       const pendingPictureType = localStorage.getItem('pendingProfilePictureType')
 
       if (pendingPicture && pendingPictureType) {
         try {
-          // Convert base64 back to File
           const response = await fetch(pendingPicture)
           const blob = await response.blob()
           const file = new File([blob], 'profile-picture', { type: pendingPictureType })
-
-          // Upload profile picture
           const formData = new FormData()
           formData.append('file', file)
-
           await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
             method: 'POST',
             body: formData,
             credentials: 'include'
           })
-
-          // Refresh profile to get the new picture
           await refreshProfile()
-
-          // Clear localStorage
           localStorage.removeItem('pendingProfilePicture')
           localStorage.removeItem('pendingProfilePictureType')
         } catch (uploadError) {
@@ -70,16 +97,15 @@ export default function Login() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed'
 
-      // Check if it's an email verification error
       if (errorMessage.includes('verify your email') || errorMessage.includes('EMAIL_NOT_VERIFIED')) {
         setError(
           <div className="flex flex-col space-y-2">
             <p>Please verify your email before logging in.</p>
             <button
-              onClick={() => navigate(`/verify-email?email=${encodeURIComponent(email)}`)}
+              onClick={() => navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(email)}`)}
               className="text-blue-600 hover:text-blue-700 font-medium underline text-sm"
             >
-              Resend verification email
+              Enter verification code
             </button>
           </div> as any
         )
@@ -107,6 +133,12 @@ export default function Login() {
                   <p className="text-slate-600">Access your factory optimization platform</p>
                 </div>
 
+                {/* Success message (e.g. after email verification) */}
+                {successMessage && (
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3">
+                    <span className="text-green-700 text-sm">{successMessage}</span>
+                  </div>
+                )}
                 {error && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
                     <AlertCircle className="h-5 w-5 text-red-600" />
@@ -125,11 +157,14 @@ export default function Login() {
                         type="email"
                         placeholder="your.email@company.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        className={`pl-10 ${emailError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         required
                       />
                     </div>
+                    {emailError && (
+                      <p className="text-sm text-red-600 mt-2">{emailError}</p>
+                    )}
                   </div>
 
                   <div>

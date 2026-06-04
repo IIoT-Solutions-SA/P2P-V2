@@ -41,8 +41,14 @@ class Settings(BaseSettings):
 
     # Email verification behavior
     EMAIL_VERIFICATION_SEND: bool = False
-    DEV_EMAIL_VERIFICATION_ENDPOINT: bool = True
+    DEV_EMAIL_VERIFICATION_ENDPOINT: bool = True  # Kept for backward compatibility with existing .env files
     DEV_SEND_EMAILS: bool = False
+
+    # OTP / MFA settings
+    OTP_EXPIRY_MINUTES: int = 7          # Code expires after N minutes
+    OTP_MAX_ATTEMPTS: int = 5            # Lock code after N wrong attempts
+    OTP_RESEND_COOLDOWN_SECONDS: int = 60  # Min seconds between resend requests
+    TRUSTED_DEVICE_DAYS: int = 7         # Trusted-device cookie lifetime (days)
 
     # Email domain restrictions
     BLOCKED_EMAIL_DOMAINS: List[str] = Field(default=[

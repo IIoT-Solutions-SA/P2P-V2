@@ -25,76 +25,125 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.database_service import UserService
 from app.services.user_activity_service import UserActivityService
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+from typing import Annotated
+from app.core.input_validation import check_safe_text, check_safe_tag, ALLOWED_USECASE_CATEGORIES, ALLOWED_USECASE_CATEGORIES_STR
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 class QuantitativeResultUpdate(BaseModel):
-    metric: Optional[str] = None
-    baseline: Optional[str] = None
-    current: Optional[str] = None
-    improvement: Optional[str] = None
+    metric: Optional[Annotated[str, Field(min_length=5, max_length=200)]] = None
+    baseline: Optional[Annotated[str, Field(min_length=1, max_length=200)]] = None
+    current: Optional[Annotated[str, Field(min_length=1, max_length=200)]] = None
+    improvement: Optional[Annotated[str, Field(min_length=2, max_length=200)]] = None
+
+    @field_validator('metric', 'baseline', 'current', 'improvement')
+    @classmethod
+    def validate_safe_text(cls, v):
+        return check_safe_text(v) if v is not None else v
 
 class ChallengeSolutionUpdate(BaseModel):
-    challenge: Optional[str] = None
-    description: Optional[str] = None
-    solution: Optional[str] = None
-    outcome: Optional[str] = None
+    challenge: Optional[Annotated[str, Field(min_length=10, max_length=300)]] = None
+    description: Optional[Annotated[str, Field(min_length=20, max_length=1000)]] = None
+    solution: Optional[Annotated[str, Field(min_length=20, max_length=1000)]] = None
+    outcome: Optional[Annotated[str, Field(min_length=10, max_length=500)]] = None
+
+    @field_validator('challenge', 'description', 'solution', 'outcome')
+    @classmethod
+    def validate_safe_text(cls, v):
+        return check_safe_text(v) if v is not None else v
 
 class UseCaseUpdate(BaseModel):
     # Basic Information
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
-    description: Optional[str] = None  # Executive summary
+    title: Optional[Annotated[str, Field(min_length=10, max_length=100)]] = None
+    subtitle: Optional[Annotated[str, Field(min_length=10, max_length=150)]] = None
+    description: Optional[Annotated[str, Field(min_length=50, max_length=5000)]] = None  # Executive summary
     category: Optional[str] = None
-    factoryName: Optional[str] = None
+    factoryName: Optional[Annotated[str, Field(min_length=2, max_length=80)]] = None
 
     # Location
-    city: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    city: Optional[Annotated[str, Field(min_length=2, max_length=50)]] = None
+    latitude: Optional[Annotated[float, Field(ge=-90, le=90)]] = None
+    longitude: Optional[Annotated[float, Field(ge=-180, le=180)]] = None
 
     # Business Challenge
-    industryContext: Optional[str] = None
-    specificProblems: Optional[List[str]] = None
-    financialLoss: Optional[str] = None
+    industryContext: Optional[Annotated[str, Field(min_length=50, max_length=5000)]] = None
+    specificProblems: Optional[Annotated[List[Annotated[str, Field(min_length=10, max_length=500)]], Field(min_length=2, max_length=5)]] = None
+    financialLoss: Optional[Annotated[str, Field(min_length=5, max_length=500)]] = None
 
     # Solution Overview
-    selectionCriteria: Optional[List[str]] = None
-    selectedVendor: Optional[str] = None
-    technologyComponents: Optional[List[str]] = None
+    selectionCriteria: Optional[Annotated[List[Annotated[str, Field(min_length=10, max_length=500)]], Field(min_length=2, max_length=5)]] = None
+    selectedVendor: Optional[Annotated[str, Field(min_length=2, max_length=120)]] = None
+    technologyComponents: Optional[Annotated[List[Annotated[str, Field(min_length=20, max_length=500)]], Field(min_length=1, max_length=15)]] = None
 
     # Implementation
-    implementationTime: Optional[str] = None
-    totalBudget: Optional[str] = None
-    methodology: Optional[str] = None
+    implementationTime: Optional[Annotated[str, Field(min_length=3, max_length=120)]] = None
+    totalBudget: Optional[Annotated[str, Field(min_length=3, max_length=120)]] = None
+    methodology: Optional[Annotated[str, Field(min_length=20, max_length=5000)]] = None
 
     # Results
-    quantitativeResults: Optional[List[QuantitativeResultUpdate]] = None
-    roiPercentage: Optional[str] = None
-    annualSavings: Optional[str] = None
+    quantitativeResults: Optional[Annotated[List[QuantitativeResultUpdate], Field(min_length=2, max_length=4)]] = None
+    roiPercentage: Optional[Annotated[str, Field(max_length=100)]] = None
+    annualSavings: Optional[Annotated[str, Field(max_length=100)]] = None
 
     # Challenges & Solutions
-    challengesSolutions: Optional[List[ChallengeSolutionUpdate]] = None
+    challengesSolutions: Optional[Annotated[List[ChallengeSolutionUpdate], Field(min_length=1, max_length=4)]] = None
 
     # Contact & Media
-    contactPerson: Optional[str] = None
-    contactTitle: Optional[str] = None
-    images: Optional[List[str]] = None
+    contactPerson: Optional[Annotated[str, Field(max_length=120)]] = None
+    contactTitle: Optional[Annotated[str, Field(max_length=120)]] = None
+    images: Optional[Annotated[List[str], Field(max_length=5)]] = None
 
     # Additional optional fields
-    industryTags: Optional[List[str]] = None
-    technologyTags: Optional[List[str]] = None
-    vendorProcess: Optional[str] = None
-    vendorSelectionReasons: Optional[List[str]] = None
+    industryTags: Optional[Annotated[List[str], Field(max_length=10)]] = None
+    technologyTags: Optional[Annotated[List[str], Field(max_length=10)]] = None
+    vendorProcess: Optional[Annotated[str, Field(max_length=2000)]] = None
+    vendorSelectionReasons: Optional[List[Annotated[str, Field(max_length=500)]]] = None
     projectTeamInternal: Optional[List[dict]] = None
     projectTeamVendor: Optional[List[dict]] = None
     phases: Optional[List[dict]] = None
-    qualitativeImpacts: Optional[List[str]] = None
-    roiTotalInvestment: Optional[str] = None
-    roiThreeYearRoi: Optional[str] = None
+    qualitativeImpacts: Optional[List[Annotated[str, Field(max_length=500)]]] = None
+    roiTotalInvestment: Optional[Annotated[str, Field(max_length=100)]] = None
+    roiThreeYearRoi: Optional[Annotated[str, Field(max_length=100)]] = None
+
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, v):
+        if v is not None and v not in ALLOWED_USECASE_CATEGORIES:
+            raise ValueError(f"Please select a valid category from: {ALLOWED_USECASE_CATEGORIES_STR}")
+        return v
+
+    @field_validator(
+        'title', 'subtitle', 'description', 'factoryName', 'city', 
+        'industryContext', 'financialLoss', 'selectedVendor',
+        'implementationTime', 'totalBudget', 'methodology',
+        'roiPercentage', 'annualSavings', 'contactPerson', 'contactTitle',
+        'vendorProcess', 'roiTotalInvestment', 'roiThreeYearRoi'
+    )
+    @classmethod
+    def validate_safe_strings(cls, v):
+        return check_safe_text(v) if v is not None else v
+
+    @field_validator(
+        'specificProblems', 'selectionCriteria', 'technologyComponents',
+        'vendorSelectionReasons', 'qualitativeImpacts'
+    )
+    @classmethod
+    def validate_safe_string_lists(cls, v):
+        if v is not None:
+            for item in v:
+                check_safe_text(item)
+        return v
+
+    @field_validator('industryTags', 'technologyTags')
+    @classmethod
+    def validate_safe_tags(cls, v):
+        if v is not None:
+            for item in v:
+                check_safe_tag(item)
+        return v
 
 # Get use case by ID for editing
 @router.get("/by-id/{use_case_id}")

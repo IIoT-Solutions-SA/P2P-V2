@@ -105,30 +105,29 @@ export default function MemberSignup() {
     setIsLoading(true)
 
     try {
-      // Use real organization data from the inviter
       const signupPayload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
         title: formData.title || 'Team Member',
-        // Use actual organization data from inviter
         organizationName: invitationData?.organization_name || 'Organization',
         industry: invitationData?.industry || 'Manufacturing',
         organizationSize: invitationData?.organization_size || 'medium',
         city: invitationData?.city || 'Riyadh',
         country: invitationData?.country || 'Saudi Arabia',
-        // Add invitation token
         inviteToken,
         role: 'member',
         isInvited: true
       }
-      
-      await signup(signupPayload as any)
-      
-      // Invitation is marked as used in the backend during signup
-      
-      navigate('/dashboard')
+
+      const signupResponse = await signup(signupPayload as any)
+
+      if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresOTPVerification) {
+        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}`)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Signup failed')
     } finally {

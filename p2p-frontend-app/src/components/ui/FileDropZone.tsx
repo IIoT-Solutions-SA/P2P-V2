@@ -1,5 +1,5 @@
 import React, { useState, type DragEvent } from 'react';
-import { Upload, File, AlertCircle, X } from 'lucide-react';
+import { Upload, File, X } from 'lucide-react';
 
 interface SelectedFile {
   file: File;
@@ -210,7 +210,13 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
           {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
         </p>
         <p className="text-xs text-gray-500">
-          {acceptedTypes.map(type => type.split('/')[1].toUpperCase()).join(', ')} •
+          {acceptedTypes
+            .map(type => {
+              if (type.endsWith('/*')) return type.split('/')[0].toUpperCase()
+              const ext = type.split('/')[1]
+              return ext === '*' ? type.split('/')[0].toUpperCase() : ext.toUpperCase()
+            })
+            .join(', ')} •
           Max {maxSize / (1024 * 1024)}MB •
           {allowMultiple ? `Up to ${maxFiles} files` : '1 file'}
         </p>
@@ -218,8 +224,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
 
       {/* Error display */}
       {error && (
-        <div className="mt-4 flex items-center text-sm text-red-600">
-          <AlertCircle className="h-4 w-4 mr-2" />
+        <div className="mt-4 text-sm text-red-500">
           {error}
         </div>
       )}

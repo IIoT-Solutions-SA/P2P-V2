@@ -14,6 +14,8 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.config import settings
+from app.core.email_domains import get_email_domain, is_blocked_domain
 from app.services.database_service import UserService
 from app.models.mongo_models import Organization, User as MongoUser
 from app.models.pg_models import User as PGUser
@@ -208,50 +210,94 @@ async def update_email(
     """
     Update user's email address.
     Requires current password for verification.
+    Blocks personal email domains and enforces organization domain matching.
+    SuperTokens, PostgreSQL, and MongoDB are only updated after all validation passes.
     """
     try:
-        # Get current user
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # ── Step 1: Look up current user ─────────────────────────────────────
         supertokens_user_id = session.get_user_id()
         user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
-        # Verify current password
+
+        new_email = email_data.newEmail.strip().lower()
+
+        # ── Step 2: Block personal / free email domains ──────────────────────
+        new_domain = get_email_domain(new_email)
+        if not new_domain:
+            raise HTTPException(status_code=400, detail="Invalid email address")
+
+        if is_blocked_domain(new_domain, settings.BLOCKED_EMAIL_DOMAINS):
+            raise HTTPException(
+                status_code=403,
+                detail="Personal email addresses are not allowed. Please use your company email."
+            )
+
+        # ── Step 3: Enforce organization domain matching ─────────────────────
+        current_domain = get_email_domain(user.email)
+        mongo_profile = await MongoUser.find_one(MongoUser.email == user.email)
+
+        # Determine the required domain from the organization, or fall back to current email domain
+        required_domain = None
+        if mongo_profile and mongo_profile.organization_id:
+            org = await Organization.find_one(Organization.id == mongo_profile.organization_id)
+            if org and org.domain:
+                required_domain = org.domain.strip().lower()
+
+        # If no org domain found, use the current email domain as the required domain
+        if not required_domain:
+            required_domain = current_domain
+
+        if required_domain and new_domain != required_domain:
+            raise HTTPException(
+                status_code=403,
+                detail=f"New email must match your organization domain (@{required_domain})."
+            )
+
+        # ── Step 4: Verify current password ──────────────────────────────────
         sign_in_result = await sign_in("public", user.email, email_data.password)
         if not isinstance(sign_in_result, SignInOkResult):
-            raise HTTPException(status_code=401, detail="Invalid password")
-        
-        # Store old email before updating
+            raise HTTPException(status_code=400, detail="Invalid password")
+
+        # ── Step 5: All validation passed — update all three stores ──────────
         old_email = user.email
-        
-        # Get the recipe_user_id from the sign in result for the update
         recipe_user_id = sign_in_result.user.id
-        
-        # Update email in SuperTokens
+
+        # 5a. Update email in SuperTokens
         update_result = await update_email_or_password(
             recipe_user_id=RecipeUserId(recipe_user_id),
-            email=email_data.newEmail
+            email=new_email
         )
-        
-        # Check if update was successful
+
         if isinstance(update_result, EmailAlreadyExistsError):
             raise HTTPException(status_code=400, detail="Email already exists")
         elif not isinstance(update_result, UpdateEmailOrPasswordOkResult):
             raise HTTPException(status_code=400, detail="Failed to update email")
-        
-        # Update email in PostgreSQL
-        user.email = email_data.newEmail
+
+        # 5b. Update email in PostgreSQL
+        user.email = new_email
         await db.commit()
-        
-        # Update email in MongoDB using the OLD email to find the profile
-        mongo_profile = await MongoUser.find_one(MongoUser.email == old_email)
+
+        # 5c. Update email in MongoDB using the OLD email to find the profile
         if mongo_profile:
-            mongo_profile.email = email_data.newEmail
+            mongo_profile.email = new_email
+            mongo_profile.updated_at = datetime.utcnow()
             await mongo_profile.save()
-        
+        else:
+            # Profile might not have been fetched if we skipped the org lookup path
+            mongo_fallback = await MongoUser.find_one(MongoUser.email == old_email)
+            if mongo_fallback:
+                mongo_fallback.email = new_email
+                mongo_fallback.updated_at = datetime.utcnow()
+                await mongo_fallback.save()
+
+        logger.info(f"Email updated from {old_email} to {new_email} for user {supertokens_user_id}")
         return {"status": "OK", "message": "Email updated successfully"}
-        
+
     except HTTPException:
         raise
     except Exception as e:

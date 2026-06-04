@@ -46,12 +46,13 @@ async def send_password_reset_email(
     # Localhost URL for terminal logs
     localhost_reset_url = f"http://localhost:5173/reset-password?token={token}&tenantId={tenant_id}"
 
-    # Log localhost URL to terminal
-    print(f"\n{'='*80}")
-    print(f"🔐 PASSWORD RESET EMAIL SENT TO: {email}")
-    print(f"🔗 Localhost reset link (for dev testing):")
-    print(f"   {localhost_reset_url}")
-    print(f"{'='*80}\n")
+    # Log localhost URL only in development. Do not print password reset tokens in production/staging logs.
+    if settings.ENVIRONMENT == "development":
+        print(f"\n{'='*80}")
+        print(f"🔐 PASSWORD RESET EMAIL SENT TO: {email}")
+        print(f"🔗 Localhost reset link (for dev testing):")
+        print(f"   {localhost_reset_url}")
+        print(f"{'='*80}\n")
 
     if settings.ENVIRONMENT != "production" and not settings.DEV_SEND_EMAILS:
         print("📭 Dev mode: email sending disabled (set DEV_SEND_EMAILS=true to enable)")

@@ -49,12 +49,13 @@ async def send_email_verification(
     # Localhost URL for terminal logs
     localhost_verify_url = f"http://localhost:5173/auth/verify-email?token={token}&tenantId={tenant_id}"
 
-    # Log localhost URL to terminal
-    print(f"\n{'='*80}")
-    print(f"📧 EMAIL VERIFICATION SENT TO: {email}")
-    print(f"🔗 Localhost verification link (for dev testing):")
-    print(f"   {localhost_verify_url}")
-    print(f"{'='*80}\n")
+    # Log localhost URL only in development. Do not print verification tokens in production/staging logs.
+    if settings.ENVIRONMENT == "development":
+        print(f"\n{'='*80}")
+        print(f"📧 EMAIL VERIFICATION SENT TO: {email}")
+        print(f"🔗 Localhost verification link (for dev testing):")
+        print(f"   {localhost_verify_url}")
+        print(f"{'='*80}\n")
 
     # HTML template matching invitation email style (uses production URL)
     html = f"""

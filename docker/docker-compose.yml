@@ -110,10 +110,15 @@ services:
       - SUPERTOKENS_CONNECTION_URI=http://supertokens:3567
       - BACKEND_CORS_ORIGINS=["http://145.241.154.18","http://p2p.iiotsolutions.sa","https://p2p.iiotsolutions.sa","https://peerlink.c4ir.sa"]
       - SECRET_KEY=your-secret-key-here-change-in-production
-      - DEBUG=true
-      - LOG_LEVEL=DEBUG
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
       - API_DOMAIN=https://p2p.iiotsolutions.sa
       - WEBSITE_DOMAIN=https://p2p.iiotsolutions.sa
+      - PRODUCTION_URL=https://p2p.iiotsolutions.sa
+      - EMAIL_VERIFICATION_SEND=true
+      - DEV_EMAIL_VERIFICATION_ENDPOINT=false
+      - DEV_SEND_EMAILS=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s

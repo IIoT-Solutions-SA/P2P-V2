@@ -1,5 +1,5 @@
 import React, { useState, type DragEvent } from 'react';
-import { Upload, File, AlertCircle, X } from 'lucide-react';
+import { Upload, File, X } from 'lucide-react';
 
 interface SelectedFile {
   file: File;

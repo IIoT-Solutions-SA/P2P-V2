@@ -1,8 +1,13 @@
 """
 Comprehensive backend validation test suite.
 Tests all security patterns, length constraints, list limits, and numeric bounds.
-Run with: python test_validation.py
+Run with: python -m tests.test_validation
 """
+import os
+import sys
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE)
+
 from app.schemas.usecase import (
     UseCaseCreate, UseCaseDraftCreate,
     QuantitativeResult, ChallengeSolution,

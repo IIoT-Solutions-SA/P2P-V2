@@ -206,26 +206,6 @@ export default function Forum() {
     }
   }
 
-  /** Parse a FastAPI 422 validation error body into a human-readable string */
-  const parseApiError = async (response: Response): Promise<string> => {
-    try {
-      const data = await response.json()
-      // FastAPI / Pydantic returns { detail: [ {loc, msg, type} ] } for 422
-      if (Array.isArray(data?.detail)) {
-        return data.detail
-          .map((e: any) => {
-            const field = e.loc?.filter((l: any) => l !== 'body').join(' → ') || 'field'
-            return `${field}: ${e.msg?.replace('Value error, ', '') ?? 'Invalid value'}`
-          })
-          .join('\n')
-      }
-      // Some endpoints return { message: '...' }
-      if (data?.message) return data.message
-      if (data?.detail && typeof data.detail === 'string') return data.detail
-    } catch {}
-    return `Request failed (${response.status})`
-  }
-
   const handleEditPost = (post: ForumPost) => {
     setEditingPost(post.id)
     setEditTitle(post.title)

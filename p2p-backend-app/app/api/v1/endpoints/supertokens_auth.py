@@ -185,12 +185,6 @@ async def post_signup(request: Request, response: Response, db: AsyncSession = D
                     logger.warning(f"Could not delete SuperTokens user: {delete_error}")
                 return JSONResponse(status_code=400, content={"status": "ERROR", "message": str(ve)})
 
-            # ── Mark invitation as used (if member path) ────────────────────────
-            if invite_token:
-                from app.services import invitation_service
-                await invitation_service.mark_invitation_used(invite_token)
-                logger.info(f"Marked invitation as used: {invite_token}")
-
             # ── Send OTP for email verification (Both Admin & Member) ─────────────
             try:
                 plain_code, challenge_id = await otp_service.create_otp(db, email, "signup_verify")
@@ -270,6 +264,7 @@ async def verify_signup_otp(request: Request, response: Response, db: AsyncSessi
                 })
 
         # Mark email as verified in SuperTokens
+        auto_login_success = False
         try:
             pg_user = await UserService.get_user_by_email_pg(db, email)
             if pg_user and pg_user.supertokens_id:
@@ -306,15 +301,33 @@ async def verify_signup_otp(request: Request, response: Response, db: AsyncSessi
                     max_age=settings.TRUSTED_DEVICE_DAYS * 24 * 3600,
                 )
 
+                auto_login_success = True
+
         except Exception as e:
             logger.error(f"Failed to mark email verified/auto-login in SuperTokens: {str(e)}", exc_info=True)
-            # OTP was valid — we still return success but they might have to login manually if auto-login failed
+
+        # Mark invitation as used after successful OTP verification
+        try:
+            from datetime import datetime
+            invitation = await Invitation.find_one(Invitation.email == email, Invitation.used == False)
+            if invitation:
+                invitation.used = True
+                invitation.used_at = datetime.utcnow()
+                await invitation.save()
+                logger.info(f"Marked invitation as used for: {email}")
+        except Exception as e:
+            logger.warning(f"Could not mark invitation for {email}: {e}")
 
         import json
         response.status_code = 200
         response.body = json.dumps({
             "status": "OK",
-            "message": "Email verified successfully! You are now signed in."
+            "message": (
+                "Email verified successfully! You are now signed in."
+                if auto_login_success else
+                "Email verified successfully! Please sign in to continue."
+            ),
+            "requiresManualLogin": not auto_login_success,
         }).encode()
         response.headers["content-type"] = "application/json"
         return response

@@ -7,6 +7,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Build output
+dist/
+
 # IDE and OS files
 .vscode/
 .idea/

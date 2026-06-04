@@ -213,14 +213,15 @@ async def send_otp_email(
                 </div>
                 """
 
-    # ── Always log to terminal/Docker in a clearly visible banner ──────────
-    print(f"\n{'='*70}")
-    print(f"{subject_emoji} OTP CODE FOR: {email}")
-    print(f"   Purpose : {purpose_label}")
-    print(f"   Code    : {code}")
-    print(f"   Expires : {settings.OTP_EXPIRY_MINUTES} minutes")
-    print(f"{'='*70}\n")
-    logger.info(f"OTP generated for {email} (purpose={purpose}). Code logged above.")
+    # ── Log OTP to terminal in development mode only ────────────────────────
+    if settings.ENVIRONMENT == "development":
+        print(f"\n{'='*70}")
+        print(f"{subject_emoji} OTP CODE FOR: {email}")
+        print(f"   Purpose : {purpose_label}")
+        print(f"   Code    : {code}")
+        print(f"   Expires : {settings.OTP_EXPIRY_MINUTES} minutes")
+        print(f"{'='*70}\n")
+    logger.info(f"OTP generated for {email} (purpose={purpose})")
 
     # ── Skip actual email send in dev mode unless explicitly enabled ─────────
     if settings.ENVIRONMENT == "development" and not settings.DEV_SEND_EMAILS:

@@ -25,7 +25,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import type { SignupData } from '@/types/auth'
 import { ProfilePictureEditor } from '@/components/ui/ProfilePictureEditor'
-import { buildApiUrl } from '@/config/environment'
 
 export default function Signup() {
   const navigate = useNavigate()

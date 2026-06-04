@@ -23,7 +23,7 @@ export default function OtpVerification() {
 
   const purpose = searchParams.get('purpose') || 'login_mfa'
   const emailParam = searchParams.get('email') || ''
-  const challengeId: string = (location.state as any)?.challengeId || ''
+  const [challengeId, setChallengeId] = useState<string>((location.state as any)?.challengeId || '')
 
   // 6 individual digit state
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', ''])
@@ -126,9 +126,13 @@ export default function OtpVerification() {
         const data = await res.json()
 
         if (data.status === 'OK') {
-          await fetchProfile()
-          setSuccess(true)
-          setTimeout(() => navigate('/dashboard', { replace: true }), 800)
+          if (data.requiresManualLogin) {
+            navigate('/login', { replace: true, state: { message: 'Email verified! Please sign in to continue.' } })
+          } else {
+            await fetchProfile()
+            setSuccess(true)
+            setTimeout(() => navigate('/dashboard', { replace: true }), 800)
+          }
         } else if (data.status === 'INVALID_CODE') {
           setError(data.message)
           setAttemptsRemaining(data.attemptsRemaining ?? null)
@@ -175,6 +179,9 @@ export default function OtpVerification() {
         setAttemptsRemaining(null)
         setResendCooldown(60)
         focusInput(0)
+        if (data.challengeId) {
+          setChallengeId(data.challengeId)
+        }
       } else if (data.status === 'RATE_LIMITED') {
         setResendCooldown(data.retryAfterSeconds || 60)
         setError(`Please wait ${data.retryAfterSeconds}s before requesting a new code.`)

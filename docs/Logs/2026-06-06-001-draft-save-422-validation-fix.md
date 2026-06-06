@@ -1,6 +1,6 @@
 # Draft Save 422 Validation Fix
 
-**Date:** 2026-06-06 | **Branch:** `umair-backend`  
+**Date:** 2026-06-06 | **Branch:** `umair-backend`
 **Issue:** "Failed to save draft" 422 error on Save Draft click
 
 ## What & Why
@@ -21,4 +21,4 @@ Empty/partial drafts save successfully. Arrays with real content preserved. Acti
 
 ## Commit
 
-Pending — not yet committed.
+Implemented in PR #3 and merged into `hamza-backend`.

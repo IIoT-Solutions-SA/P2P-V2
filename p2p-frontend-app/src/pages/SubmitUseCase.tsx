@@ -502,7 +502,10 @@ export default function SubmitUseCase() {
   // Convert empty strings to null so Pydantic Optional fields with min_length don't reject them
   const mapFormDataToDraft = () => {
     const formValues = form.getValues()
-    const emptyToNull = (val: any) => (val === '' || val === undefined ? null : val)
+    const emptyToNull = (val: any) => {
+      if (typeof val === 'string') return val.trim() === '' ? null : val
+      return val ?? null
+    }
 
     // For arrays: return null if the array has no REAL content
     // (all-empty strings / all-empty objects would fail Pydantic min_length validators on items)

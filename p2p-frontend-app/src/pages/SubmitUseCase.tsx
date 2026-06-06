@@ -499,45 +499,61 @@ export default function SubmitUseCase() {
   // ===== DRAFT MAPPING FUNCTIONS (GROUP C) =====
 
   // Map form data to backend draft format (camelCase → backend format)
+  // Convert empty strings to null so Pydantic Optional fields with min_length don't reject them
   const mapFormDataToDraft = () => {
     const formValues = form.getValues()
+    const emptyToNull = (val: any) => (val === '' || val === undefined ? null : val)
+
+    // For arrays: return null if the array has no REAL content
+    // (all-empty strings / all-empty objects would fail Pydantic min_length validators on items)
+    const arrayWithContent = (arr: any[]): any[] | null => {
+      if (!Array.isArray(arr) || arr.length === 0) return null
+      // Check if ANY item has actual content
+      const hasContent = arr.some((item: any) => {
+        if (typeof item === 'string') return item.trim().length > 0
+        if (typeof item === 'object' && item !== null) return Object.values(item).some(v => typeof v === 'string' ? v.trim().length > 0 : v != null)
+        return item != null
+      })
+      return hasContent ? arr : null
+    }
+
     return {
       draftId: draftId || undefined, // Include draftId if updating existing draft
       currentStep,
-      title: formValues.title,
-      subtitle: formValues.subtitle,
-      description: formValues.description,
-      category: formValues.category,
-      factoryName: formValues.factoryName,
-      city: formValues.city,
-      latitude: formValues.latitude,
-      longitude: formValues.longitude,
-      industryContext: formValues.industryContext,
-      specificProblems,
-      financialLoss: formValues.financialLoss,
-      selectionCriteria,
-      selectedVendor: form.getValues('selectedVendor'),
-      technologyComponents,
-      implementationTime: formValues.implementationTime,
-      totalBudget: formValues.totalBudget,
-      methodology: formValues.methodology,
-      quantitativeResults,
-      roiPercentage: formValues.roiPercentage,
-      annualSavings: formValues.annualSavings,
-      challengesSolutions,
-      contactPerson: formValues.contactPerson,
-      contactTitle: formValues.contactTitle,
-      images: existingImages,
-      industryTags,
-      technologyTags,
-      vendorProcess,
-      vendorSelectionReasons,
-      projectTeamInternal,
-      projectTeamVendor,
-      phases,
-      qualitativeImpacts,
-      roiTotalInvestment,
-      roiThreeYearRoi
+      title: emptyToNull(formValues.title),
+      subtitle: emptyToNull(formValues.subtitle),
+      description: emptyToNull(formValues.description),
+      category: emptyToNull(formValues.category),
+      factoryName: emptyToNull(formValues.factoryName),
+      city: emptyToNull(formValues.city),
+      latitude: formValues.latitude ?? null,
+      longitude: formValues.longitude ?? null,
+      industryContext: emptyToNull(formValues.industryContext),
+      specificProblems: arrayWithContent(specificProblems),
+      financialLoss: emptyToNull(formValues.financialLoss),
+      selectionCriteria: arrayWithContent(selectionCriteria),
+      selectedVendor: emptyToNull(form.getValues('selectedVendor')),
+      technologyComponents: arrayWithContent(technologyComponents),
+      implementationTime: emptyToNull(formValues.implementationTime),
+      totalBudget: emptyToNull(formValues.totalBudget),
+      methodology: emptyToNull(formValues.methodology),
+      quantitativeResults: arrayWithContent(quantitativeResults),
+      roiPercentage: emptyToNull(formValues.roiPercentage),
+      annualSavings: emptyToNull(formValues.annualSavings),
+      challengesSolutions: arrayWithContent(challengesSolutions),
+      contactPerson: emptyToNull(formValues.contactPerson),
+      contactTitle: emptyToNull(formValues.contactTitle),
+      images: arrayWithContent(existingImages),
+      industryTags: arrayWithContent(industryTags),
+      technologyTags: arrayWithContent(technologyTags),
+      vendorProcess: emptyToNull(vendorProcess),
+      vendorSelectionReasons: arrayWithContent(vendorSelectionReasons),
+      projectTeamInternal: arrayWithContent(projectTeamInternal),
+      projectTeamVendor: arrayWithContent(projectTeamVendor),
+      phases: arrayWithContent(phases),
+      qualitativeImpacts: arrayWithContent(qualitativeImpacts),
+      roiTotalInvestment: emptyToNull(roiTotalInvestment),
+      roiThreeYearRoi: emptyToNull(roiThreeYearRoi)
     }
   }
 
@@ -897,11 +913,17 @@ export default function SubmitUseCase() {
         console.log('Draft saved to server:', savedDraftId)
       } else {
         const error = await res.json().catch(() => ({}))
-        throw new Error(error.detail || 'Failed to save draft')
+        // Parse FastAPI 422 validation errors into readable messages
+        const detail = error.detail
+        const message = Array.isArray(detail)
+          ? detail.map((e: any) => e.msg).join('; ')
+          : detail || 'Failed to save draft'
+        throw new Error(message)
       }
     } catch (error) {
       console.error('Error saving draft:', error)
-      alert('Failed to save draft to server. Please try again.')
+      const message = error instanceof Error ? error.message : 'Failed to save draft to server. Please try again.'
+      alert(message)
     } finally {
       setSavingDraft(false)
     }

@@ -232,6 +232,7 @@ async def verify_signup_otp(request: Request, response: Response, db: AsyncSessi
         body = await request.json()
         email = body.get("email", "").strip().lower()
         code = body.get("code", "").strip()
+        invite_token = body.get("inviteToken", "").strip()
 
         if not email or not code:
             return JSONResponse(status_code=400, content={"status": "ERROR", "message": "Email and code are required"})
@@ -265,6 +266,7 @@ async def verify_signup_otp(request: Request, response: Response, db: AsyncSessi
 
         # Mark email as verified in SuperTokens
         auto_login_success = False
+        pg_user = None
         try:
             pg_user = await UserService.get_user_by_email_pg(db, email)
             if pg_user and pg_user.supertokens_id:
@@ -306,15 +308,23 @@ async def verify_signup_otp(request: Request, response: Response, db: AsyncSessi
         except Exception as e:
             logger.error(f"Failed to mark email verified/auto-login in SuperTokens: {str(e)}", exc_info=True)
 
-        # Mark invitation as used after successful OTP verification
+        # Mark invitation as used after successful OTP verification.
+        # Use the exact invite token; do not consume by email alone because the same email may have stale/duplicate pending invites.
         try:
-            from datetime import datetime
-            invitation = await Invitation.find_one(Invitation.email == email, Invitation.used == False)
-            if invitation:
-                invitation.used = True
-                invitation.used_at = datetime.utcnow()
-                await invitation.save()
-                logger.info(f"Marked invitation as used for: {email}")
+            if invite_token:
+                from datetime import datetime
+                from app.services import invitation_service
+
+                invitation = await invitation_service.validate_invitation(invite_token)
+                if invitation and invitation.email == email:
+                    invitation.used = True
+                    invitation.used_at = datetime.utcnow()
+                    await invitation.save()
+                    logger.info(f"Marked invitation as used for: {email}")
+                else:
+                    logger.warning(f"Signup OTP verified for {email}, but invite token did not match an active invitation")
+            elif pg_user and pg_user.role == "member":
+                logger.warning(f"Member signup OTP verified for {email}, but no invite token was provided to consume")
         except Exception as e:
             logger.warning(f"Could not mark invitation for {email}: {e}")
 

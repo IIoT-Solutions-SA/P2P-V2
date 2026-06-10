@@ -9,6 +9,11 @@ __pycache__/
 
 # Build output
 dist/
+p2p-frontend-app/dist/
+
+# Frontend dependencies and generated tool state
+node_modules/
+p2p-frontend-app/node_modules/
 
 # IDE and OS files
 .vscode/

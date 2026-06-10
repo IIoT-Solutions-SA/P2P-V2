@@ -162,6 +162,32 @@ class UseCaseCreate(BaseModel):
 
 # ===== DRAFT SCHEMAS =====
 
+class DraftQuantitativeResult(BaseModel):
+    """Relaxed quantitative result for partial draft saves."""
+    metric: Optional[Annotated[str, Field(max_length=200)]] = None
+    baseline: Optional[Annotated[str, Field(max_length=200)]] = None
+    current: Optional[Annotated[str, Field(max_length=200)]] = None
+    improvement: Optional[Annotated[str, Field(max_length=200)]] = None
+
+    @field_validator('metric', 'baseline', 'current', 'improvement')
+    @classmethod
+    def validate_safe_text(cls, v):
+        return check_safe_text(v) if v is not None else v
+
+
+class DraftChallengeSolution(BaseModel):
+    """Relaxed challenge/solution item for partial draft saves."""
+    challenge: Optional[Annotated[str, Field(max_length=300)]] = None
+    description: Optional[Annotated[str, Field(max_length=1000)]] = None
+    solution: Optional[Annotated[str, Field(max_length=1000)]] = None
+    outcome: Optional[Annotated[str, Field(max_length=500)]] = None
+
+    @field_validator('challenge', 'description', 'solution', 'outcome')
+    @classmethod
+    def validate_safe_text(cls, v):
+        return check_safe_text(v) if v is not None else v
+
+
 class UseCaseDraftCreate(BaseModel):
     """Schema for creating/updating use case drafts - all fields Optional for partial saves"""
     # Draft ID for updates (if updating existing draft)
@@ -171,39 +197,39 @@ class UseCaseDraftCreate(BaseModel):
     currentStep: Optional[int] = 1
 
     # Basic Information
-    title: Optional[Annotated[str, Field(min_length=10, max_length=100)]] = None
-    subtitle: Optional[Annotated[str, Field(min_length=10, max_length=150)]] = None
-    description: Optional[Annotated[str, Field(min_length=50, max_length=5000)]] = None
+    title: Optional[Annotated[str, Field(max_length=100)]] = None
+    subtitle: Optional[Annotated[str, Field(max_length=150)]] = None
+    description: Optional[Annotated[str, Field(max_length=5000)]] = None
     category: Optional[str] = None
-    factoryName: Optional[Annotated[str, Field(min_length=2, max_length=80)]] = None
+    factoryName: Optional[Annotated[str, Field(max_length=80)]] = None
 
     # Location
-    city: Optional[Annotated[str, Field(min_length=2, max_length=50)]] = None
+    city: Optional[Annotated[str, Field(max_length=50)]] = None
     latitude: Optional[Annotated[float, Field(ge=-90, le=90)]] = None
     longitude: Optional[Annotated[float, Field(ge=-180, le=180)]] = None
 
     # Business Challenge
-    industryContext: Optional[Annotated[str, Field(min_length=50, max_length=5000)]] = None
-    specificProblems: Optional[Annotated[List[Annotated[str, Field(min_length=10, max_length=500)]], Field(min_length=2, max_length=5)]] = None
-    financialLoss: Optional[Annotated[str, Field(min_length=5, max_length=500)]] = None
+    industryContext: Optional[Annotated[str, Field(max_length=5000)]] = None
+    specificProblems: Optional[Annotated[List[Annotated[str, Field(max_length=500)]], Field(max_length=5)]] = None
+    financialLoss: Optional[Annotated[str, Field(max_length=500)]] = None
 
     # Solution Overview
-    selectionCriteria: Optional[Annotated[List[Annotated[str, Field(min_length=10, max_length=500)]], Field(min_length=2, max_length=5)]] = None
-    selectedVendor: Optional[Annotated[str, Field(min_length=2, max_length=120)]] = None
-    technologyComponents: Optional[Annotated[List[Annotated[str, Field(min_length=20, max_length=500)]], Field(min_length=1, max_length=15)]] = None
+    selectionCriteria: Optional[Annotated[List[Annotated[str, Field(max_length=500)]], Field(max_length=5)]] = None
+    selectedVendor: Optional[Annotated[str, Field(max_length=120)]] = None
+    technologyComponents: Optional[Annotated[List[Annotated[str, Field(max_length=500)]], Field(max_length=15)]] = None
 
     # Implementation
-    implementationTime: Optional[Annotated[str, Field(min_length=3, max_length=120)]] = None
-    totalBudget: Optional[Annotated[str, Field(min_length=3, max_length=120)]] = None
-    methodology: Optional[Annotated[str, Field(min_length=20, max_length=5000)]] = None
+    implementationTime: Optional[Annotated[str, Field(max_length=120)]] = None
+    totalBudget: Optional[Annotated[str, Field(max_length=120)]] = None
+    methodology: Optional[Annotated[str, Field(max_length=5000)]] = None
 
     # Results
-    quantitativeResults: Optional[Annotated[List[QuantitativeResult], Field(min_length=2, max_length=4)]] = None
+    quantitativeResults: Optional[Annotated[List[DraftQuantitativeResult], Field(max_length=4)]] = None
     roiPercentage: Optional[Annotated[str, Field(max_length=100)]] = None
     annualSavings: Optional[Annotated[str, Field(max_length=100)]] = None
 
     # Challenges & Solutions
-    challengesSolutions: Optional[Annotated[List[ChallengeSolution], Field(min_length=1, max_length=4)]] = None
+    challengesSolutions: Optional[Annotated[List[DraftChallengeSolution], Field(max_length=4)]] = None
 
     # Contact & Media
     contactPerson: Optional[Annotated[str, Field(max_length=120)]] = None

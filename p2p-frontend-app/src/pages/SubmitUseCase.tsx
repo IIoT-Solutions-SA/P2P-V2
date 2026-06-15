@@ -49,7 +49,7 @@ import { FileDropZone } from '@/components/ui/FileDropZone'
 
 // Enhanced form validation schema matching the detailed use case structure
 const hasRepeatedChars = (val: string) => /(.)\1{3,}/.test(val);
-const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{4,}/i.test(val);
+const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{6,}/i.test(val);
 const hasSpecialChars = (val: string) => /[!@#$%^&*()_+={}\[\]:;"'<>,.?/\\|`~]{8,}/.test(val);
 
 const hasUrl = (val: string) => /https?:\/\/|www\./i.test(val);

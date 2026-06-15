@@ -9,6 +9,7 @@ from supertokens_python.recipe.session import SessionContainer
 from app.models.mongo_models import UseCase, User as MongoUser, UserActivity, UserBookmark, UseCaseDraft
 from typing import List, Optional
 import logging
+import re
 from bson import ObjectId
 from beanie.odm.enums import SortDirection
 from beanie.operators import In
@@ -196,12 +197,24 @@ async def get_use_cases(
     sort_by: str = Query("newest", description="Sort by: newest, most_viewed, most_liked"),
     session: SessionContainer = Depends(verify_session())
 ):
-    from app.core.input_validation import check_safe_text
-    
-    # Validate search
+    # Validate search separately from normal content fields:
+    # short legitimate manufacturing terms such as "AI" are allowed, but
+    # security payloads/URLs are still rejected and the value is escaped before
+    # being used in Mongo regex queries.
+    escaped_search = None
     if search:
+        search = re.sub(r'\s+', ' ', search.strip())
         try:
-            search = check_safe_text(search, allow_urls=False)
+            if not search:
+                escaped_search = None
+            elif re.search(r"<\s*script|javascript\s*:|on(error|load|click|mouseover|keydown|submit|focus|blur|change)\s*=|\.\./|\.\.\\|/etc/passwd|oastify\.com|<!--#\w+|[\x00]", search, re.IGNORECASE):
+                raise ValueError("Search query contains disallowed characters or patterns")
+            elif re.search(r"https?://|www\.", search, re.IGNORECASE):
+                raise ValueError("URLs and links are not allowed in search")
+            elif len(re.findall(r'[\w\u0600-\u06FF]', search)) < 2:
+                raise ValueError("Search query must contain at least 2 letters or numbers")
+            else:
+                escaped_search = re.escape(search)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Invalid search query: {e}")
 
@@ -217,8 +230,8 @@ async def get_use_cases(
                 raise HTTPException(status_code=400, detail="Invalid category parameter")
             query["category"] = category_map[category]
         
-        if search:
-            query["$or"] = [ {"title": {"$regex": search, "$options": "i"}}, {"factory_name": {"$regex": search, "$options": "i"}} ]
+        if escaped_search:
+            query["$or"] = [ {"title": {"$regex": escaped_search, "$options": "i"}}, {"factory_name": {"$regex": escaped_search, "$options": "i"}} ]
         
         sort_map = { "newest": ("_id", SortDirection.DESCENDING), "most_viewed": ("view_count", SortDirection.DESCENDING), "most_liked": ("like_count", SortDirection.DESCENDING) }
         sort_field, sort_direction = sort_map.get(sort_by, ("_id", SortDirection.DESCENDING))

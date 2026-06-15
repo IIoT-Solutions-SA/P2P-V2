@@ -132,7 +132,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     // Title validation
     const titleSpecialChars = title.match(/[^\w\s\.\-,]/g) || [];
     const hasRepeatedChars = (val: string) => /(.)\1{3,}/.test(val);
-    const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{4,}/i.test(val);
+    const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{6,}/i.test(val);
     
     if (!title.trim()) {
       setTitleError('Title is required')

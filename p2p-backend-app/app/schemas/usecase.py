@@ -93,6 +93,14 @@ class TechnicalArchitecture(BaseModel):
     def validate_safe_text(cls, v):
         return check_safe_text(v, allow_urls=True) if v is not None else v
 
+    @field_validator('security_measures', 'scalability_design')
+    @classmethod
+    def validate_safe_string_lists(cls, v):
+        if v is not None:
+            for item in v:
+                check_safe_text(item)
+        return v
+
 
 class FutureRoadmapItem(BaseModel):
     timeline: Annotated[str, Field(min_length=2, max_length=100)]

@@ -3,7 +3,7 @@
 **Date:** 2026-06-16  
 **Scope:** Hardening backend input validation and preventing frontend XSS  
 **Repository:** `P2P-V2`  
-**Branch:** `main`  
+**Branch:** `umair-backend`  
 **Agent:** Antigravity
 
 ---

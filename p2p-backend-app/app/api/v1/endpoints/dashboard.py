@@ -10,8 +10,9 @@ from app.services.user_activity_service import UserActivityService
 from app.services.database_service import UserService
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Annotated
+from app.core.input_validation import check_safe_text, check_safe_tag
 from datetime import datetime
 import logging
 
@@ -19,11 +20,44 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class DraftCreate(BaseModel):
-    title: str
-    content: str
-    post_type: str = "forum_post"
-    category: Optional[str] = None
-    tags: List[str] = []
+    title: Optional[Annotated[str, Field(max_length=150)]] = None
+    content: Optional[Annotated[str, Field(max_length=5000)]] = None
+    post_type: Optional[Annotated[str, Field(max_length=50)]] = "forum_post"
+    category: Optional[Annotated[str, Field(max_length=100)]] = None
+    tags: Optional[Annotated[List[str], Field(max_length=10)]] = []
+
+    @field_validator('title', 'content')
+    @classmethod
+    def validate_safe_strings(cls, v):
+        return check_safe_text(v, allow_urls=True) if v is not None else v
+
+    @field_validator('post_type')
+    @classmethod
+    def validate_post_type(cls, v):
+        if v is not None and v not in {"forum_post", "usecase", "use_case", "article"}:
+            raise ValueError(f"Invalid post_type: {v}")
+        return v
+
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, v):
+        if not v:
+            return v
+        v_safe = check_safe_text(v)
+        from app.schemas.forum import ALLOWED_FORUM_CATEGORIES
+        from app.core.input_validation import ALLOWED_USECASE_CATEGORIES
+        norm = " ".join(w.capitalize() for w in str(v_safe).replace("-", " ").strip().lower().split())
+        if norm not in ALLOWED_FORUM_CATEGORIES and v_safe not in ALLOWED_FORUM_CATEGORIES and v_safe not in ALLOWED_USECASE_CATEGORIES:
+            raise ValueError(f"Category not allowed: {v_safe}")
+        return v_safe
+
+    @field_validator('tags')
+    @classmethod
+    def validate_safe_tags(cls, v):
+        if v is not None:
+            for item in v:
+                check_safe_tag(item)
+        return v
 
 @router.get("/stats")
 async def get_dashboard_stats(

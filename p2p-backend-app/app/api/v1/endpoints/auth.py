@@ -9,9 +9,10 @@ from supertokens_python.recipe.emailpassword.interfaces import (
     EmailAlreadyExistsError
 )
 from supertokens_python.types import RecipeUserId
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field, field_validator
+from typing import Optional, List, Annotated
 from datetime import datetime
+from app.core.input_validation import check_safe_text, check_safe_tag
 
 from app.core.database import get_db
 from app.core.config import settings
@@ -23,11 +24,35 @@ from app.models.pg_models import User as PGUser
 router = APIRouter()
 
 class UpdateProfileRequest(BaseModel):
-    firstName: Optional[str] = None
-    lastName: Optional[str] = None
-    title: Optional[str] = None
-    location: Optional[str] = None
-    expertiseTags: Optional[List[str]] = None
+    firstName: Optional[Annotated[str, Field(max_length=50)]] = None
+    lastName: Optional[Annotated[str, Field(max_length=50)]] = None
+    title: Optional[Annotated[str, Field(max_length=100)]] = None
+    location: Optional[Annotated[str, Field(max_length=100)]] = None
+    expertiseTags: Optional[Annotated[List[str], Field(max_length=10)]] = None
+
+    @field_validator('firstName', 'lastName')
+    @classmethod
+    def validate_names(cls, v):
+        if not v:
+            return v
+        v_safe = check_safe_text(v)
+        import re
+        if not re.match(r"^[a-zA-Z\u0600-\u06FF\s\-']+$", v_safe):
+            raise ValueError("Name can only contain letters, spaces, hyphens, and apostrophes")
+        return v_safe
+
+    @field_validator('title', 'location')
+    @classmethod
+    def validate_safe_strings(cls, v):
+        return check_safe_text(v) if v is not None else v
+
+    @field_validator('expertiseTags')
+    @classmethod
+    def validate_safe_tags(cls, v):
+        if v is not None:
+            for item in v:
+                check_safe_tag(item)
+        return v
 
 class UpdateEmailRequest(BaseModel):
     newEmail: EmailStr

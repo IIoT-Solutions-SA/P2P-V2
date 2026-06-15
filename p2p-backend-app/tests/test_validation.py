@@ -667,6 +667,45 @@ def _():
     expect_schema_ok(EndpointUseCaseUpdate, {"title": "Valid Updated Title Here"})
 
 # ============================================================
+# 16. SPAM AND GIBBERISH PATTERNS
+# ============================================================
+print("\n" + "=" * 60)
+print("SECTION 16: Spam and Gibberish Patterns")
+print("=" * 60)
+
+@run_test("Rejects URLs in default text fields")
+def _(): expect_safe_text_to_reject("Checkout https://attacker.com")
+
+@run_test("Rejects URLs in titles via schema")
+def _():
+    expect_validation_error(ForumPostCreate, valid_forum_data({"title": "Visit http://my-site.com"}))
+
+@run_test("Allows URLs in content field via schema")
+def _():
+    expect_schema_ok(ForumPostCreate, valid_forum_data({"content": "Here is a reference link: https://docs.example.com to read more. It is longer than 20 chars."}))
+
+@run_test("Allows URLs with explicit allow_urls=True")
+def _(): 
+    res = check_safe_text("Check this link: https://example.com", allow_urls=True)
+    if res != "Check this link: https://example.com":
+        raise AssertionError("Expected URL to be allowed")
+
+@run_test("Rejects 4+ identical characters")
+def _(): expect_safe_text_to_reject("This is bad aaaa")
+
+@run_test("Allows 3 identical characters (e.g. ellipses)")
+def _(): expect_safe_text_to_accept("This is fine...")
+
+@run_test("Rejects 8+ consecutive special characters")
+def _(): expect_safe_text_to_reject("Why would you do this !@#$%^&*")
+
+@run_test("Rejects 4+ consecutive consonants (gibberish)")
+def _(): expect_safe_text_to_reject("testdsdd")
+
+@run_test("Rejects pure special chars payload")
+def _(): expect_safe_text_to_reject("<><@#$%^%$#@#$%^%$#@#$%^")
+
+# ============================================================
 # SUMMARY
 # ============================================================
 print("\n" + "=" * 60)

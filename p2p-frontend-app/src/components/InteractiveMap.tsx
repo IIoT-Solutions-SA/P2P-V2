@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import 'leaflet.markercluster'
-import { generateUseCasePopupHTML, type UseCase, type UseCase as PopupUseCase } from './UseCasePopup'
+import { generateUseCasePopupHTML, escapeHtml, type UseCase, type UseCase as PopupUseCase } from './UseCasePopup'
 import { buildApiUrl } from '@/config/environment'
 
 // Fix for default markers in React-Leaflet
@@ -149,6 +148,8 @@ export default function InteractiveMap({
       
       console.log('Creating cluster popup for', useCases.length, 'use cases')
       
+      // Import or define escapeHtml here if needed, but it's already in UseCasePopup so we can use the imported one if we import it, wait... we don't have escapeHtml imported from UseCasePopup in this file. Let's import it or just use a local one. Wait, we can import it since we already import from UseCasePopup.
+
       // If 4 or fewer use cases, show enhanced card view
       if (useCases.length <= 4) {
         return `
@@ -224,7 +225,6 @@ export default function InteractiveMap({
                   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(59, 130, 246, 0.2)'; this.style.borderColor='#3b82f6'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.08)'; this.style.borderColor='rgba(226, 232, 240, 0.6)'">
                   
-                  <!-- Image Section (Left) - 130px width -->
                   <div class="cluster-image-section" style="
                     width: 130px !important; 
                     min-width: 130px !important; 
@@ -234,7 +234,7 @@ export default function InteractiveMap({
                     flex-shrink: 0 !important; 
                     box-sizing: border-box !important;
                   ">
-                    <img src="${useCase.image}" alt="${useCase.title}" style="
+                    <img src="${escapeHtml(useCase.image)}" alt="${escapeHtml(useCase.title)}" style="
                       width: 100%; 
                       height: 100%; 
                       object-fit: cover;
@@ -254,7 +254,7 @@ export default function InteractiveMap({
                       letter-spacing: 0.5px;
                       border: 1px solid rgba(255, 255, 255, 0.3);
                       box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-                    ">${useCase.category}</span>` : ''}
+                    ">${escapeHtml(useCase.category)}</span>` : ''}
                   </div>
                   
                   <!-- Content Section (Right) - 330px width -->
@@ -268,7 +268,6 @@ export default function InteractiveMap({
                     position: relative;
                   ">
                     
-                    <!-- Header -->
                     <div class="cluster-header" style="margin-bottom: 10px;">
                       <h4 class="cluster-title" style="
                         font-size: 17px; 
@@ -281,7 +280,7 @@ export default function InteractiveMap({
                         -webkit-line-clamp: 1; 
                         -webkit-box-orient: vertical; 
                         overflow: hidden;
-                      ">${useCase.title}</h4>
+                      ">${escapeHtml(useCase.title)}</h4>
                       <p class="cluster-description" style="
                         font-size: 13px; 
                         color: #64748b; 
@@ -292,7 +291,7 @@ export default function InteractiveMap({
                         overflow: hidden; 
                         margin-bottom: 10px; 
                         margin-top: 0;
-                      ">${useCase.description}</p>
+                      ">${escapeHtml(useCase.description)}</p>
                       
                       <!-- Factory Info -->
                       <div class="cluster-factory-info" style="
@@ -305,13 +304,13 @@ export default function InteractiveMap({
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
                           <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"></path>
                         </svg>
-                        <strong class="factory-name" style="color: #1e293b; font-weight: 600;">${useCase.factoryName}</strong>
+                        <strong class="factory-name" style="color: #1e293b; font-weight: 600;">${escapeHtml(useCase.factoryName)}</strong>
                         <span class="separator" style="color: #64748b; font-weight: 500;">•</span>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
                           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                           <circle cx="12" cy="10" r="3"></circle>
                         </svg>
-                        <span class="city-name" style="color: #64748b; font-weight: 500;">${useCase.city}</span>
+                        <span class="city-name" style="color: #64748b; font-weight: 500;">${escapeHtml(useCase.city)}</span>
                       </div>
                     </div>
                     
@@ -333,7 +332,7 @@ export default function InteractiveMap({
                             font-weight: 600; 
                             border: 1px solid #bfdbfe;
                             white-space: nowrap;
-                          ">${benefit}</span>
+                          ">${escapeHtml(benefit)}</span>
                         `).join('')}
                       </div>
                       <button class="cluster-view-btn" style="
@@ -374,8 +373,8 @@ export default function InteractiveMap({
           <div class="cluster-list">
             ${useCases.map((useCase: UseCase, index: number) => `
               <div class="cluster-item" data-usecase-index="${index}">
-                <strong>${useCase.title}</strong>
-                <span class="cluster-factory">${useCase.factoryName}</span>
+                <strong>${escapeHtml(useCase.title)}</strong>
+                <span class="cluster-factory">${escapeHtml(useCase.factoryName)}</span>
               </div>
             `).join('')}
           </div>

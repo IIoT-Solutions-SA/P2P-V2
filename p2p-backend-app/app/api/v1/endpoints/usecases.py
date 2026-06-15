@@ -17,7 +17,9 @@ from app.schemas.usecase import (
     UseCaseDraftCreate,
     UseCaseDraftResponse,
     UseCaseDraftListItem,
-    UseCaseDraftPublishValidation
+    UseCaseDraftPublishValidation,
+    TeamMember,
+    ProjectPhase
 )
 from app.services.usecase_service import UseCaseSubmissionService
 from app.core.database import get_db
@@ -50,10 +52,15 @@ class ChallengeSolutionUpdate(BaseModel):
     solution: Optional[Annotated[str, Field(min_length=20, max_length=1000)]] = None
     outcome: Optional[Annotated[str, Field(min_length=10, max_length=500)]] = None
 
-    @field_validator('challenge', 'description', 'solution', 'outcome')
+    @field_validator('challenge')
     @classmethod
-    def validate_safe_text(cls, v):
+    def validate_safe_challenge(cls, v):
         return check_safe_text(v) if v is not None else v
+
+    @field_validator('description', 'solution', 'outcome')
+    @classmethod
+    def validate_safe_descriptions(cls, v):
+        return check_safe_text(v, allow_urls=True) if v is not None else v
 
 class UseCaseUpdate(BaseModel):
     # Basic Information
@@ -101,9 +108,9 @@ class UseCaseUpdate(BaseModel):
     technologyTags: Optional[Annotated[List[str], Field(max_length=10)]] = None
     vendorProcess: Optional[Annotated[str, Field(max_length=2000)]] = None
     vendorSelectionReasons: Optional[List[Annotated[str, Field(max_length=500)]]] = None
-    projectTeamInternal: Optional[List[dict]] = None
-    projectTeamVendor: Optional[List[dict]] = None
-    phases: Optional[List[dict]] = None
+    projectTeamInternal: Optional[List[TeamMember]] = None
+    projectTeamVendor: Optional[List[TeamMember]] = None
+    phases: Optional[List[ProjectPhase]] = None
     qualitativeImpacts: Optional[List[Annotated[str, Field(max_length=500)]]] = None
     roiTotalInvestment: Optional[Annotated[str, Field(max_length=100)]] = None
     roiThreeYearRoi: Optional[Annotated[str, Field(max_length=100)]] = None
@@ -116,15 +123,20 @@ class UseCaseUpdate(BaseModel):
         return v
 
     @field_validator(
-        'title', 'subtitle', 'description', 'factoryName', 'city', 
-        'industryContext', 'financialLoss', 'selectedVendor',
-        'implementationTime', 'totalBudget', 'methodology',
+        'title', 'subtitle', 'factoryName', 'city', 
+        'financialLoss', 'selectedVendor',
+        'implementationTime', 'totalBudget',
         'roiPercentage', 'annualSavings', 'contactPerson', 'contactTitle',
-        'vendorProcess', 'roiTotalInvestment', 'roiThreeYearRoi'
+        'roiTotalInvestment', 'roiThreeYearRoi'
     )
     @classmethod
     def validate_safe_strings(cls, v):
         return check_safe_text(v) if v is not None else v
+
+    @field_validator('description', 'industryContext', 'methodology', 'vendorProcess')
+    @classmethod
+    def validate_safe_descriptions(cls, v):
+        return check_safe_text(v, allow_urls=True) if v is not None else v
 
     @field_validator(
         'specificProblems', 'selectionCriteria', 'technologyComponents',
@@ -178,17 +190,32 @@ async def get_use_case_by_id(
 @router.get("/")
 async def get_use_cases(
     category: Optional[str] = Query(None, description="Filter by category"),
-    search: Optional[str] = Query(None, description="Search query"),
-    limit: int = Query(20, description="Number of use cases to return"),
-    skip: int = Query(0, description="Number of use cases to skip for pagination"),
+    search: Optional[str] = Query(None, max_length=100, description="Search query"),
+    limit: int = Query(20, ge=1, le=100, description="Number of use cases to return"),
+    skip: int = Query(0, ge=0, le=10000, description="Number of use cases to skip for pagination"),
     sort_by: str = Query("newest", description="Sort by: newest, most_viewed, most_liked"),
     session: SessionContainer = Depends(verify_session())
 ):
+    from app.core.input_validation import check_safe_text
+    
+    # Validate search
+    if search:
+        try:
+            search = check_safe_text(search, allow_urls=False)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid search query: {e}")
+
+    # Validate sort_by
+    if sort_by not in {"newest", "most_viewed", "most_liked"}:
+        raise HTTPException(status_code=400, detail="Invalid sort_by parameter")
+        
     try:
         query = {"published": True, "is_detailed_version": {"$ne": True}, "status": {"$ne": "deleted"}}
         if category and category != "all":
             category_map = { "automation": "Factory Automation", "quality": "Quality Control", "maintenance": "Predictive Maintenance", "efficiency": "Process Optimization", "innovation": "Innovation & R&D", "sustainability": "Sustainability" }
-            if category in category_map: query["category"] = category_map[category]
+            if category not in category_map:
+                raise HTTPException(status_code=400, detail="Invalid category parameter")
+            query["category"] = category_map[category]
         
         if search:
             query["$or"] = [ {"title": {"$regex": search, "$options": "i"}}, {"factory_name": {"$regex": search, "$options": "i"}} ]

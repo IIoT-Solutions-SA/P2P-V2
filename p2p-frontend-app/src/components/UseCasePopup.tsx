@@ -343,15 +343,38 @@ export default function UseCasePopup({ useCase, onTitleClick }: UseCasePopupProp
   )
 }
 
+// Utility to escape HTML and prevent XSS
+export function escapeHtml(unsafe: string): string {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Function to generate HTML string for Leaflet popup
 export function generateUseCasePopupHTML(useCase: UseCase): string {
+  const safeTitle = escapeHtml(useCase.title);
+  const safeDescription = escapeHtml(useCase.description);
+  const safeFactoryName = escapeHtml(useCase.factoryName);
+  const safeCity = escapeHtml(useCase.city);
+  const safeCategory = useCase.category ? escapeHtml(useCase.category) : '';
+  const safeImplementationTime = useCase.implementationTime ? escapeHtml(useCase.implementationTime) : '';
+  const safeImage = escapeHtml(useCase.image);
+  const safeId = escapeHtml(String(useCase.id));
+  const safeCompanySlug = useCase.companySlug ? escapeHtml(useCase.companySlug) : '';
+  const safeTitleSlug = useCase.titleSlug ? escapeHtml(useCase.titleSlug) : '';
+  const safeUrl = (safeCompanySlug && safeTitleSlug) ? `/usecases/${safeCompanySlug}/${safeTitleSlug}` : `/usecases/${safeId}`;
+
   return `
     <div class="use-case-popup-horizontal" style="width: 520px; font-family: system-ui, -apple-system, sans-serif; display: flex; height: 240px; border-radius: 16px; overflow: hidden; background: white;">
       
       <!-- Image Section (Left) -->
       <div style="width: 200px; position: relative; flex-shrink: 0;">
-        <img src="${useCase.image}" alt="${useCase.title}" style="width: 100%; height: 100%; object-fit: cover;" />
-        ${useCase.category ? `<span style="position: absolute; top: 12px; right: 12px; background: rgba(59, 130, 246, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">${useCase.category}</span>` : ''}
+        <img src="${safeImage}" alt="${safeTitle}" style="width: 100%; height: 100%; object-fit: cover;" />
+        ${safeCategory ? `<span style="position: absolute; top: 12px; right: 12px; background: rgba(59, 130, 246, 0.9); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">${safeCategory}</span>` : ''}
       </div>
       
       <!-- Content Section (Right) -->
@@ -360,24 +383,24 @@ export function generateUseCasePopupHTML(useCase: UseCase): string {
         <!-- Header -->
         <div>
           <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; line-height: 1.3; margin-top: 0;">
-            <a href="${useCase.companySlug && useCase.titleSlug ? `/usecases/${useCase.companySlug}/${useCase.titleSlug}` : `/usecases/${useCase.id}` }" style="color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#1e293b'">${useCase.title}</a>
+            <a href="${safeUrl}" style="color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#1e293b'">${safeTitle}</a>
           </h3>
           
-          <p style="color: #64748b; margin-bottom: 12px; line-height: 1.45; font-size: 13px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${useCase.description}</p>
+          <p style="color: #64748b; margin-bottom: 12px; line-height: 1.45; font-size: 13px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${safeDescription}</p>
           
           <!-- Factory Info -->
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
               <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"></path>
             </svg>
-            <strong style="color: #1e293b;">${useCase.factoryName}</strong>
+            <strong style="color: #1e293b;">${safeFactoryName}</strong>
             <span style="color: #64748b;">•</span>
             <span style="color: #64748b; display: flex; align-items: center; gap: 3px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
               </svg>
-              ${useCase.city}
+              ${safeCity}
             </span>
           </div>
         </div>
@@ -386,14 +409,14 @@ export function generateUseCasePopupHTML(useCase: UseCase): string {
         <div style="margin-bottom: 12px;">
           <div style="display: flex; flex-wrap: wrap; gap: 6px;">
             ${useCase.benefits.slice(0, 2).map(benefit => `
-              <span style="background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #93c5fd;">${benefit}</span>
+              <span style="background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #93c5fd;">${escapeHtml(benefit)}</span>
             `).join('')}
           </div>
         </div>
         
         <!-- Footer -->
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          ${useCase.implementationTime ? `
+          ${safeImplementationTime ? `
             <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #64748b;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -401,11 +424,11 @@ export function generateUseCasePopupHTML(useCase: UseCase): string {
                 <line x1="8" y1="2" x2="8" y2="6"></line>
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
-              <span>${useCase.implementationTime}</span>
+              <span>${safeImplementationTime}</span>
             </div>
           ` : '<div></div>'}
           
-          <button class="view-details-link" onclick="window.location.href='${useCase.companySlug && useCase.titleSlug ? `/usecases/${useCase.companySlug}/${useCase.titleSlug}` : `/usecases/${useCase.id}` }'" style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+          <button class="view-details-link" onclick="window.location.href='${safeUrl}'" style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
             View Details
           </button>
         </div>

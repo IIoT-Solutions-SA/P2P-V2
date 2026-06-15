@@ -133,6 +133,13 @@ async def validate_upload_file(
     if suffix and detected_mime not in EXTENSION_MIME_TYPES.get(suffix, set()):
         raise HTTPException(400, "Uploaded file extension does not match its content.")
 
+    from app.core.input_validation import check_safe_text
+    try:
+        # Validate original filename metadata using the standard text validator
+        original_filename = check_safe_text(original_filename)
+    except ValueError as e:
+        raise HTTPException(400, f"Invalid filename: {str(e)}")
+
     extension = MIME_EXTENSIONS[detected_mime]
     safe_filename = f"{_safe_stem(original_filename)}.{extension}"
     return ValidatedUpload(

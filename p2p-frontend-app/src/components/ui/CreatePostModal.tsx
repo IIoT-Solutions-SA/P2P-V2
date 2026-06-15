@@ -130,6 +130,10 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     let hasFieldError = false
 
     // Title validation
+    const titleSpecialChars = title.match(/[^\w\s\.\-,]/g) || [];
+    const hasRepeatedChars = (val: string) => /(.)\1{3,}/.test(val);
+    const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{4,}/i.test(val);
+    
     if (!title.trim()) {
       setTitleError('Title is required')
       hasFieldError = true
@@ -138,6 +142,15 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
       hasFieldError = true
     } else if (title.trim().length < 8) {
       setTitleError(`Title should have at least 8 characters (${title.trim().length}/8)`)
+      hasFieldError = true
+    } else if (titleSpecialChars.length > 3) {
+      setTitleError('Too many special characters are not allowed in titles')
+      hasFieldError = true
+    } else if (hasRepeatedChars(title)) {
+      setTitleError('Too many repeated characters are not allowed')
+      hasFieldError = true
+    } else if (hasConsecutiveConsonants(title)) {
+      setTitleError('Too many consecutive consonants are not allowed')
       hasFieldError = true
     }
 
@@ -151,6 +164,18 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     } else if (content.trim().length < 20) {
       setContentError(`Content should have at least 20 characters (${content.trim().length}/20)`)
       hasFieldError = true
+    } else if (hasRepeatedChars(content)) {
+      setContentError('Too many repeated characters are not allowed')
+      hasFieldError = true
+    } else if (hasConsecutiveConsonants(content)) {
+      setContentError('Too many consecutive consonants are not allowed')
+      hasFieldError = true
+    } else if (content.length > 10) {
+      const symbolChars = content.match(/[^\w\s\u0600-\u06FF]/g) || [];
+      if (symbolChars.length / content.length > 0.5) {
+        setContentError('Input contains too many symbols')
+        hasFieldError = true
+      }
     }
 
     if (!categoryId) { setError('Please select a category.'); hasFieldError = true }

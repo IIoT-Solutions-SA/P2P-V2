@@ -19,8 +19,10 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
   const [emailLoading, setEmailLoading] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [tagInput, setTagInput] = useState('')
+  const [tagError, setTagError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'profile' | 'account'>(initialTab)
   
   // Profile form data
@@ -65,6 +67,8 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
       setEmailForm({ newEmail: '', password: '' })
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setError(null)
+      setFieldErrors({})
+      setTagError(null)
       setSuccessMessage(null)
       setActiveTab(initialTab)
     }
@@ -87,6 +91,15 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
 
       if (!response.ok) {
         const data = await response.json()
+        if (response.status === 422 && Array.isArray(data.detail)) {
+          const newErrors: Record<string, string> = {}
+          data.detail.forEach((e: any) => {
+             const field = e.loc[e.loc.length - 1]
+             newErrors[field] = e.msg?.replace('Value error, ', '') || 'Invalid value'
+          })
+          setFieldErrors(newErrors)
+          throw new Error('Please fix the errors below')
+        }
         throw new Error(data.detail || 'Failed to update profile')
       }
 
@@ -101,13 +114,30 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
   }
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !formData.expertiseTags?.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        expertiseTags: [...(prev.expertiseTags || []), tagInput.trim()]
-      }))
-      setTagInput('')
+    const trimmed = tagInput.trim()
+    if (!trimmed) return
+
+    if (trimmed.length < 2 || trimmed.length > 30) {
+      setTagError('Each tag must be between 2 and 30 characters')
+      return
     }
+
+    if (!/^[\w\s\-\u0600-\u06FF]+$/.test(trimmed)) {
+      setTagError('Tags can only contain letters, numbers, spaces, and hyphens')
+      return
+    }
+
+    if (formData.expertiseTags?.includes(trimmed)) {
+      setTagError('Tag already exists')
+      return
+    }
+
+    setTagError(null)
+    setFormData(prev => ({
+      ...prev,
+      expertiseTags: [...(prev.expertiseTags || []), trimmed]
+    }))
+    setTagInput('')
   }
 
   const handleRemoveTag = (tag: string) => {
@@ -243,19 +273,20 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
       console.log('Upload response:', response.status, response.ok)
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Upload failed:', errorText)
-        throw new Error('Failed to upload profile picture')
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || await response.text() || 'Failed to upload profile picture';
+        console.error('Upload failed:', errorMessage);
+        throw new Error(errorMessage);
       }
 
-      const result = await response.json()
-      console.log('Upload successful:', result)
+      const result = await response.json();
+      console.log('Upload successful:', result);
 
-      await refreshProfile()
-      setSuccessMessage('Profile picture updated successfully!')
+      await refreshProfile();
+      setSuccessMessage('Profile picture updated successfully!');
     } catch (err) {
-      console.error('Upload error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to upload profile picture')
+      console.error('Upload error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload profile picture');
     }
   }, [refreshProfile])
 
@@ -341,10 +372,14 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                 <input
                   type="text"
                   value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, firstName: e.target.value }))
+                    setFieldErrors(prev => ({ ...prev, firstName: '' }))
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.firstName ? 'border-red-300' : 'border-gray-300'}`}
                   required
                 />
+                {fieldErrors.firstName && <p className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -353,10 +388,14 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                 <input
                   type="text"
                   value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, lastName: e.target.value }))
+                    setFieldErrors(prev => ({ ...prev, lastName: '' }))
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.lastName ? 'border-red-300' : 'border-gray-300'}`}
                   required
                 />
+                {fieldErrors.lastName && <p className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</p>}
               </div>
             </div>
 
@@ -367,10 +406,14 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, title: e.target.value }))
+                  setFieldErrors(prev => ({ ...prev, title: '' }))
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.title ? 'border-red-300' : 'border-gray-300'}`}
                 placeholder="e.g., Manufacturing Engineer"
               />
+              {fieldErrors.title && <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>}
             </div>
 
             <div>
@@ -406,10 +449,14 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
               <input
                 type="text"
                 value={formData.location}
-                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, location: e.target.value }))
+                  setFieldErrors(prev => ({ ...prev, location: '' }))
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.location ? 'border-red-300' : 'border-gray-300'}`}
                 placeholder="City, Country"
               />
+              {fieldErrors.location && <p className="mt-1 text-xs text-red-600">{fieldErrors.location}</p>}
             </div>
 
             <div>
@@ -420,9 +467,12 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                 <input
                   type="text"
                   value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
+                  onChange={(e) => {
+                    setTagInput(e.target.value)
+                    setTagError(null)
+                  }}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${tagError ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="Add expertise tag"
                 />
                 <Button
@@ -435,6 +485,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                   <Plus size={16} />
                 </Button>
               </div>
+              {tagError && <p className="mb-2 text-xs text-red-600">{tagError}</p>}
               <div className="flex flex-wrap gap-2">
                 {formData.expertiseTags?.map((tag, index) => (
                   <span
@@ -452,6 +503,7 @@ export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profil
                   </span>
                 ))}
               </div>
+              {fieldErrors.expertiseTags && <p className="mt-1 text-xs text-red-600">{fieldErrors.expertiseTags}</p>}
             </div>
 
             <div className="mt-8 flex gap-3">

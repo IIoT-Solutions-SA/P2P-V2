@@ -17,6 +17,8 @@ from app.services.forum_service import ForumService
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Annotated
 from app.core.input_validation import check_safe_text, check_safe_tag
+from app.schemas.forum import AttachmentModel
+from app.core.input_validation import check_safe_text, check_safe_tag
 import logging
 from datetime import datetime
 import re
@@ -27,13 +29,22 @@ router = APIRouter()
 
 
 class ReplyCreate(BaseModel):
-    content: Annotated[str, Field(min_length=2, max_length=3000)]
+    content: Annotated[str, Field(min_length=3, max_length=3000)]
     parent_reply_id: Optional[str] = None
 
     @field_validator('content')
     @classmethod
     def validate_safe_strings(cls, v):
-        return check_safe_text(v)
+        v_safe = check_safe_text(v, allow_urls=True)
+        
+        # Reject URL-only replies
+        import re
+        text_without_urls = re.sub(r'https?://[^\s]+|www\.[^\s]+', '', v_safe, flags=re.IGNORECASE).strip()
+        remaining_valid = len(re.findall(r'[\w\u0600-\u06FF]', text_without_urls))
+        if remaining_valid < 3:
+            raise ValueError("Replies cannot contain only links; please add some meaningful text")
+            
+        return v_safe
 
 
 class PostUpdate(BaseModel):
@@ -41,7 +52,7 @@ class PostUpdate(BaseModel):
     content: Optional[Annotated[str, Field(min_length=20, max_length=5000)]] = None
     category: Optional[str] = None
     tags: Optional[Annotated[List[str], Field(max_length=5)]] = None
-    attachments: Optional[Annotated[List[dict], Field(max_length=5)]] = None
+    attachments: Optional[Annotated[List[AttachmentModel], Field(max_length=5)]] = None
 
     @field_validator('title', 'content', 'category')
     @classmethod
@@ -115,7 +126,7 @@ async def create_forum_post(
 @router.get("/posts")
 async def get_forum_posts(
     category: Optional[str] = Query(None, description="Filter by category"),
-    limit: int = Query(20, description="Number of posts to return"),
+    limit: int = Query(20, ge=1, le=100, description="Number of posts to return"),
     session: SessionContainer = Depends(verify_session()),
     db: AsyncSession = Depends(get_db)
 ):
@@ -136,10 +147,10 @@ async def get_forum_posts(
         # Build query (case-insensitive category filter + exclude deleted posts)
         query = {"status": {"$ne": "deleted"}}  # Exclude soft-deleted posts
         if category and category != "all":
-            try:
-                query["category"] = {"$regex": f"^{re.escape(category)}$", "$options": "i"}
-            except Exception:
-                query["category"] = category
+            from app.schemas.forum import ALLOWED_FORUM_CATEGORIES
+            if category not in ALLOWED_FORUM_CATEGORIES:
+                raise HTTPException(status_code=400, detail="Invalid category parameter")
+            query["category"] = category
         
         # Get posts from database
         posts = await ForumPost.find(query).sort(-ForumPost.created_at).limit(limit).to_list()
@@ -563,7 +574,7 @@ async def get_forum_stats(
 
 @router.get("/contributors")
 async def get_top_contributors(
-    limit: int = Query(5, description="Number of top contributors to return"),
+    limit: int = Query(5, ge=1, le=100, description="Number of top contributors to return"),
     session: SessionContainer = Depends(verify_session())
 ):
     """Get top contributors with calculated points"""
@@ -642,7 +653,7 @@ async def get_top_contributors(
 
 @router.get("/bookmarks")
 async def get_forum_bookmarks(
-    limit: int = Query(20, description="Max bookmarks to return"),
+    limit: int = Query(20, ge=1, le=100, description="Max bookmarks to return"),
     session: SessionContainer = Depends(verify_session()),
     db: AsyncSession = Depends(get_db),
 ):

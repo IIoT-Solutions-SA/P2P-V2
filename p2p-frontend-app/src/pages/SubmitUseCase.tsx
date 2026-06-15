@@ -48,22 +48,72 @@ import LocationPicker from '@/components/LocationPicker'
 import { FileDropZone } from '@/components/ui/FileDropZone'
 
 // Enhanced form validation schema matching the detailed use case structure
+const hasRepeatedChars = (val: string) => /(.)\1{3,}/.test(val);
+const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{4,}/i.test(val);
+const hasSpecialChars = (val: string) => /[!@#$%^&*()_+={}\[\]:;"'<>,.?/\\|`~]{8,}/.test(val);
+
+const hasUrl = (val: string) => /https?:\/\/|www\./i.test(val);
+
+const safeStringSuperRefine = (val: string, ctx: z.RefinementCtx) => {
+  if (hasUrl(val)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "URLs and links are not allowed in this field" });
+    return;
+  }
+  if (hasRepeatedChars(val)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many repeated characters are not allowed" });
+    return;
+  }
+  if (hasConsecutiveConsonants(val)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many consecutive consonants are not allowed" });
+    return;
+  }
+  if (hasSpecialChars(val)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many consecutive special characters" });
+    return;
+  }
+};
+
+const safeStringSuperRefineAllowUrls = (val: string, ctx: z.RefinementCtx) => {
+  if (hasRepeatedChars(val)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many repeated characters are not allowed" });
+    return;
+  }
+  // Remove consecutive consonant check here since URLs (like https) easily trigger it
+  if (hasSpecialChars(val)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many consecutive special characters" });
+    return;
+  }
+};
+
+const safeTitleSuperRefine = (val: string, ctx: z.RefinementCtx) => {
+  safeStringSuperRefine(val, ctx);
+  const specialChars = val.match(/[^\w\s\.\-,]/g) || [];
+  if (specialChars.length > 3) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many special characters are not allowed in titles" });
+    return;
+  }
+};
+
 const formSchema = z.object({
   // Basic Information
   title: z.string()
     .min(10, "Title must be at least 10 characters")
-    .max(100, "Title must not exceed 100 characters"),
+    .max(100, "Title must not exceed 100 characters")
+    .superRefine(safeTitleSuperRefine),
   subtitle: z.string()
     .min(10, "Subtitle must be at least 10 characters")
-    .max(150, "Subtitle must not exceed 150 characters"),
+    .max(150, "Subtitle must not exceed 150 characters")
+    .superRefine(safeStringSuperRefine),
   description: z.string()
     .min(50, "Description must be at least 50 characters")
-    .max(500, "Description must not exceed 500 characters"),
+    .max(500, "Description must not exceed 500 characters")
+    .superRefine(safeStringSuperRefineAllowUrls),
   category: z.string().min(1, "Please select a category"),
   factoryName: z.string()
     .min(2, "Factory name must be at least 2 characters")
-    .max(80, "Factory name must not exceed 80 characters"),
-  
+    .max(80, "Factory name must not exceed 80 characters")
+    .superRefine(safeTitleSuperRefine),
+
   // Location
   city: z.string()
     .min(2, "City name must be at least 2 characters")
@@ -74,57 +124,63 @@ const formSchema = z.object({
   longitude: z.number()
     .min(-180, "Invalid longitude")
     .max(180, "Invalid longitude"),
-    
+
   // Business Challenge
   industryContext: z.string()
     .min(50, "Industry context must be at least 50 characters")
-    .max(500, "Industry context must not exceed 500 characters"),
-  specificProblems: z.array(z.string().min(10, "Problem must be at least 10 characters"))
+    .max(500, "Industry context must not exceed 500 characters")
+    .superRefine(safeStringSuperRefineAllowUrls),
+  specificProblems: z.array(z.string().min(10, "Problem must be at least 10 characters").superRefine(safeStringSuperRefine))
     .min(2, "Please add at least 2 problems")
     .max(5, "Maximum 5 problems allowed"),
   financialLoss: z.string()
-    .min(5, "Financial impact description must be at least 5 characters"),
-  
+    .min(5, "Financial impact description must be at least 5 characters")
+    .superRefine(safeStringSuperRefine),
+
   // Solution Overview
-  selectionCriteria: z.array(z.string().min(10, "Criteria must be at least 10 characters"))
+  selectionCriteria: z.array(z.string().min(10, "Criteria must be at least 10 characters").superRefine(safeStringSuperRefine))
     .min(2, "Please add at least 2 selection criteria")
     .max(5, "Maximum 5 criteria allowed"),
   selectedVendor: z.string()
-    .min(2, "Vendor name is required"),
-  technologyComponents: z.array(z.string().min(20, "Component description must be at least 20 characters"))
+    .min(2, "Vendor name is required")
+    .superRefine(safeTitleSuperRefine),
+  technologyComponents: z.array(z.string().min(20, "Component description must be at least 20 characters").superRefine(safeStringSuperRefine))
     .min(1, "Please add at least 1 technology component")
     .max(15, "Maximum 15 components allowed"),
-    
+
   // Implementation
   implementationTime: z.string()
-    .min(3, "Implementation time is required"),
+    .min(3, "Implementation time is required")
+    .superRefine(safeTitleSuperRefine),
   totalBudget: z.string()
-    .min(3, "Total budget is required"),
+    .min(3, "Total budget is required")
+    .superRefine(safeTitleSuperRefine),
   methodology: z.string()
-    .min(20, "Methodology description must be at least 20 characters"),
-    
+    .min(20, "Methodology description must be at least 20 characters")
+    .superRefine(safeStringSuperRefineAllowUrls),
+
   // Results
   quantitativeResults: z.array(z.object({
-    metric: z.string().min(5, "Metric name required"),
-    baseline: z.string().min(1, "Baseline value required"),
-    current: z.string().min(1, "Current value required"),
-    improvement: z.string().min(2, "Improvement value required")
+    metric: z.string().min(5, "Metric name required").superRefine(safeTitleSuperRefine),
+    baseline: z.string().min(1, "Baseline value required").superRefine(safeTitleSuperRefine),
+    current: z.string().min(1, "Current value required").superRefine(safeTitleSuperRefine),
+    improvement: z.string().min(2, "Improvement value required").superRefine(safeTitleSuperRefine)
   })).min(2, "Please add at least 2 quantitative results").max(4, "Maximum 4 results allowed"),
-  
-  roiPercentage: z.string().optional(),
-  annualSavings: z.string().optional(),
-  
+
+  roiPercentage: z.string().superRefine(safeTitleSuperRefine).optional(),
+  annualSavings: z.string().superRefine(safeTitleSuperRefine).optional(),
+
   // Challenges & Solutions
   challengesSolutions: z.array(z.object({
-    challenge: z.string().min(10, "Challenge name required"),
-    description: z.string().min(20, "Challenge description required"),
-    solution: z.string().min(20, "Solution description required"),
-    outcome: z.string().min(10, "Outcome description required")
+    challenge: z.string().min(10, "Challenge name required").superRefine(safeTitleSuperRefine),
+    description: z.string().min(20, "Challenge description required").superRefine(safeStringSuperRefine),
+    solution: z.string().min(20, "Solution description required").superRefine(safeStringSuperRefine),
+    outcome: z.string().min(10, "Outcome description required").superRefine(safeStringSuperRefine)
   })).min(1, "Please add at least 1 challenge").max(4, "Maximum 4 challenges allowed"),
-  
+
   // Contact & Media
-  contactPerson: z.string().optional(),
-  contactTitle: z.string().optional(),
+  contactPerson: z.string().superRefine(safeTitleSuperRefine).optional(),
+  contactTitle: z.string().superRefine(safeTitleSuperRefine).optional(),
   images: z.array(z.instanceof(File))
     .max(5, "Maximum 5 images allowed")
     .optional()
@@ -199,7 +255,7 @@ export default function SubmitUseCase() {
   const [technologyTags, setTechnologyTags] = useState<string[]>([])
   // Technical Architecture
   const [systemOverview, setSystemOverview] = useState<string>("")
-  const [architectureComponents, setArchitectureComponents] = useState<Array<{layer: string, components: string[], specifications: string}>>([
+  const [architectureComponents, setArchitectureComponents] = useState<Array<{ layer: string, components: string[], specifications: string }>>([
     { layer: "", components: [""], specifications: "" }
   ])
   const [securityMeasures, setSecurityMeasures] = useState<string[]>([""])
@@ -253,27 +309,27 @@ export default function SubmitUseCase() {
       description: "",
       category: "",
       factoryName: "",
-      
+
       // Location
       city: "",
       latitude: 24.7136, // Default to Riyadh
       longitude: 46.6753,
-      
+
       // Business Challenge
       industryContext: "",
       specificProblems: ["", ""],
       financialLoss: "",
-      
+
       // Solution Overview
       selectionCriteria: ["", ""],
       selectedVendor: "",
       technologyComponents: [""],
-      
+
       // Implementation
       implementationTime: "",
       totalBudget: "",
       methodology: "",
-      
+
       // Results
       quantitativeResults: isEditMode ? [] : [
         { metric: "", baseline: "", current: "", improvement: "" },
@@ -281,12 +337,12 @@ export default function SubmitUseCase() {
       ],
       roiPercentage: "",
       annualSavings: "",
-      
+
       // Challenges & Solutions
       challengesSolutions: [
         { challenge: "", description: "", solution: "", outcome: "" }
       ],
-      
+
       // Contact & Media
       contactPerson: "",
       contactTitle: "",
@@ -667,39 +723,39 @@ export default function SubmitUseCase() {
           form.setValue('latitude', lat)
           form.setValue('longitude', lng)
           console.log('Location loaded for edit:', { lat, lng })
-          
+
           // Business Challenge
           form.setValue('industryContext', data.business_challenge?.industry_context || '')
           form.setValue('financialLoss', data.business_challenge?.business_impact?.financial_loss || '')
-          
+
           // Pre-populate dynamic arrays with existing data
           if (data.business_challenge?.specific_problems?.length > 0) {
             const problems = data.business_challenge.specific_problems
             setSpecificProblems(problems.length < 2 ? [...problems, ""] : problems)
             form.setValue('specificProblems', problems.length < 2 ? [...problems, ""] : problems)
           }
-          
+
           if (data.solution_details?.selection_criteria?.length > 0) {
             const criteria = data.solution_details.selection_criteria
             setSelectionCriteria(criteria.length < 2 ? [...criteria, ""] : criteria)
             form.setValue('selectionCriteria', criteria.length < 2 ? [...criteria, ""] : criteria)
           }
-          
+
           form.setValue('selectedVendor', data.solution_details?.vendor_evaluation?.selected_vendor || '')
-          
+
           if (data.solution_details?.technology_components?.length > 0) {
-            const components = data.solution_details.technology_components.map((comp: string | { component: string; details: string }) => 
+            const components = data.solution_details.technology_components.map((comp: string | { component: string; details: string }) =>
               typeof comp === 'string' ? comp : `${comp.component}: ${comp.details}`
             )
             setTechnologyComponents(components.length === 0 ? [""] : components)
             form.setValue('technologyComponents', components.length === 0 ? [""] : components)
           }
-          
+
           // Implementation
           form.setValue('implementationTime', data.implementation_time || '')
           form.setValue('totalBudget', data.implementation_details?.total_budget || '')
           form.setValue('methodology', data.implementation_details?.methodology || '')
-          
+
           // Results - Load quantitative metrics/results
           if (data.results?.quantitative_results?.length > 0) {
             const results = data.results.quantitative_results
@@ -710,11 +766,11 @@ export default function SubmitUseCase() {
             setQuantitativeResults(metrics)
             form.setValue('quantitativeResults', metrics)
           }
-          
+
           form.setValue('roiPercentage', data.roi_percentage || '')
           // Check multiple possible locations for annual savings
           form.setValue('annualSavings', data.results?.annual_savings || data.annualSavings || data.results?.roi_analysis?.annual_savings || '')
-          
+
           // Challenges & Solutions
           if (data.results?.challenges_solutions?.length > 0) {
             const challenges = data.results.challenges_solutions
@@ -807,7 +863,7 @@ export default function SubmitUseCase() {
               const formattedComponents = techArch.architecture_components.map((comp: any) => ({
                 layer: comp.layer || "",
                 components: Array.isArray(comp.components) ? comp.components :
-                            (typeof comp.components === 'string' ? [comp.components] : []),
+                  (typeof comp.components === 'string' ? [comp.components] : []),
                 specifications: comp.specifications || ""
               }))
               setArchitectureComponents(formattedComponents)
@@ -835,14 +891,14 @@ export default function SubmitUseCase() {
           // NOTE: Removed duplicate check for quantitative_metrics - already handled above
 
           console.log('All form data loaded successfully for edit mode')
-          
+
         } catch (error) {
           console.error('Error fetching existing use case:', error)
         } finally {
           setIsLoadingExistingData(false)
         }
       }
-      
+
       fetchExistingUseCase()
     }
   }, [isEditMode, editUseCaseId])
@@ -875,11 +931,11 @@ export default function SubmitUseCase() {
       } else {
         const errorData = await res.json().catch(() => ({}))
         console.error('Failed to fetch draft:', res.status, errorData)
-        alert(`Failed to load draft (${res.status}). ${errorData.detail || 'It may have been deleted.'}`)
+        setSubmitError(`Failed to load draft (${res.status}). ${errorData.detail || 'It may have been deleted.'}`)
       }
     } catch (error) {
       console.error('Error fetching draft:', error)
-      alert('Error loading draft. Please check console for details.')
+      setSubmitError('Error loading draft. Please check console for details.')
     }
   }
 
@@ -916,7 +972,12 @@ export default function SubmitUseCase() {
         console.log('Draft saved to server:', savedDraftId)
       } else {
         const error = await res.json().catch(() => ({}))
-        // Parse FastAPI 422 validation errors into readable messages
+        if (res.status === 422) {
+            console.error('Validation errors during draft save:', error)
+            throw new Error('VALIDATION_ERROR')
+        }
+        
+        // Parse other errors into readable messages
         const detail = error.detail
         const message = Array.isArray(detail)
           ? detail.map((e: any) => e.msg).join('; ')
@@ -926,7 +987,9 @@ export default function SubmitUseCase() {
     } catch (error) {
       console.error('Error saving draft:', error)
       const message = error instanceof Error ? error.message : 'Failed to save draft to server. Please try again.'
-      alert(message)
+      if (message !== 'VALIDATION_ERROR') {
+        setSubmitError(message)
+      }
     } finally {
       setSavingDraft(false)
     }
@@ -1096,7 +1159,7 @@ export default function SubmitUseCase() {
       }
       if (data?.message) return data.message
       if (data?.detail && typeof data.detail === 'string') return data.detail
-    } catch {}
+    } catch { }
     return `Request failed (${response.status})`
   }
 
@@ -1249,9 +1312,12 @@ export default function SubmitUseCase() {
             console.log('Updated use case with all images:', allImages)
           }
         } else {
-          console.error('Failed to upload media files, but use case was created successfully')
-          const errorData = await uploadResponse.json().catch(() => ({}))
-          console.error('Upload error:', errorData.detail || 'Unknown error')
+          const errorData = await uploadResponse.json().catch(() => ({}));
+          const errorMessage = errorData.detail || 'Failed to upload media files';
+          console.error('Upload error:', errorMessage);
+          setSubmitError(`Use case saved, but media upload failed: ${errorMessage}`);
+          setIsSubmitting(false);
+          return;
         }
       }
 
@@ -1364,7 +1430,7 @@ export default function SubmitUseCase() {
 
     if (hasValidationErrors) return
     // --- End security check ---
-    
+
     // For step validation, we need to manually validate dynamic arrays
     // since they're not automatically synced with form state
     if (currentStep === 2) {
@@ -1386,16 +1452,16 @@ export default function SubmitUseCase() {
             message = "Each problem must be at least 10 characters"
           }
         }
-        form.setError('specificProblems', { 
+        form.setError('specificProblems', {
           type: 'manual',
-          message: message 
+          message: message
         })
         hasValidationErrors = true
       } else {
         form.clearErrors('specificProblems')
       }
     }
-    
+
     if (currentStep === 3) {
       // Validate selection criteria
       const validCriteria = selectionCriteria.filter(c => c.trim().length >= 10).length >= 2
@@ -1415,15 +1481,15 @@ export default function SubmitUseCase() {
             message = "Each criteria must be at least 10 characters"
           }
         }
-        form.setError('selectionCriteria', { 
+        form.setError('selectionCriteria', {
           type: 'manual',
-          message: message 
+          message: message
         })
         hasValidationErrors = true
       } else {
         form.clearErrors('selectionCriteria')
       }
-      
+
       // Validate technology components
       const validComponents = technologyComponents.filter(c => c.trim().length >= 20).length >= 1
       if (!validComponents) {
@@ -1442,16 +1508,16 @@ export default function SubmitUseCase() {
             message = "Each component description must be at least 20 characters"
           }
         }
-        form.setError('technologyComponents', { 
+        form.setError('technologyComponents', {
           type: 'manual',
-          message: message 
+          message: message
         })
         hasValidationErrors = true
       } else {
         form.clearErrors('technologyComponents')
       }
     }
-    
+
     if (currentStep === 5) {
       // Validate quantitative results
       const validResults = quantitativeResults.filter(r =>
@@ -1461,7 +1527,7 @@ export default function SubmitUseCase() {
         r.improvement.trim().length >= 2
       ).length >= 2
       if (!validResults) {
-        form.setError('quantitativeResults', { 
+        form.setError('quantitativeResults', {
           type: 'manual',
           message: "Please add at least 2 quantitative results with all fields filled"
         })
@@ -1469,24 +1535,24 @@ export default function SubmitUseCase() {
       } else {
         form.clearErrors('quantitativeResults')
       }
-      
+
       // Validate challenges & solutions
-      const validChallenges = challengesSolutions.filter(c => 
-        c.challenge.trim().length >= 10 && 
-        c.description.trim().length >= 20 && 
-        c.solution.trim().length >= 20 && 
+      const validChallenges = challengesSolutions.filter(c =>
+        c.challenge.trim().length >= 10 &&
+        c.description.trim().length >= 20 &&
+        c.solution.trim().length >= 20 &&
         c.outcome.trim().length >= 10
       ).length >= 1
-      
+
       if (!validChallenges) {
         // More specific error message
-        const hasAnyChallenges = challengesSolutions.some(c => 
-          c.challenge.trim().length > 0 || 
-          c.description.trim().length > 0 || 
-          c.solution.trim().length > 0 || 
+        const hasAnyChallenges = challengesSolutions.some(c =>
+          c.challenge.trim().length > 0 ||
+          c.description.trim().length > 0 ||
+          c.solution.trim().length > 0 ||
           c.outcome.trim().length > 0
         )
-        
+
         let message = "Please add at least 1 challenge with all fields filled"
         if (hasAnyChallenges) {
           // Check which specific fields are invalid
@@ -1505,17 +1571,17 @@ export default function SubmitUseCase() {
               invalidFields.push(`Challenge ${i + 1} outcome needs ${10 - c.outcome.trim().length} more characters`)
             }
           })
-          
+
           if (invalidFields.length > 0) {
             message = invalidFields[0] // Show the first validation error
           } else {
             message = "Challenge requirements: Name (10+ chars), Description (20+ chars), Solution (20+ chars), Outcome (10+ chars)"
           }
         }
-        
-        form.setError('challengesSolutions', { 
+
+        form.setError('challengesSolutions', {
           type: 'manual',
-          message: message 
+          message: message
         })
         hasValidationErrors = true
       } else {
@@ -1575,7 +1641,7 @@ export default function SubmitUseCase() {
             {isEditMode ? 'Use Case Updated Successfully!' : 'Use Case Submitted Successfully!'}
           </h1>
           <p className="text-slate-600 mb-6">
-            {isEditMode 
+            {isEditMode
               ? 'Your use case has been updated successfully and the changes are now live.'
               : 'Thank you for sharing your factory success story. Our team will review your submission and it will be published on the platform soon.'
             }
@@ -1727,17 +1793,16 @@ export default function SubmitUseCase() {
               const IconComponent = step.icon
               const isActive = currentStep === step.number
               const isCompleted = currentStep > step.number
-              
+
               return (
                 <div key={step.number} className="flex items-center">
                   <div className={`flex items-center space-x-3 ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                      isActive 
-                        ? 'border-blue-600 bg-blue-50' 
-                        : isCompleted 
-                        ? 'border-green-600 bg-green-50' 
-                        : 'border-slate-300 bg-white'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isActive
+                        ? 'border-blue-600 bg-blue-50'
+                        : isCompleted
+                          ? 'border-green-600 bg-green-50'
+                          : 'border-slate-300 bg-white'
+                      }`}>
                       {isCompleted ? (
                         <CheckCircle className="h-5 w-5" />
                       ) : (
@@ -1749,9 +1814,8 @@ export default function SubmitUseCase() {
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`hidden sm:block w-16 h-0.5 mx-4 ${
-                      currentStep > step.number ? 'bg-green-600' : 'bg-slate-300'
-                    }`} />
+                    <div className={`hidden sm:block w-16 h-0.5 mx-4 ${currentStep > step.number ? 'bg-green-600' : 'bg-slate-300'
+                      }`} />
                   )}
                 </div>
               )
@@ -1765,7 +1829,7 @@ export default function SubmitUseCase() {
         <div className="max-w-4xl mx-auto">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              
+
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
                 <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
@@ -1773,7 +1837,7 @@ export default function SubmitUseCase() {
                     <Factory className="h-6 w-6 mr-3 text-blue-600" />
                     Basic Information
                   </h2>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -1782,9 +1846,9 @@ export default function SubmitUseCase() {
                         <FormItem className="md:col-span-2">
                           <FormLabel>Use Case Title <span className="text-gray-500">(10-100 chars)</span></FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="e.g., AI Quality Inspection System Reduces Defects by 85%" 
-                              {...field} 
+                            <Input
+                              placeholder="e.g., AI Quality Inspection System Reduces Defects by 85%"
+                              {...field}
                             />
                           </FormControl>
                           <FormDescription>
@@ -1803,9 +1867,9 @@ export default function SubmitUseCase() {
                         <FormItem className="md:col-span-2">
                           <FormLabel>Subtitle <span className="text-gray-500">(10-150 chars)</span></FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="e.g., Transforming PCB Manufacturing Through Computer Vision and Machine Learning" 
-                              {...field} 
+                            <Input
+                              placeholder="e.g., Transforming PCB Manufacturing Through Computer Vision and Machine Learning"
+                              {...field}
                             />
                           </FormControl>
                           <FormDescription>
@@ -1831,8 +1895,8 @@ export default function SubmitUseCase() {
                             </FormControl>
                             <SelectContent className="z-[9999] bg-white border-2 border-slate-200 shadow-2xl max-h-[300px] overflow-y-auto">
                               {categories.map((category) => (
-                                <SelectItem 
-                                  key={category.value} 
+                                <SelectItem
+                                  key={category.value}
                                   value={category.value}
                                   className="hover:bg-blue-50 hover:text-blue-900 cursor-pointer p-3 border-b border-slate-100 last:border-b-0"
                                 >
@@ -1868,10 +1932,10 @@ export default function SubmitUseCase() {
                         <FormItem className="md:col-span-2">
                           <FormLabel>Executive Summary <span className="text-gray-500">(50-500 chars)</span></FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               placeholder="Provide an executive summary covering the problem, solution, and key results achieved..."
                               className="min-h-[120px]"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           <FormDescription>
@@ -1893,7 +1957,7 @@ export default function SubmitUseCase() {
                     <Target className="h-6 w-6 mr-3 text-red-600" />
                     Business Challenge & Context
                   </h2>
-                  
+
                   <div className="space-y-6">
                     <FormField
                       control={form.control}
@@ -1902,10 +1966,10 @@ export default function SubmitUseCase() {
                         <FormItem>
                           <FormLabel>Industry Context <span className="text-gray-500">(50-500 chars)</span></FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               placeholder="Describe the broader industry challenges and trends that motivated this implementation..."
                               className="min-h-[100px]"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           <FormDescription>
@@ -1932,22 +1996,22 @@ export default function SubmitUseCase() {
                                 onChange={(e) => updateSpecificProblem(index, e.target.value)}
                                 className="flex-1"
                               />
-                            {specificProblems.length > 2 && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeSpecificProblem(index)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
+                              {specificProblems.length > 2 && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeSpecificProblem(index)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                             <div className="text-xs text-gray-500 ml-1">{problem.length}/10 characters minimum</div>
                           </div>
                         ))}
-                        
+
                         {specificProblems.length < 5 && (
                           <Button
                             type="button"
@@ -1975,9 +2039,9 @@ export default function SubmitUseCase() {
                         <FormItem>
                           <FormLabel>Financial Impact <span className="text-gray-500">(min 5 chars)</span></FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               placeholder="e.g., 450K annually in waste, rework, and returns"
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           <FormDescription>
@@ -2001,7 +2065,7 @@ export default function SubmitUseCase() {
                       <Zap className="h-6 w-6 mr-3 text-yellow-600" />
                       Solution Overview
                     </h2>
-                    
+
                     <div className="space-y-6">
                       <div>
                         <FormLabel className="text-base font-semibold">Selection Criteria</FormLabel>
@@ -2033,7 +2097,7 @@ export default function SubmitUseCase() {
                               <div className="text-xs text-gray-500 ml-1">{criteria.length}/10 characters minimum</div>
                             </div>
                           ))}
-                          
+
                           {selectionCriteria.length < 5 && (
                             <Button
                               type="button"
@@ -2061,9 +2125,9 @@ export default function SubmitUseCase() {
                           <FormItem>
                             <FormLabel>Selected Vendor/Partner <span className="text-gray-500">(min 2 chars)</span></FormLabel>
                             <FormControl>
-                              <Input 
+                              <Input
                                 placeholder="e.g., VisionTech Systems"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormDescription>
@@ -2102,7 +2166,7 @@ export default function SubmitUseCase() {
                               </Button>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" onClick={() => setVendorSelectionReasons([...vendorSelectionReasons, ""]) } className="flex items-center space-x-2">
+                          <Button type="button" variant="outline" onClick={() => setVendorSelectionReasons([...vendorSelectionReasons, ""])} className="flex items-center space-x-2">
                             <Plus className="h-4 w-4" />
                             <span>Add Selection Reason</span>
                           </Button>
@@ -2139,7 +2203,7 @@ export default function SubmitUseCase() {
                               <div className="text-xs text-gray-500 ml-1">{component.length}/20 characters minimum</div>
                             </div>
                           ))}
-                          
+
                           {technologyComponents.length < 15 && (
                             <Button
                               type="button"
@@ -2168,7 +2232,7 @@ export default function SubmitUseCase() {
                       <Wrench className="h-6 w-6 mr-3 text-purple-600" />
                       Implementation Details
                     </h2>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
@@ -2210,10 +2274,10 @@ export default function SubmitUseCase() {
                           <FormItem className="md:col-span-2">
                             <FormLabel>Implementation Methodology <span className="text-gray-500">(min 20 chars)</span></FormLabel>
                             <FormControl>
-                              <Textarea 
+                              <Textarea
                                 placeholder="e.g., Agile implementation with weekly sprints and continuous stakeholder feedback"
                                 className="min-h-[80px]"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormDescription>
@@ -2314,7 +2378,7 @@ export default function SubmitUseCase() {
                   <p className="text-slate-600 mb-6">
                     Provide details about your system architecture, components, and technical specifications.
                   </p>
-                  
+
                   <div className="space-y-6">
                     {/* System Overview */}
                     <div>
@@ -2491,7 +2555,7 @@ export default function SubmitUseCase() {
                       <BarChart3 className="h-6 w-6 mr-3 text-green-600" />
                       Results & Impact
                     </h2>
-                    
+
                     <div className="space-y-6">
                       <div>
                         <FormLabel className="text-base font-semibold">Quantitative Results</FormLabel>
@@ -2560,7 +2624,7 @@ export default function SubmitUseCase() {
                               </div>
                             </div>
                           ))}
-                          
+
                           {quantitativeResults.length < 4 && (
                             <Button
                               type="button"
@@ -2580,8 +2644,8 @@ export default function SubmitUseCase() {
                         {/* Show validation error for quantitative results */}
                         {form.formState.errors.quantitativeResults && (
                           <div className="text-red-500 text-sm mt-1">
-                            {form.formState.errors.quantitativeResults.message || 
-                             "Please add at least 2 quantitative results with all fields filled"}
+                            {form.formState.errors.quantitativeResults.message ||
+                              "Please add at least 2 quantitative results with all fields filled"}
                           </div>
                         )}
                       </div>
@@ -2642,7 +2706,7 @@ export default function SubmitUseCase() {
                               </Button>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" onClick={() => setQualitativeImpacts([...qualitativeImpacts, ""]) } className="flex items-center space-x-2">
+                          <Button type="button" variant="outline" onClick={() => setQualitativeImpacts([...qualitativeImpacts, ""])} className="flex items-center space-x-2">
                             <Plus className="h-4 w-4" />
                             <span>Add Impact</span>
                           </Button>
@@ -2657,12 +2721,12 @@ export default function SubmitUseCase() {
                       <Shield className="h-6 w-6 mr-3 text-orange-600" />
                       Challenges & Solutions
                     </h2>
-                    
+
                     <div className="space-y-6">
                       <FormDescription>
                         Describe the key challenges encountered during implementation and how they were resolved (minimum 1)
                       </FormDescription>
-                      
+
                       <div className="space-y-6">
                         {challengesSolutions.map((item, index) => (
                           <div key={index} className="p-6 border border-orange-200 rounded-lg bg-orange-50">
@@ -2701,7 +2765,7 @@ export default function SubmitUseCase() {
                                 </div>
                               )}
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <FormLabel className="text-sm font-medium">Challenge Description <span className="text-gray-500">(min 20 chars)</span></FormLabel>
@@ -2751,7 +2815,7 @@ export default function SubmitUseCase() {
                             </div>
                           </div>
                         ))}
-                        
+
                         {challengesSolutions.length < 4 && (
                           <Button
                             type="button"
@@ -2980,7 +3044,7 @@ export default function SubmitUseCase() {
                       <MapPin className="h-6 w-6 mr-3 text-blue-600" />
                       Factory Location
                     </h2>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                       <FormField
                         control={form.control}
@@ -2988,25 +3052,26 @@ export default function SubmitUseCase() {
                         render={({ field }) => {
                           console.log('City Select field value:', field.value)
                           return (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a city" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="z-[9999] bg-white">
-                                {SAUDI_CITIES.map((city) => (
-                                  <SelectItem key={city} value={city}>
-                                    {city}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage className="text-red-500 text-sm mt-1" />
-                          </FormItem>
-                        )}}
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a city" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="z-[9999] bg-white">
+                                  {SAUDI_CITIES.map((city) => (
+                                    <SelectItem key={city} value={city}>
+                                      {city}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage className="text-red-500 text-sm mt-1" />
+                            </FormItem>
+                          )
+                        }}
                       />
                     </div>
 
@@ -3172,7 +3237,7 @@ export default function SubmitUseCase() {
                       <Users className="h-6 w-6 mr-3 text-purple-600" />
                       Contact Information (Optional)
                     </h2>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
@@ -3219,7 +3284,7 @@ export default function SubmitUseCase() {
                               </Button>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" onClick={() => setIndustryTags([...industryTags, ""]) } className="flex items-center space-x-2">
+                          <Button type="button" variant="outline" onClick={() => setIndustryTags([...industryTags, ""])} className="flex items-center space-x-2">
                             <Plus className="h-4 w-4" />
                             <span>Add Industry Tag</span>
                           </Button>
@@ -3236,7 +3301,7 @@ export default function SubmitUseCase() {
                               </Button>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" onClick={() => setTechnologyTags([...technologyTags, ""]) } className="flex items-center space-x-2">
+                          <Button type="button" variant="outline" onClick={() => setTechnologyTags([...technologyTags, ""])} className="flex items-center space-x-2">
                             <Plus className="h-4 w-4" />
                             <span>Add Technology Tag</span>
                           </Button>
@@ -3254,7 +3319,7 @@ export default function SubmitUseCase() {
                     <CheckCircle className="h-6 w-6 mr-3 text-blue-600" />
                     Review & Submit
                   </h2>
-                  
+
                   <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -3274,27 +3339,27 @@ export default function SubmitUseCase() {
                         <p className="text-slate-600">{form.watch('city')}</p>
                       </div>
                     </div>
-                    
+
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-2">Executive Summary</h3>
                       <p className="text-slate-600">{form.watch('description')}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-2">Financial Impact</h3>
                       <p className="text-slate-600">{form.watch('financialLoss')}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-2">Selected Vendor</h3>
                       <p className="text-slate-600">{form.watch('selectedVendor')}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-2">Implementation</h3>
                       <p className="text-slate-600">{form.watch('implementationTime')} • Budget: {form.watch('totalBudget')}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-2">Images</h3>
                       <p className="text-slate-600">{uploadedImages.length} image(s) uploaded</p>
@@ -3382,74 +3447,74 @@ export default function SubmitUseCase() {
                     <span>Previous</span>
                   </Button>
 
-                <div className="flex space-x-4">
-                  {/* Save as Draft Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleSaveDraft}
-                    disabled={savingDraft}
-                    className="flex items-center gap-2"
-                  >
-                    {savingDraft ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4" />
-                        Save as Draft
-                      </>
-                    )}
-                  </Button>
-
-                  {/* Start New Use Case Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowNewUseCaseDialog(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Start New Use Case
-                  </Button>
-
-                  {/* Submit validation error */}
-                  {submitError && (
-                    <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-2">
-                      <span className="text-red-500 mt-0.5 flex-shrink-0">⚠️</span>
-                      <div className="whitespace-pre-line">{submitError}</div>
-                    </div>
-                  )}
-                  {currentStep < 7 ? (
+                  <div className="flex space-x-4">
+                    {/* Save as Draft Button */}
                     <Button
                       type="button"
-                      onClick={handleNext}
-                      className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
+                      variant="outline"
+                      onClick={handleSaveDraft}
+                      disabled={savingDraft}
+                      className="flex items-center gap-2"
                     >
-                      <span>Next</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="bg-green-600 hover:bg-green-700 text-white flex items-center space-x-2"
-                    >
-                      {isSubmitting ? (
+                      {savingDraft ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          <span>Submitting...</span>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
                         </>
                       ) : (
                         <>
                           <Save className="h-4 w-4" />
-                          <span>{isEditMode ? 'Update Use Case' : 'Submit Use Case'}</span>
+                          Save as Draft
                         </>
                       )}
                     </Button>
-                  )}
-                </div>
+
+                    {/* Start New Use Case Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowNewUseCaseDialog(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Start New Use Case
+                    </Button>
+
+                    {/* Submit validation error */}
+                    {submitError && (
+                      <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-2">
+                        <span className="text-red-500 mt-0.5 flex-shrink-0">⚠️</span>
+                        <div className="whitespace-pre-line">{submitError}</div>
+                      </div>
+                    )}
+                    {currentStep < 7 ? (
+                      <Button
+                        type="button"
+                        onClick={handleNext}
+                        className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
+                      >
+                        <span>Next</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-green-600 hover:bg-green-700 text-white flex items-center space-x-2"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Submitting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4" />
+                            <span>{isEditMode ? 'Update Use Case' : 'Submit Use Case'}</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </form>

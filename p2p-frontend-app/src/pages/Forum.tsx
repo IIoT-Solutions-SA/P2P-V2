@@ -92,6 +92,8 @@ export default function Forum() {
   const [newComment, setNewComment] = useState("")
   const [replyingToId, setReplyingToId] = useState<number | null>(null)
   const [replyText, setReplyText] = useState("")
+  const [replyError, setReplyError] = useState<string | null>(null)
+  const [commentError, setCommentError] = useState<string | null>(null)
   const [likedPosts, setLikedPosts] = useState<number[]>([])
   const [likedComments, setLikedComments] = useState<number[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -584,6 +586,7 @@ export default function Forum() {
 
   const handlePostComment = async () => {
     if (!newComment.trim() || !selectedPost) return
+    setCommentError(null)
     try {
       const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${selectedPost.id}/replies`), {
         method: 'POST',
@@ -591,21 +594,35 @@ export default function Forum() {
         credentials: 'include',
         body: JSON.stringify({ content: newComment })
       })
-      if (!response.ok) throw new Error('Failed to post comment')
+      if (!response.ok) {
+        let msg = 'Failed to post comment'
+        try {
+          const data = await response.json()
+          if (Array.isArray(data?.detail)) {
+            msg = data.detail[0]?.msg?.replace('Value error, ', '') ?? 'Invalid value'
+          } else {
+            msg = data?.detail || data?.message || msg
+          }
+        } catch {}
+        throw new Error(msg)
+      }
       setNewComment('')
       await handlePostClick(selectedPost.id)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error posting comment:', error)
+      setCommentError(error.message)
     }
   }
 
   const handleOpenReply = (commentId: number) => {
     setReplyingToId(prev => (prev === commentId ? null : commentId))
     setReplyText("")
+    setReplyError(null)
   }
 
   const handleSubmitReply = async (parentReplyId: number) => {
     if (!replyText.trim() || !selectedPost) return
+    setReplyError(null)
     try {
       const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${selectedPost.id}/replies`), {
         method: 'POST',
@@ -613,12 +630,24 @@ export default function Forum() {
         credentials: 'include',
         body: JSON.stringify({ content: replyText, parent_reply_id: String(parentReplyId) })
       })
-      if (!response.ok) throw new Error('Failed to post reply')
+      if (!response.ok) {
+        let msg = 'Failed to post reply'
+        try {
+          const data = await response.json()
+          if (Array.isArray(data?.detail)) {
+            msg = data.detail[0]?.msg?.replace('Value error, ', '') ?? 'Invalid value'
+          } else {
+            msg = data?.detail || data?.message || msg
+          }
+        } catch {}
+        throw new Error(msg)
+      }
       setReplyText("")
       setReplyingToId(null)
       await handlePostClick(selectedPost.id)
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error posting nested reply:', e)
+      setReplyError(e.message)
     }
   }
 
@@ -724,6 +753,7 @@ export default function Forum() {
                 </div>
                 <div className="flex-1">
                   <Textarea placeholder="Add your comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className="min-h-[100px] mb-3" />
+                  {commentError && <p className="text-sm text-red-600 mb-3">{commentError}</p>}
                   <Button onClick={handlePostComment} disabled={!newComment.trim()} className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Send className="h-4 w-4 mr-2" />
                     Post Comment
@@ -772,6 +802,7 @@ export default function Forum() {
                       {replyingToId === comment.id && (
                         <div className="mt-4 ml-8">
                           <Textarea placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="min-h-[80px] mb-2" />
+                          {replyError && <p className="text-sm text-red-600 mb-2">{replyError}</p>}
                           <div className="flex gap-2">
                             <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleSubmitReply(comment.id)} disabled={!replyText.trim()}>Post Reply</Button>
                             <Button size="sm" variant="ghost" onClick={() => { setReplyingToId(null); setReplyText("") }}>Cancel</Button>
@@ -806,6 +837,7 @@ export default function Forum() {
                               {replyingToId === reply.id && (
                                 <div className="mt-3 ml-8">
                                   <Textarea placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="min-h-[70px] mb-2" />
+                                  {replyError && <p className="text-sm text-red-600 mb-2">{replyError}</p>}
                                   <div className="flex gap-2">
                                     <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleSubmitReply(reply.id)} disabled={!replyText.trim()}>Post Reply</Button>
                                     <Button size="sm" variant="ghost" onClick={() => { setReplyingToId(null); setReplyText("") }}>Cancel</Button>

@@ -130,8 +130,9 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     let hasFieldError = false
 
     // Title validation
-    const titleSpecialChars = title.match(/[^\w\s\.\-,]/g) || [];
-    const hasRepeatedChars = (val: string) => /(.)\1{3,}/.test(val);
+    const titleSpecialChars = title.match(/[^\w\s\.\-,\u0600-\u06FF]/g) || [];
+    const titleLetters = title.match(/[a-zA-Z\u0600-\u06FF]/g) || [];
+    const hasRepeatedChars = (val: string) => /(.)\1{4,}/.test(val);
     const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{6,}/i.test(val);
     
     if (!title.trim()) {
@@ -142,6 +143,9 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
       hasFieldError = true
     } else if (title.trim().length < 8) {
       setTitleError(`Title should have at least 8 characters (${title.trim().length}/8)`)
+      hasFieldError = true
+    } else if (titleLetters.length < 2) {
+      setTitleError('Title must contain at least 2 letters (cannot be only numbers)')
       hasFieldError = true
     } else if (titleSpecialChars.length > 3) {
       setTitleError('Too many special characters are not allowed in titles')

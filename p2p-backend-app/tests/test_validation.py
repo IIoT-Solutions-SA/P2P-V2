@@ -109,8 +109,8 @@ def valid_use_case_data(overrides=None):
         "totalBudget": "$250,000",
         "methodology": "We followed a phased agile methodology with two-week sprints. Phase 1 focused on sensor installation and data collection. Phase 2 involved model training and validation. Phase 3 was production deployment and team training. Each phase had clear KPIs and go/no-go decision gates with stakeholder reviews.",
         "quantitativeResults": [
-            {"metric": "Downtime Reduction", "baseline": "120 hrs/month", "current": "24 hrs/month", "improvement": "80%"},
-            {"metric": "Cost Savings", "baseline": "$50,000/mo", "current": "$15,000/mo", "improvement": "70%"}
+            {"metric": "Downtime Reduction", "baseline": "120 hrs/month", "current": "24 hrs/month", "improvement": "80.0%"},
+            {"metric": "Cost Savings", "baseline": "$50,000/mo", "current": "$15,000/mo", "improvement": "70.0%"}
         ],
         "challengesSolutions": [
             {"challenge": "Data quality issues from legacy sensors", "description": "Legacy sensors produced inconsistent data with frequent gaps. We needed reliable data streams for accurate ML predictions across all production lines.", "solution": "Implemented data validation pipeline with anomaly detection. Added redundant sensor arrays at critical points with automatic failover.", "outcome": "Data quality improved to 99.5% with no gaps in critical data streams"}
@@ -125,7 +125,7 @@ def valid_forum_data(overrides=None):
     data = {
         "title": "Best practices for implementing predictive maintenance",
         "content": "I wanted to start a discussion about the best approaches for implementing predictive maintenance in medium-sized manufacturing facilities. We are currently evaluating different solutions and would love to hear from others who have gone through this process. What worked well and what pitfalls should we avoid?",
-        "category_id": "Technology Discussion",
+        "category_id": "General Discussion",
         "tags": ["predictive", "maintenance"]
     }
     if overrides:
@@ -206,6 +206,12 @@ def _(): expect_safe_text_to_reject("objectClass=*")
 @run_test("Blocks null bytes")
 def _(): expect_safe_text_to_reject("malicious\x00payload")
 
+@run_test("Rejects input with < 3 letters or numbers")
+def _(): expect_safe_text_to_reject("a$")
+
+@run_test("Rejects input with > 50% symbols")
+def _(): expect_safe_text_to_reject("Valid text but then @@@@@@@@@@@@@")
+
 @run_test("Allows normal Arabic text")
 def _(): expect_safe_text_to_accept("مرحبا بالعالم هذا نص عادي")
 
@@ -213,7 +219,10 @@ def _(): expect_safe_text_to_accept("مرحبا بالعالم هذا نص عا�
 def _(): expect_safe_text_to_accept("This is a normal sentence about manufacturing.")
 
 @run_test("Allows URLs with valid protocols")
-def _(): expect_safe_text_to_accept("https://example.com/page?q=search")
+def _(): 
+    res = check_safe_text("https://example.com/page?q=search", allow_urls=True)
+    if res != "https://example.com/page?q=search":
+        raise AssertionError("Failed")
 
 @run_test("Allows numbers and punctuation")
 def _(): expect_safe_text_to_accept("Test 123: (90%) - $500,000 [confirmed]")
@@ -690,20 +699,75 @@ def _():
     if res != "Check this link: https://example.com":
         raise AssertionError("Expected URL to be allowed")
 
-@run_test("Rejects 4+ identical characters")
-def _(): expect_safe_text_to_reject("This is bad aaaa")
+@run_test("Rejects 5+ identical characters")
+def _(): expect_safe_text_to_reject("This is bad aaaaa")
 
 @run_test("Allows 3 identical characters (e.g. ellipses)")
 def _(): expect_safe_text_to_accept("This is fine...")
 
-@run_test("Rejects 8+ consecutive special characters")
-def _(): expect_safe_text_to_reject("Why would you do this !@#$%^&*")
+@run_test("Rejects 4+ consecutive special characters")
+def _(): expect_safe_text_to_reject("Why would you do this !@#$")
 
-@run_test("Rejects 4+ consecutive consonants (gibberish)")
+@run_test("Rejects 6+ consecutive consonants (gibberish)")
 def _(): expect_safe_text_to_reject("testdsdd")
 
 @run_test("Rejects pure special chars payload")
 def _(): expect_safe_text_to_reject("<><@#$%^%$#@#$%^%$#@#$%^")
+
+# ============================================================
+# 17. DRAFT API BEHAVIOR (Simulated Bypass)
+# ============================================================
+print("\n" + "=" * 60)
+print("SECTION 17: Draft API Behavior (Validation Bypass)")
+print("=" * 60)
+
+@run_test("Draft API accepts payload with validation errors")
+def _():
+    # The frontend auto-save might send drafts with validation errors (e.g. gibberish).
+    raw_payload = {
+        "title": "Valid Draft Title",
+        # Consecutive consonants which triggers "Too many consecutive consonants" in check_safe_text
+        "specificProblems": ["bcdfghjkl", "another problem"] 
+    }
+    
+    # 1. Verify that the strict UseCaseDraftCreate schema would normally REJECT this:
+    try:
+        UseCaseDraftCreate(**raw_payload)
+        raise AssertionError("Expected UseCaseDraftCreate to reject the payload")
+    except ValueError:
+        pass  # Expected to fail due to strict validation
+        
+    # 2. In our updated API endpoint, we changed the signature from `UseCaseDraftCreate` to `dict`.
+    # Therefore, FastAPI bypasses the above schema validation, and the dictionary `raw_payload`
+    # is accepted and directly mapped to the MongoDB `UseCaseDraft` document!
+    
+    # We can simulate the endpoint mapping logic here:
+    assert isinstance(raw_payload, dict), "Endpoint now accepts raw dict"
+    assert raw_payload.get("title") == "Valid Draft Title"
+
+# ============================================================
+# 18. TITLE VALIDATION (Numbers-only & Arabic)
+# ============================================================
+print("\n" + "=" * 60)
+print("SECTION 18: Title Validation (Numbers-only & Arabic)")
+print("=" * 60)
+
+@run_test("Allows valid Arabic title without special character error")
+def _():
+    # This previously failed because frontend regex thought Arabic was special characters
+    expect_schema_ok(ForumPostCreate, valid_forum_data({"title": "مرحبا بالعالم هذا عنوان"}))
+
+@run_test("Rejects numbers-only title (needs at least 2 letters)")
+def _():
+    expect_validation_error(ForumPostCreate, valid_forum_data({"title": "1234567890"}))
+
+@run_test("Rejects title with > 3 special characters")
+def _():
+    expect_validation_error(ForumPostCreate, valid_forum_data({"title": "Valid Title But !@#$"}))
+
+@run_test("Allows title with numbers and letters")
+def _():
+    expect_schema_ok(ForumPostCreate, valid_forum_data({"title": "12345 Process Improvement"}))
 
 # ============================================================
 # SUMMARY

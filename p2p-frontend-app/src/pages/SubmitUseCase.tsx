@@ -48,9 +48,9 @@ import LocationPicker from '@/components/LocationPicker'
 import { FileDropZone } from '@/components/ui/FileDropZone'
 
 // Enhanced form validation schema matching the detailed use case structure
-const hasRepeatedChars = (val: string) => /(.)\1{3,}/.test(val);
+const hasRepeatedChars = (val: string) => /(.)\1{4,}/.test(val);
 const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{6,}/i.test(val);
-const hasSpecialChars = (val: string) => /[!@#$%^&*()_+={}\[\]:;"'<>,.?/\\|`~]{8,}/.test(val);
+const hasSpecialChars = (val: string) => /[^\w\s\.\-,\n:/\u0600-\u06FF]{4,}/.test(val);
 
 const hasUrl = (val: string) => /https?:\/\/|www\./i.test(val);
 
@@ -87,7 +87,16 @@ const safeStringSuperRefineAllowUrls = (val: string, ctx: z.RefinementCtx) => {
 
 const safeTitleSuperRefine = (val: string, ctx: z.RefinementCtx) => {
   safeStringSuperRefine(val, ctx);
-  const specialChars = val.match(/[^\w\s\.\-,]/g) || [];
+  
+  // Enforce minimum of 2 alphabetical letters (English or Arabic) to prevent numbers-only titles
+  const letters = val.match(/[a-zA-Z\u0600-\u06FF]/g) || [];
+  if (letters.length < 2) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Title must contain at least 2 letters (cannot be only numbers)" });
+    return;
+  }
+
+  // Count special characters explicitly allowing Arabic block
+  const specialChars = val.match(/[^\w\s\.\-,\u0600-\u06FF]/g) || [];
   if (specialChars.length > 3) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Too many special characters are not allowed in titles" });
     return;
@@ -1609,6 +1618,10 @@ export default function SubmitUseCase() {
     if (!valid || hasValidationErrors) {
       return
     }
+    
+    // Auto-save draft on successful next
+    await handleSaveDraft()
+
     if (currentStep < 7) {
       setCurrentStep(currentStep + 1)
       // Don't auto-scroll on mobile - let user stay where they are

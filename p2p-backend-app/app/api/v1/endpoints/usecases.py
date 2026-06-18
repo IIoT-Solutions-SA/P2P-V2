@@ -355,7 +355,7 @@ async def submit_new_use_case(
 
 @router.post("/drafts", status_code=201)
 async def save_draft(
-    draft_data: UseCaseDraftCreate,
+    draft_data: dict,
     session: SessionContainer = Depends(verify_session()),
     db: AsyncSession = Depends(get_db)
 ):
@@ -381,13 +381,14 @@ async def save_draft(
 
         # Check if updating an existing draft (draftId provided)
         existing_draft = None
-        if draft_data.draftId:
+        draft_id_val = draft_data.get("draftId")
+        if draft_id_val:
             # Validate draft ID format
-            if not ObjectId.is_valid(draft_data.draftId):
+            if not ObjectId.is_valid(draft_id_val):
                 raise HTTPException(status_code=400, detail="Invalid draft ID format")
 
             # Find the specific draft
-            existing_draft = await UseCaseDraft.find_one(UseCaseDraft.id == ObjectId(draft_data.draftId))
+            existing_draft = await UseCaseDraft.find_one(UseCaseDraft.id == ObjectId(draft_id_val))
 
             # Verify ownership
             if existing_draft and existing_draft.user_id != user_id_str:
@@ -395,7 +396,7 @@ async def save_draft(
 
         if existing_draft:
             # Update existing draft
-            update_dict = draft_data.dict(exclude_unset=True, exclude_none=False)
+            update_dict = draft_data.copy()
             # Remove draftId from update_dict since it's only used for lookup
             update_dict.pop('draftId', None)
 
@@ -543,7 +544,7 @@ async def save_draft(
             }
         else:
             # Create new draft
-            draft_dict = draft_data.dict(exclude_unset=True, exclude_none=False)
+            draft_dict = draft_data.copy()
 
             # Map frontend fields to MongoDB model fields
             new_draft = UseCaseDraft(

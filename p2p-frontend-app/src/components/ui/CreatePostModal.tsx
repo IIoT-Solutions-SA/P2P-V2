@@ -147,6 +147,9 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     } else if (titleLetters.length < 2) {
       setTitleError('Title must contain at least 2 letters (cannot be only numbers)')
       hasFieldError = true
+    } else if (/\d{6,}/.test(title)) {
+      setTitleError('Title cannot contain 6 or more consecutive numbers')
+      hasFieldError = true
     } else if (titleSpecialChars.length > 3) {
       setTitleError('Too many special characters are not allowed in titles')
       hasFieldError = true

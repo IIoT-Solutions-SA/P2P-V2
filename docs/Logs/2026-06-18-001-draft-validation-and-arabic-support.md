@@ -27,6 +27,7 @@ Updated the `/draft` endpoint signature to accept a generic `dict` instead of th
 ### 2) `p2p-backend-app/app/core/input_validation.py`
 Updated the backend input validation rules:
 - Modified the `check_safe_title` function to explicitly enforce that titles contain at least two alphabetical characters (English or Arabic), preventing titles that are entirely numbers.
+- Added a strict rule to `check_safe_title` to reject any title containing 6 or more consecutive numbers (e.g., "12345").
 - Added explicit support for Arabic character blocks (`\u0600-\u06FF`) into the regular expressions, preventing Arabic text from being wrongly classified as special symbols.
 
 ### 3) `p2p-frontend-app/src/pages/SubmitUseCase.tsx`

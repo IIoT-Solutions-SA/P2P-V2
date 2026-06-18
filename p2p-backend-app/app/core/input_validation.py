@@ -82,6 +82,10 @@ def check_safe_title(value: str) -> str:
     if len(letters) < 2:
         raise ValueError("Title must contain at least 2 letters (cannot be only numbers)")
         
+    # Prevent 6+ consecutive numbers anywhere in the title
+    if re.search(r'\d{6,}', value):
+        raise ValueError("Title cannot contain 6 or more consecutive numbers")
+        
     return value
 
 def check_safe_tag(value: str) -> str:

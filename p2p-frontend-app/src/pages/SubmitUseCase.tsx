@@ -95,6 +95,12 @@ const safeTitleSuperRefine = (val: string, ctx: z.RefinementCtx) => {
     return;
   }
 
+  // Prevent 6+ consecutive numbers
+  if (/\d{6,}/.test(val)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Title cannot contain 6 or more consecutive numbers" });
+    return;
+  }
+
   // Count special characters explicitly allowing Arabic block
   const specialChars = val.match(/[^\w\s\.\-,\u0600-\u06FF]/g) || [];
   if (specialChars.length > 3) {

@@ -767,7 +767,12 @@ def _():
 
 @run_test("Allows title with numbers and letters")
 def _():
-    expect_schema_ok(ForumPostCreate, valid_forum_data({"title": "12345 Process Improvement"}))
+    # Should pass because there are only 3 consecutive numbers
+    expect_schema_ok(ForumPostCreate, valid_forum_data({"title": "123 Process Improvement"}))
+
+@run_test("Rejects title with 6+ consecutive numbers")
+def _():
+    expect_validation_error(ForumPostCreate, valid_forum_data({"title": "123456 Process Improvement"}))
 
 # ============================================================
 # SUMMARY

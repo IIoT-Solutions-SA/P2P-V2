@@ -6,9 +6,10 @@ import { defineConfig } from "vite"
 // https://vite.dev/config/
 export default defineConfig(() => {
   const isDevelopmentMode = process.env.MODE === 'development'
+  const reactPlugins = react()
   
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [...reactPlugins, tailwindcss()],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -23,11 +24,8 @@ export default defineConfig(() => {
     },
     build: {
       target: isDevelopmentMode ? 'esnext' : 'es2015',
-      minify: isDevelopmentMode ? false : 'esbuild' as const,
+      minify: !isDevelopmentMode,
       sourcemap: isDevelopmentMode
-    },
-    esbuild: {
-      target: isDevelopmentMode ? 'esnext' : 'es2015'
     }
   }
 })

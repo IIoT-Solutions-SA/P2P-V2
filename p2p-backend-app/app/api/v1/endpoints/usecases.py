@@ -400,6 +400,19 @@ async def save_draft(
             # Remove draftId from update_dict since it's only used for lookup
             update_dict.pop('draftId', None)
 
+            # Only allow known draft fields through the generic draft endpoint.
+            # This preserves draft validation bypass for incomplete forms without letting
+            # clients mutate internal fields such as id/user_id/created_at.
+            allowed_direct_update_fields = {
+                "title",
+                "subtitle",
+                "category",
+                "images",
+                "technical_architecture",
+                "future_roadmap",
+                "lessons_learned",
+            }
+
             # Update fields
             for field, value in update_dict.items():
                 # Map camelCase to snake_case for MongoDB fields
@@ -529,9 +542,12 @@ async def save_draft(
                         if existing_draft.results is None:
                             existing_draft.results = {}
                         existing_draft.results["roi_three_year_roi"] = value
-                else:
-                    # Direct mapping for fields that match
+                elif field in allowed_direct_update_fields:
+                    # Direct mapping for safe draft fields that match the Mongo document
                     setattr(existing_draft, field, value)
+                else:
+                    # Ignore unknown/internal fields instead of setting arbitrary attributes
+                    logger.warning(f"Ignoring unsupported draft field during update: {field}")
 
             existing_draft.updated_at = datetime.utcnow()
             await existing_draft.save()

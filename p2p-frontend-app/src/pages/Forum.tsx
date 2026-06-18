@@ -237,6 +237,12 @@ export default function Forum() {
 
     // Client-side validation
     let hasFieldError = false
+    
+    const titleLetters = editTitle.match(/[a-zA-Z\u0600-\u06FF]/g) || [];
+    const titleSpecialChars = editTitle.match(/[^\w\s\.\-,\u0600-\u06FF]/g) || [];
+    const hasRepeatedChars = (val: string) => /(.)\1{4,}/.test(val);
+    const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{6,}/i.test(val);
+    
     if (!editTitle.trim()) {
       setEditTitleError('Title is required')
       hasFieldError = true
@@ -245,6 +251,21 @@ export default function Forum() {
       hasFieldError = true
     } else if (editTitle.trim().length < 8) {
       setEditTitleError(`Title should have at least 8 characters (${editTitle.trim().length}/8)`)
+      hasFieldError = true
+    } else if (titleLetters.length < 2) {
+      setEditTitleError('Title must contain at least 2 letters (cannot be only numbers)')
+      hasFieldError = true
+    } else if (/\d{6,}/.test(editTitle)) {
+      setEditTitleError('Title cannot contain 6 or more consecutive numbers')
+      hasFieldError = true
+    } else if (titleSpecialChars.length > 3) {
+      setEditTitleError('Too many special characters are not allowed in titles')
+      hasFieldError = true
+    } else if (hasRepeatedChars(editTitle)) {
+      setEditTitleError('Too many repeated characters are not allowed')
+      hasFieldError = true
+    } else if (hasConsecutiveConsonants(editTitle)) {
+      setEditTitleError('Too many consecutive consonants are not allowed')
       hasFieldError = true
     }
     if (!editContent.trim()) {

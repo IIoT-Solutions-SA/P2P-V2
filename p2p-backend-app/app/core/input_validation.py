@@ -72,10 +72,19 @@ def check_safe_title(value: str) -> str:
     
     value = check_safe_text(value, allow_urls=False)
     
-    # Check total number of special characters (excluding dot, comma, hyphen, space)
-    special_chars = re.findall(r'[^\w\s\.\-,]', value)
+    # Check total number of special characters explicitly allowing Arabic block
+    special_chars = re.findall(r'[^\w\s\.\-,\u0600-\u06FF]', value)
     if len(special_chars) > 3:
         raise ValueError("Too many special characters are not allowed in titles")
+        
+    # Enforce minimum of 2 alphabetical letters (English or Arabic) to prevent numbers-only titles
+    letters = re.findall(r'[a-zA-Z\u0600-\u06FF]', value)
+    if len(letters) < 2:
+        raise ValueError("Title must contain at least 2 letters (cannot be only numbers)")
+        
+    # Prevent 6+ consecutive numbers anywhere in the title
+    if re.search(r'\d{6,}', value):
+        raise ValueError("Title cannot contain 6 or more consecutive numbers")
         
     return value
 

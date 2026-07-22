@@ -1,436 +1,283 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { buildApiUrl } from '@/config/environment';
-import { Button } from "@/components/ui/button";
-import { 
-  Search, 
- 
-  BookOpen, 
-  Star,
-  CheckCircle,
-  TrendingUp,
-  Building2,
-  Cog,
-  Lightbulb,
-  Wrench,
+import { useCallback, useEffect, useMemo, useState, type ElementType } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import {
+  Activity,
+  ArrowRight,
+  ArrowUpDown,
+  Bookmark,
+  Bot,
+  CheckCircle2,
   Eye,
+  Factory,
+  FileText,
+  Gauge,
+  ScanEye,
+  Search,
   ThumbsUp,
-  Clock,
-  Loader2,
-  Bookmark
-} from "lucide-react";
+  X,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { EmptyState, ErrorState, LoadingState } from "@/components/shared/AppState"
+import { useCasesApi, type UseCaseListItem } from "@/lib/api/usecases"
 
-// Interfaces remain the same
-interface UseCase {
-  id: string;
-  title: string;
-  title_slug: string; // This field is required
-  company_slug: string;
-  company: string;
-  industry: string;
-  category: string;
-  description: string;
-  results: { benefits: string; };
-  timeframe: string;
-  views: number;
-  likes: number;
-  saves: number;
-  verified: boolean;
-  featured: boolean;
-  tags: string[];
-  publishedBy: string;
-  publisherTitle: string;
-  publishedDate: string;
+const sortOptions = [
+  { id: "newest", label: "Newest" },
+  { id: "most_viewed", label: "Most viewed" },
+  { id: "most_liked", label: "Most liked" },
+]
+
+const categoryIcons: ElementType[] = [Bot, Gauge, ScanEye]
+const categoryDescriptions = [
+  "Robotics, PLC upgrades, cells and commissioning.",
+  "Utilities, plant efficiency and energy optimization.",
+  "Inspection, traceability and defect reduction.",
+]
+
+const splitBenefits = (value?: string) =>
+  [...new Set((value || "").split(";").map((item) => item.trim()).filter(Boolean))].slice(0, 2)
+
+const isStructuredMetric = (value: string) => {
+  const compact = value.replace(/\s+/g, " ").trim()
+  return compact.length <= 90 && compact.split(" ").length <= 12 && /\d/.test(compact)
 }
-interface Category { id: string; name: string; count: number; }
-interface Stats { totalUseCases: number; contributingCompanies: number; successStories: number; }
-interface Contributor { name: string; cases: number; avatar: string; }
 
-const categoryIcons: { [key: string]: React.ElementType } = {
-  all: BookOpen, automation: Cog, quality: CheckCircle, maintenance: Wrench,
-  efficiency: TrendingUp, innovation: Lightbulb, sustainability: Building2,
-};
+const displayMetrics = (value?: string) => splitBenefits(value).filter(isStructuredMetric)
+
+const benefitParts = (value: string) => {
+  const compact = value.replace(/\s+/g, " ").trim()
+  const match = compact.match(/^((?:SAR\s+)?[\d,.]+(?:%|x|[KMB])?)(?:\s+(.+))?$/i)
+  return match
+    ? { headline: match[1], label: match[2] || "Measured impact" }
+    : { headline: "Impact", label: compact }
+}
+
+const compactSummary = (value?: string, maxLength = 140) => {
+  const compact = (value || "").replace(/\s+/g, " ").trim()
+  if (!compact) return "Open this implementation to review its challenge, approach, and outcomes."
+  return compact.length > maxLength ? `${compact.slice(0, maxLength - 1).trimEnd()}…` : compact
+}
 
 export default function UseCases() {
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate()
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; count: number }>>([])
+  const [items, setItems] = useState<UseCaseListItem[]>([])
+  const [stats, setStats] = useState<{ totalUseCases: number; contributingCompanies: number; successStories: number } | null>(null)
+  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set())
+  const [liked, setLiked] = useState<Set<string>>(new Set())
+  const [category, setCategory] = useState("all")
+  const [query, setQuery] = useState("")
+  const [sortBy, setSortBy] = useState("newest")
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const limit = 10
 
-  // All state management remains the same
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [useCases, setUseCases] = useState<UseCase[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [contributors, setContributors] = useState<Contributor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const setError = useState<string | null>(null)[1];
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalUseCasesCount, setTotalUseCasesCount] = useState(0);
-  const itemsPerPage = 20;
-
-  useEffect(() => {
-    const fetchUseCasesData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const skip = (currentPage - 1) * itemsPerPage;
-        const useCasesUrl = buildApiUrl(`/api/v1/use-cases?category=${selectedCategory}&search=${searchQuery}&sort_by=${sortBy}&limit=${itemsPerPage}&skip=${skip}`);
-        const [categoriesRes, useCasesRes, statsRes, contributorsRes] = await Promise.all([
-          fetch(buildApiUrl('/api/v1/use-cases/categories'), { credentials: 'include' }),
-          fetch(useCasesUrl, { credentials: 'include' }),
-          fetch(buildApiUrl('/api/v1/use-cases/stats'), { credentials: 'include' }),
-          fetch(buildApiUrl('/api/v1/use-cases/contributors'), { credentials: 'include' })
-        ]);
-        if (!categoriesRes.ok || !useCasesRes.ok || !statsRes.ok || !contributorsRes.ok) {
-            throw new Error('Failed to fetch data from the server.');
-        }
-        setCategories(await categoriesRes.json());
-        const useCasesData = await useCasesRes.json();
-
-        // Handle both old format (array) and new format (object with items)
-        if (Array.isArray(useCasesData)) {
-          setUseCases(useCasesData);
-          setTotalUseCasesCount(useCasesData.length);
-        } else {
-          setUseCases(useCasesData.items || []);
-          setTotalUseCasesCount(useCasesData.total || 0);
-        }
-
-        setStats(await statsRes.json());
-        setContributors(await contributorsRes.json());
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUseCasesData();
-  }, [selectedCategory, searchQuery, sortBy, currentPage]);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory, searchQuery, sortBy]);
-
-  // Scroll to top when page changes
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentPage]);
-
-  // Fetch saved use cases once to highlight bookmarks
-  useEffect(() => {
-    const fetchBookmarks = async () => {
-      try {
-        const res = await fetch(buildApiUrl('/api/v1/use-cases/bookmarks'), { credentials: 'include' });
-        if (!res.ok) return;
-        const data = await res.json();
-        const ids = new Set<string>(Array.isArray(data) ? data.map((b: any) => String(b.id)) : []);
-        setBookmarkedIds(ids);
-      } catch (_) {
-        // ignore
-      }
-    };
-    fetchBookmarks();
-  }, []);
-
-  const handleLike = async (e: React.MouseEvent, uc: UseCase, idx: number) => {
-    e.stopPropagation();
+  const loadLibrary = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const res = await fetch(buildApiUrl(`/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/like`), {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (typeof data.likes === 'number') {
-        setUseCases(prev => prev.map((item, i) => i === idx ? { ...item, likes: data.likes } : item));
-        setLikedIds(prev => {
-          const next = new Set(prev);
-          if (data.liked) next.add(uc.id); else next.delete(uc.id);
-          return next;
-        });
-      }
-    } catch (_) {
-      // no-op
+      const [categoryData, listData, statsData, bookmarkData] = await Promise.all([
+        useCasesApi.categories(),
+        useCasesApi.list({ category, search: query, sortBy, limit, skip: (page - 1) * limit }),
+        useCasesApi.stats().catch(() => null),
+        useCasesApi.bookmarks().catch(() => []),
+      ])
+      setCategories(categoryData || [])
+      setItems(listData.items || [])
+      setTotal(listData.total || 0)
+      setStats(statsData)
+      setBookmarked(new Set((bookmarkData || []).map((item) => String(item.id))))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load use cases")
+    } finally {
+      setLoading(false)
     }
-  };
+  }, [category, page, query, sortBy])
 
-  const handleBookmark = async (e: React.MouseEvent, uc: UseCase, idx: number) => {
-    e.stopPropagation();
+  useEffect(() => {
+    const id = window.setTimeout(() => void loadLibrary(), 250)
+    return () => window.clearTimeout(id)
+  }, [loadLibrary])
+
+  useEffect(() => setPage(1), [category, query, sortBy])
+  useEffect(() => window.scrollTo({ top: 0, behavior: "smooth" }), [page])
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total])
+  const activeCategory = categories.find((item) => item.id === category)
+  const featuredItems = items.filter((item) => item.featured).slice(0, 3)
+  const visibleCategories = categories.filter((item) => item.id !== "all").slice(0, 3)
+
+  const toggleLike = async (item: UseCaseListItem) => {
     try {
-      const res = await fetch(buildApiUrl(`/api/v1/use-cases/${uc.company_slug}/${uc.title_slug}/bookmark`), {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (typeof data.bookmarks === 'number') {
-        setUseCases(prev => prev.map((item, i) => i === idx ? { ...item, saves: data.bookmarks } : item));
-        setBookmarkedIds(prev => {
-          const next = new Set(prev);
-          if (data.bookmarked) next.add(uc.id); else next.delete(uc.id);
-          return next;
-        });
-      }
-    } catch (_) {
-      // no-op
+      const result = await useCasesApi.like(item.company_slug, item.title_slug)
+      setItems((prev) => prev.map((entry) => entry.id === item.id ? { ...entry, likes: result.likes } : entry))
+      setLiked((prev) => {
+        const next = new Set(prev)
+        if (result.liked) next.add(item.id)
+        else next.delete(item.id)
+        return next
+      })
+    } catch {
+      // Keep the current library intact when an authenticated action is rejected.
     }
-  };
+  }
 
-  const sortOptions = [
-    { id: "newest", name: "Newest", icon: Clock },
-    { id: "most_viewed", name: "Most Viewed", icon: TrendingUp },
-    { id: "most_liked", name: "Most Liked", icon: ThumbsUp },
-  ];
+  const toggleBookmark = async (item: UseCaseListItem) => {
+    try {
+      const result = await useCasesApi.bookmark(item.company_slug, item.title_slug)
+      setItems((prev) => prev.map((entry) => entry.id === item.id ? { ...entry, saves: result.bookmarks } : entry))
+      setBookmarked((prev) => {
+        const next = new Set(prev)
+        if (result.bookmarked) next.add(item.id)
+        else next.delete(item.id)
+        return next
+      })
+    } catch {
+      // Authentication and API error handling remain owned by the existing client/session layer.
+    }
+  }
 
-  const parseBenefits = (benefits: string) => {
-    if (!benefits) return [];
-    return benefits.split(';').map(benefit => {
-        const parts = benefit.trim().split(' ');
-        const value = parts[0];
-        const label = parts.slice(1).join(' ');
-        return { value, label };
-    });
-  };
+  if (loading && items.length === 0) {
+    return <div className="px-4 py-8 md:px-8 xl:px-14"><LoadingState title="Loading use cases" description="Retrieving use cases, filters, metrics, and your saved library context." /></div>
+  }
+  if (error) {
+    return <div className="px-4 py-8 md:px-8 xl:px-14"><ErrorState title="Could not load the library" description={error} actionLabel="Try again" onAction={() => void loadLibrary()} /></div>
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 font-sans pb-20 md:pb-0">
-      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-          <aside className="lg:col-span-1 space-y-6 hidden lg:block">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100">
-              <h3 className="font-bold text-slate-800 text-lg mb-4">Categories</h3>
-              <div className="space-y-1">
-                {categories.map((category) => {
-                  const IconComponent = categoryIcons[category.id] || BookOpen;
-                  return (
-                    <button key={category.id} onClick={() => setSelectedCategory(category.id)} className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${selectedCategory === category.id ? "bg-blue-600 text-white shadow-md" : "hover:bg-slate-100 text-slate-700"}`}>
-                      <div className="flex items-center space-x-3"><IconComponent className="h-5 w-5" /><span className="text-sm font-semibold">{category.name}</span></div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${selectedCategory === category.id ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"}`}>{category.count}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100">
-              <h3 className="font-bold text-slate-800 text-lg mb-4">Platform Stats</h3>
-              <div className="space-y-4">
-                {loading ? ( <Loader2 className="h-6 w-6 animate-spin text-blue-600" /> ) : stats && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div><p className="text-sm text-slate-500">Total Use Cases</p><p className="text-2xl font-bold text-blue-600">{stats.totalUseCases}</p></div>
-                      <div className="p-3 bg-blue-100 rounded-lg"><BookOpen className="h-6 w-6 text-blue-600" /></div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div><p className="text-sm text-slate-500">Contributing Companies</p><p className="text-2xl font-bold text-slate-700">{stats.contributingCompanies}</p></div>
-                      <div className="p-3 bg-slate-100 rounded-lg"><Building2 className="h-6 w-6 text-slate-600" /></div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div><p className="text-sm text-slate-500">Success Stories</p><p className="text-2xl font-bold text-amber-500">{stats.successStories}</p></div>
-                      <div className="p-3 bg-amber-100 rounded-lg"><Star className="h-6 w-6 text-amber-500" /></div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100">
-              <h3 className="font-bold text-slate-800 text-lg mb-4">Top Contributors</h3>
-              <div className="space-y-4">
-                {loading ? ( <Loader2 className="h-6 w-6 animate-spin text-blue-600" /> ) : contributors.map((company, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex items-center justify-center"><span className="text-sm font-bold text-white">{company.avatar}</span></div>
-                      <div><p className="text-sm font-semibold text-slate-800">{company.name}</p><p className="text-xs text-slate-500">{company.cases} use cases</p></div>
-                    </div>
-                    <div className="px-3 py-1 bg-slate-100 text-slate-600 text-sm font-bold rounded-lg">#{i + 1}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </aside>
-          <main className="lg:col-span-3 w-full space-y-6">
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-lg p-6 sm:p-8 text-white">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Factory Success Stories</h1>
-              <p className="text-slate-300 text-sm sm:text-base lg:text-lg max-w-2xl">Discover proven implementations, learn from industry leaders, and find solutions that work.</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-100 flex flex-col gap-4">
-              <div className="flex-1 w-full relative">
-                <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
-                <input type="text" placeholder="Search use cases..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base" />
-              </div>
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg overflow-x-auto">
-                {sortOptions.map((option) => (
-                  <Button key={option.id} variant={sortBy === option.id ? "default" : "ghost"} size="sm" onClick={() => setSortBy(option.id)} className={`rounded-md transition-all duration-200 whitespace-nowrap text-xs sm:text-sm ${sortBy === option.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'}`}>
-                    <option.icon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">{option.name}</span>
-                    <span className="sm:hidden">{option.name.split(' ')[0]}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-6">
-              {loading && <div className="text-center p-10"><Loader2 className="h-8 w-8 mx-auto animate-spin text-blue-600" /></div>}
-              {!loading && useCases.map((useCase, idx) => (
-                <div key={useCase.id} className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300 overflow-hidden">
-                    <div className="cursor-pointer" onClick={() => navigate(`/usecases/${useCase.company_slug}/${useCase.title_slug}`)}>
-                      <div className="p-4 sm:p-6">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
-                                <div className="flex items-center flex-wrap gap-2">
-                                    {useCase.featured && <span className="flex items-center text-[10px] sm:text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap"><Star className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" /> Featured</span>}
-                                    <span className="text-[10px] sm:text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">{useCase.category}</span>
-                                </div>
-                                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-800 break-words">{useCase.title}</h3>
-                                <div className="flex items-center flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-500">
-                                    <span className="flex items-center whitespace-nowrap"><Building2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 text-slate-400 flex-shrink-0" /><span className="truncate">{useCase.company}</span></span>
-                                    <span className="flex items-center whitespace-nowrap"><Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 text-slate-400 flex-shrink-0" />{useCase.timeframe}</span>
-                                </div>
-                                <p className="text-xs sm:text-sm lg:text-base text-slate-600 leading-relaxed pt-1 break-words line-clamp-3">{useCase.description}</p>
-                            </div>
-                        </div>
-                      </div>
-                      <div className="bg-slate-50/70 px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100">
-                        <h4 className="font-semibold text-slate-700 mb-2 sm:mb-3 text-xs sm:text-sm">Key Results</h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-                            {parseBenefits(useCase.results.benefits).map((stat, i) => (
-                                <div key={i} className="bg-white p-2 sm:p-3 rounded-lg border border-slate-200 text-center">
-                                    <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 break-words">{stat.value}</div>
-                                    <div className="text-[10px] sm:text-xs text-slate-500 capitalize break-words line-clamp-2">{stat.label}</div>
-                                </div>
-                            ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 gap-3">
-                        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
-                            <span className="flex items-center text-slate-900 whitespace-nowrap" title="Views">
-                              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" /> {useCase.views}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={`${likedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100 px-2 sm:px-3 h-7 sm:h-8`}
-                              onClick={(e) => handleLike(e, useCase, idx)}
-                            >
-                              <ThumbsUp className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 ${likedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.likes}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={`${bookmarkedIds.has(useCase.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100 px-2 sm:px-3 h-7 sm:h-8`}
-                              onClick={(e) => handleBookmark(e, useCase, idx)}
-                            >
-                              <Bookmark className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5 ${bookmarkedIds.has(useCase.id) ? 'fill-current text-blue-600' : ''}`} /> {useCase.saves}
-                            </Button>
-                        </div>
-                        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-                            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0"><span className="text-xs font-bold text-slate-600">{useCase.publishedBy.charAt(0)}</span></div>
-                            <div className="min-w-0">
-                                <p className="text-xs sm:text-sm font-semibold text-slate-800 truncate">{useCase.publishedBy}</p>
-                                <p className="text-[10px] sm:text-xs text-slate-500 truncate">{useCase.publisherTitle}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination Controls */}
-            {totalUseCasesCount > itemsPerPage && (
-              <div className="flex justify-center items-center space-x-2 mt-8 pb-8">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-
-                <div className="flex items-center space-x-1">
-                  {(() => {
-                    const totalPages = Math.ceil(totalUseCasesCount / itemsPerPage);
-                    const pages = [];
-                    const maxVisiblePages = 5;
-
-                    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-                    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-                    if (endPage - startPage < maxVisiblePages - 1) {
-                      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-                    }
-
-                    if (startPage > 1) {
-                      pages.push(
-                        <Button
-                          key={1}
-                          variant={currentPage === 1 ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(1)}
-                          className="min-w-[40px]"
-                        >
-                          1
-                        </Button>
-                      );
-                      if (startPage > 2) {
-                        pages.push(<span key="ellipsis1" className="px-2">...</span>);
-                      }
-                    }
-
-                    for (let i = startPage; i <= endPage; i++) {
-                      pages.push(
-                        <Button
-                          key={i}
-                          variant={currentPage === i ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(i)}
-                          className="min-w-[40px]"
-                        >
-                          {i}
-                        </Button>
-                      );
-                    }
-
-                    if (endPage < totalPages) {
-                      if (endPage < totalPages - 1) {
-                        pages.push(<span key="ellipsis2" className="px-2">...</span>);
-                      }
-                      pages.push(
-                        <Button
-                          key={totalPages}
-                          variant={currentPage === totalPages ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="min-w-[40px]"
-                        >
-                          {totalPages}
-                        </Button>
-                      );
-                    }
-
-                    return pages;
-                  })()}
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalUseCasesCount / itemsPerPage), prev + 1))}
-                  disabled={currentPage >= Math.ceil(totalUseCasesCount / itemsPerPage)}
-                >
-                  Next
-                </Button>
-
-                <span className="text-sm text-slate-600 ml-4">
-                  Page {currentPage} of {Math.ceil(totalUseCasesCount / itemsPerPage)} ({totalUseCasesCount} total)
-                </span>
-              </div>
-            )}
-          </main>
+    <main className="mx-auto w-full max-w-[1430px] px-4 py-8 md:px-8 md:py-11 xl:px-14">
+      <header className="mb-8 grid items-end gap-7 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div>
+          <p className="peer-eyebrow mb-2">Manufacturing knowledge library</p>
+          <h1 className="max-w-4xl font-display text-3xl font-semibold tracking-[-0.04em] sm:text-4xl xl:text-[45px] xl:leading-[1.13]">Explore proven manufacturing implementations.</h1>
+          <p className="mt-3 max-w-3xl text-[15px] leading-6 text-[var(--peer-muted)]">Search practical projects from Saudi manufacturing teams, compare measurable outcomes, and connect with the people behind the work.</p>
         </div>
+        <Button asChild className="h-10 rounded-none bg-[var(--peer-navy)] px-4 text-xs font-bold text-white hover:bg-[#174550]">
+          <Link to="/submit"><FileText className="size-4" />Submit use case</Link>
+        </Button>
+      </header>
+
+      <section className="peer-panel mb-[22px] overflow-hidden" aria-labelledby="library-tools-title">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[18px]">
+          <div><p className="peer-eyebrow mb-1">Find implementation evidence</p><h2 id="library-tools-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Search, categories and filters</h2></div>
+          {items[0] ? <Link to={`/usecases/${items[0].company_slug}/${items[0].title_slug}`} className="hidden items-center gap-1 text-xs font-bold text-[var(--peer-blue)] sm:inline-flex">Open selected <ArrowRight className="size-3.5" /></Link> : null}
+        </div>
+        <div className="grid gap-2.5 border-b border-[var(--peer-line)] bg-[#f7f5ee] px-[22px] py-[18px] lg:grid-cols-[minmax(260px,1fr)_190px_auto]">
+          <label className="relative block">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--peer-teal)]" />
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} className="h-[42px] w-full border border-[var(--peer-line)] bg-white pl-10 pr-3 text-[13px] outline-none focus:border-[var(--peer-blue)]" placeholder="Search technology, challenge, company or city" aria-label="Search use cases" />
+          </label>
+          <label className="relative block">
+            <Factory className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--peer-teal)]" />
+            <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-[42px] w-full appearance-none border border-[var(--peer-line)] bg-white pl-10 pr-3 text-[13px] outline-none focus:border-[var(--peer-blue)]" aria-label="Filter by category">
+              {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          <div className="flex gap-2 overflow-x-auto">
+            {sortOptions.map((option) => (
+              <Button key={option.id} variant="outline" onClick={() => setSortBy(option.id)} className={`h-[42px] rounded-none px-3 text-xs ${sortBy === option.id ? "border-[var(--peer-navy)] bg-[var(--peer-navy)] text-white hover:bg-[#174550] hover:text-white" : "border-[var(--peer-line)] bg-white"}`}>
+                <ArrowUpDown className="size-3.5" />{option.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {(category !== "all" || query) ? (
+          <div className="flex flex-wrap gap-2 border-b border-[var(--peer-line)] px-[22px] py-3.5">
+            {activeCategory && category !== "all" ? <span className="inline-flex min-h-[30px] items-center gap-1.5 border border-[#c8d6d1] bg-[var(--peer-teal-soft)] px-2.5 text-xs font-bold text-[var(--peer-teal)]"><Activity className="size-3.5" />{activeCategory.name}</span> : null}
+            {query ? <span className="inline-flex min-h-[30px] items-center gap-1.5 border border-[#c8d6d1] bg-[var(--peer-teal-soft)] px-2.5 text-xs font-bold text-[var(--peer-teal)]"><Search className="size-3.5" />{query}</span> : null}
+            <button type="button" onClick={() => { setCategory("all"); setQuery("") }} className="inline-flex min-h-[30px] items-center gap-1.5 border border-[var(--peer-line)] px-2.5 text-xs font-bold text-[var(--peer-muted)]"><X className="size-3.5" />Clear filters</button>
+          </div>
+        ) : null}
+        {visibleCategories.length ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3">
+            {visibleCategories.map((item, index) => {
+              const Icon = categoryIcons[index] || Factory
+              return (
+                <button key={item.id} type="button" onClick={() => setCategory(item.id)} className="group grid min-h-32 content-between gap-3 border-b border-[var(--peer-line)] p-[19px] text-left hover:bg-[#f2f5f1] sm:border-r lg:last:border-r-0">
+                  <span className="flex items-start justify-between"><span className="grid size-[39px] place-items-center border border-[#c4d7d1] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)]"><Icon className="size-[19px]" /></span><span className="text-[11px] font-bold text-[var(--peer-muted)]">{item.count}</span></span>
+                  <span><strong className="block text-sm">{item.name}</strong><span className="mt-1 block text-xs leading-5 text-[var(--peer-muted)]">{categoryDescriptions[index]}</span></span>
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
+      </section>
+
+      <div className="grid items-start gap-[22px] xl:grid-cols-[minmax(0,1.56fr)_minmax(292px,0.74fr)]">
+        <section className="peer-panel overflow-hidden" aria-labelledby="results-title">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[18px]">
+            <div><p className="peer-eyebrow mb-1">Library results</p><h2 id="results-title" className="font-display text-[19px] font-semibold">{total} use cases</h2></div>
+            {loading ? <span className="text-xs text-[var(--peer-muted)]">Updating…</span> : <span className="text-xs text-[var(--peer-muted)]">Page {page} of {totalPages}</span>}
+          </div>
+          {items.length === 0 ? (
+            <EmptyState className="border-0 shadow-none" title="No use cases match these filters" description="Broaden the category or search terms to find more implementation examples." actionLabel="Clear filters" onAction={() => { setQuery(""); setCategory("all") }} />
+          ) : (
+            <ul className="m-0 list-none p-0">
+              {items.map((item) => {
+                const itemBenefits = displayMetrics(item.results?.benefits)
+                return (
+                  <li key={item.id} className="grid gap-4 border-b border-[var(--peer-line)] px-[22px] py-5 last:border-b-0 hover:bg-[#f2f5f1] md:grid-cols-[104px_minmax(0,1fr)_auto]">
+                    <button type="button" onClick={() => navigate(`/usecases/${item.company_slug}/${item.title_slug}`)} className="grid h-[104px] w-full place-items-center self-start overflow-hidden border border-[#c4d7d1] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)] md:w-[104px]" aria-label={`Open ${item.title}`}>
+                      {item.image ? <img src={item.image} alt="" className="h-full w-full object-cover" /> : <Activity className="size-8" />}
+                    </button>
+                    <div className="min-w-0">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--peer-muted)]">
+                        <span className="inline-flex min-h-[28px] items-center gap-1.5 border border-[#c8d6d1] bg-[var(--peer-teal-soft)] px-2.5 font-bold text-[var(--peer-teal)]">{item.verified ? <CheckCircle2 className="size-3.5" /> : <Factory className="size-3.5" />}{item.category}</span>
+                        {item.industry ? <span>{item.industry}</span> : null}<span>{item.company}</span>
+                      </div>
+                      <Link to={`/usecases/${item.company_slug}/${item.title_slug}`} className="font-display text-[17px] font-bold leading-[1.3] tracking-[-0.02em] hover:text-[var(--peer-blue)]">{item.title}</Link>
+                      <p className="mt-1.5 line-clamp-2 text-[13px] leading-5 text-[var(--peer-muted)]">{item.description || "Open this implementation to review its challenge, approach, measured outcomes, and lessons learned."}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-1 text-xs text-[var(--peer-muted)]">
+                        <span className="inline-flex items-center gap-1 px-2"><Eye className="size-3.5" />{item.views}</span>
+                        <button type="button" onClick={() => void toggleLike(item)} className={`inline-flex min-h-8 items-center gap-1 px-2 font-semibold hover:text-[var(--peer-teal)] ${liked.has(item.id) ? "text-[var(--peer-teal)]" : ""}`} aria-label="Like use case"><ThumbsUp className={`size-3.5 ${liked.has(item.id) ? "fill-current" : ""}`} />{item.likes}</button>
+                        <button type="button" onClick={() => void toggleBookmark(item)} className={`inline-flex min-h-8 items-center gap-1 px-2 font-semibold hover:text-[var(--peer-teal)] ${bookmarked.has(item.id) ? "text-[var(--peer-teal)]" : ""}`} aria-label="Save use case"><Bookmark className={`size-3.5 ${bookmarked.has(item.id) ? "fill-current" : ""}`} />{item.saves}</button>
+                      </div>
+                    </div>
+                    {itemBenefits.length ? (
+                      <div className="grid grid-cols-2 self-center border border-[var(--peer-line)] bg-[var(--peer-line)]">
+                        {itemBenefits.map((benefit) => {
+                          const part = benefitParts(benefit)
+                          return <span key={benefit} className="grid min-h-[70px] min-w-[92px] max-w-[120px] content-center justify-items-center bg-[#f5f4ef] px-3 text-center"><strong className="font-display text-[15px]">{part.headline}</strong><span className="mt-1 line-clamp-2 text-[10px] leading-4 text-[var(--peer-muted)]">{part.label}</span></span>
+                        })}
+                      </div>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          {totalPages > 1 ? (
+            <div className="flex items-center justify-center gap-3 border-t border-[var(--peer-line)] p-4">
+              <Button variant="outline" className="rounded-none bg-white" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Previous</Button>
+              <span className="text-xs text-[var(--peer-muted)]">Page {page} of {totalPages}</span>
+              <Button variant="outline" className="rounded-none bg-white" disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Next</Button>
+            </div>
+          ) : null}
+        </section>
+
+        <aside className="grid gap-[22px]">
+          <section className="peer-panel overflow-hidden">
+            <div className="border-b border-[var(--peer-line)] px-5 py-[18px]"><p className="peer-eyebrow mb-1">Featured evidence</p><h2 className="font-display text-[19px] font-semibold">High-signal cases</h2></div>
+            <ul className="m-0 list-none p-0">
+              {(featuredItems.length ? featuredItems : items.slice(0, 3)).map((item) => {
+                const metrics = displayMetrics(item.results?.benefits)
+                const summary = metrics.length ? metrics.join(" · ") : compactSummary(item.description)
+                return <li key={item.id} className="border-b border-[var(--peer-line)] px-5 py-3.5 last:border-b-0"><Link to={`/usecases/${item.company_slug}/${item.title_slug}`} className="text-[13px] font-bold hover:text-[var(--peer-blue)]">{item.title}</Link><span className="mt-1 block text-[11px] leading-4 text-[var(--peer-muted)]">{summary}</span></li>
+              })}
+            </ul>
+          </section>
+          <section className="peer-panel overflow-hidden">
+            <div className="border-b border-[var(--peer-line)] px-5 py-[18px]"><p className="peer-eyebrow mb-1">Network evidence</p><h2 className="font-display text-[19px] font-semibold">Library at a glance</h2></div>
+            <dl className="m-0">
+              <div className="flex justify-between border-b border-[var(--peer-line)] px-5 py-3.5 text-xs"><dt className="text-[var(--peer-muted)]">Published cases</dt><dd className="font-display font-bold">{stats?.totalUseCases ?? total}</dd></div>
+              <div className="flex justify-between border-b border-[var(--peer-line)] px-5 py-3.5 text-xs"><dt className="text-[var(--peer-muted)]">Contributing companies</dt><dd className="font-display font-bold">{stats?.contributingCompanies ?? "—"}</dd></div>
+              <div className="flex justify-between px-5 py-3.5 text-xs"><dt className="text-[var(--peer-muted)]">Featured stories</dt><dd className="font-display font-bold">{stats?.successStories ?? "—"}</dd></div>
+            </dl>
+            <Link to="/submit" className="grid grid-cols-[1fr_auto] items-center gap-3 border-t border-[var(--peer-line)] bg-[#f1f2ed] px-5 py-4"><span><strong className="block text-[13px]">Start submission</strong><span className="text-[11px] text-[var(--peer-muted)]">Three simple steps · about 5–10 minutes</span></span><span className="font-display text-[22px] font-bold text-[var(--peer-teal)]">3</span></Link>
+          </section>
+        </aside>
       </div>
-    </div>
+    </main>
   )
 }

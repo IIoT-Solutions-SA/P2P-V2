@@ -23,13 +23,28 @@
     "executive_summary": "Advanced Electronics Co. implemented an AI-powered computer vision system that achieved an 85% defect reduction and multi-million SAR annual savings.",
     "business_challenge": {
       "industry_context": "Electronics manufacturing quality demands",
-      "specific_problems": ["Manual inspection inconsistency", "Microscopic defects"],
-      "business_impact": {"financial_loss": "450K annual losses"}
+      "specific_problems": [
+        "Manual inspection inconsistency",
+        "Microscopic defects"
+      ],
+      "business_impact": {
+        "financial_loss": "450K annual losses"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["99%+ accuracy", "Real-time"],
-      "vendor_evaluation": {"selected_vendor": "VisionTech Systems"},
-      "technology_components": [{"component": "AI/ML Engine", "details": "CNN models"}]
+      "selection_criteria": [
+        "99%+ accuracy",
+        "Real-time"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "VisionTech Systems"
+      },
+      "technology_components": [
+        {
+          "component": "AI/ML Engine",
+          "details": "CNN models"
+        }
+      ]
     },
     "implementation_details": {
       "methodology": "Agile",
@@ -38,17 +53,38 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Defect Rate Reduction", "baseline": "15%", "current": "2.25%", "improvement": "85% reduction"}
+        {
+          "metric": "Defect Rate Reduction",
+          "baseline": "15%",
+          "current": "2.25%",
+          "improvement": "85% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "2,300,000"}
+      "roi_analysis": {
+        "annual_savings": "2,300,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Edge + Cloud"},
+    "technical_architecture": {
+      "system_overview": "Edge + Cloud"
+    },
     "future_roadmap": [
-      {"timeline": "Q2 2024", "initiative": "Assembly line expansion", "description": "Roll out to assembly"}
+      {
+        "timeline": "Q2 2024",
+        "initiative": "Assembly line expansion",
+        "description": "Roll out to assembly"
+      }
     ],
     "lessons_learned": [
-      {"category": "Technical", "lesson": "Data quality matters"}
-    ]
+      {
+        "category": "Technical",
+        "lesson": "Data quality matters"
+      }
+    ],
+    "problem": "Manual inspection inconsistency. Microscopic defects.",
+    "technology": "AI/ML Engine: CNN models",
+    "budget": "285,000",
+    "outcomes": "Defect Rate Reduction: 85% reduction (from 15% to 2.25%).\nEstimated annual savings: 2,300,000.",
+    "challenges": ""
   },
   {
     "id": 2,
@@ -74,12 +110,20 @@
     "executive_summary": "IoT-based predictive maintenance cut downtime by 60% and saved 1.8M annually.",
     "business_challenge": {
       "industry_context": "Plastics machinery reliability",
-      "specific_problems": ["Catastrophic failures"],
-      "business_impact": {"financial_loss": "2.8M"}
+      "specific_problems": [
+        "Catastrophic failures"
+      ],
+      "business_impact": {
+        "financial_loss": "2.8M"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["<5% false positives"],
-      "vendor_evaluation": {"selected_vendor": "IoT Solutions SA"}
+      "selection_criteria": [
+        "<5% false positives"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IoT Solutions SA"
+      }
     },
     "implementation_details": {
       "methodology": "Phased rollout",
@@ -88,16 +132,34 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Unplanned Downtime", "baseline": "35%", "current": "14%", "improvement": "60% reduction"}
+        {
+          "metric": "Unplanned Downtime",
+          "baseline": "35%",
+          "current": "14%",
+          "improvement": "60% reduction"
+        }
       ]
     },
-    "technical_architecture": {"system_overview": "Edge gateways + Cloud IoT"},
+    "technical_architecture": {
+      "system_overview": "Edge gateways + Cloud IoT"
+    },
     "future_roadmap": [
-      {"timeline": "Q3 2024", "initiative": "CMMS Integration"}
+      {
+        "timeline": "Q3 2024",
+        "initiative": "CMMS Integration"
+      }
     ],
     "lessons_learned": [
-      {"category": "Integration", "lesson": "Pilot critical assets first"}
-    ]
+      {
+        "category": "Integration",
+        "lesson": "Pilot critical assets first"
+      }
+    ],
+    "problem": "Catastrophic failures.",
+    "technology": "Phased rollout",
+    "budget": "450,000",
+    "outcomes": "Unplanned Downtime: 60% reduction (from 35% to 14%).",
+    "challenges": ""
   },
   {
     "id": 3,
@@ -123,15 +185,33 @@
     "executive_summary": "Saudi Steel Works deployed smart energy monitoring systems achieving 30% cost reduction and significant environmental benefits through optimized power consumption and renewable integration.",
     "business_challenge": {
       "industry_context": "Steel manufacturing energy intensity",
-      "specific_problems": ["High electricity costs", "Peak demand charges", "Carbon footprint"],
-      "business_impact": {"financial_loss": "3.2M annual energy costs"}
+      "specific_problems": [
+        "High electricity costs",
+        "Peak demand charges",
+        "Carbon footprint"
+      ],
+      "business_impact": {
+        "financial_loss": "3.2M annual energy costs"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Real-time monitoring", "Predictive analytics", "Renewable integration"],
-      "vendor_evaluation": {"selected_vendor": "Smart Energy Solutions KSA"},
+      "selection_criteria": [
+        "Real-time monitoring",
+        "Predictive analytics",
+        "Renewable integration"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Smart Energy Solutions KSA"
+      },
       "technology_components": [
-        {"component": "IoT Sensors", "details": "Real-time power monitoring"},
-        {"component": "Analytics Platform", "details": "Machine learning optimization"}
+        {
+          "component": "IoT Sensors",
+          "details": "Real-time power monitoring"
+        },
+        {
+          "component": "Analytics Platform",
+          "details": "Machine learning optimization"
+        }
       ]
     },
     "implementation_details": {
@@ -141,18 +221,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Energy Cost Reduction", "baseline": "3.2M SAR", "current": "2.24M SAR", "improvement": "30% reduction"},
-        {"metric": "Carbon Emissions", "baseline": "850 tons CO2", "current": "510 tons CO2", "improvement": "40% reduction"}
+        {
+          "metric": "Energy Cost Reduction",
+          "baseline": "3.2M SAR",
+          "current": "2.24M SAR",
+          "improvement": "30% reduction"
+        },
+        {
+          "metric": "Carbon Emissions",
+          "baseline": "850 tons CO2",
+          "current": "510 tons CO2",
+          "improvement": "40% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "950,000"}
+      "roi_analysis": {
+        "annual_savings": "950,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Edge sensors + Cloud analytics + Mobile dashboards"},
+    "technical_architecture": {
+      "system_overview": "Edge sensors + Cloud analytics + Mobile dashboards"
+    },
     "future_roadmap": [
-      {"timeline": "Q1 2025", "initiative": "Solar integration", "description": "Add 2MW solar capacity"}
+      {
+        "timeline": "Q1 2025",
+        "initiative": "Solar integration",
+        "description": "Add 2MW solar capacity"
+      }
     ],
     "lessons_learned": [
-      {"category": "Implementation", "lesson": "Start with high-consumption areas for maximum impact"}
-    ]
+      {
+        "category": "Implementation",
+        "lesson": "Start with high-consumption areas for maximum impact"
+      }
+    ],
+    "problem": "High electricity costs. Peak demand charges. Carbon footprint.",
+    "technology": "IoT Sensors: Real-time power monitoring\nAnalytics Platform: Machine learning optimization",
+    "budget": "180,000",
+    "outcomes": "Energy Cost Reduction: 30% reduction (from 3.2M SAR to 2.24M SAR).\nCarbon Emissions: 40% reduction (from 850 tons CO2 to 510 tons CO2).\nEstimated annual savings: 950,000.",
+    "challenges": ""
   },
   {
     "id": 4,
@@ -178,15 +284,33 @@
     "executive_summary": "Arabian Food Processing transformed their supply chain with RFID technology, achieving 45% inventory optimization and eliminating stockouts while reducing food waste by 35%.",
     "business_challenge": {
       "industry_context": "Food processing inventory complexity",
-      "specific_problems": ["Manual tracking errors", "Food spoilage", "Stockout incidents"],
-      "business_impact": {"financial_loss": "1.8M annual waste and lost sales"}
+      "specific_problems": [
+        "Manual tracking errors",
+        "Food spoilage",
+        "Stockout incidents"
+      ],
+      "business_impact": {
+        "financial_loss": "1.8M annual waste and lost sales"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Food-grade RFID", "Real-time tracking", "ERP integration"],
-      "vendor_evaluation": {"selected_vendor": "RFID Food Solutions"},
+      "selection_criteria": [
+        "Food-grade RFID",
+        "Real-time tracking",
+        "ERP integration"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "RFID Food Solutions"
+      },
       "technology_components": [
-        {"component": "RFID Tags", "details": "Food-safe passive tags"},
-        {"component": "Reader Network", "details": "Warehouse and production readers"}
+        {
+          "component": "RFID Tags",
+          "details": "Food-safe passive tags"
+        },
+        {
+          "component": "Reader Network",
+          "details": "Warehouse and production readers"
+        }
       ]
     },
     "implementation_details": {
@@ -196,18 +320,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Inventory Accuracy", "baseline": "75%", "current": "99.5%", "improvement": "24.5% improvement"},
-        {"metric": "Waste Reduction", "baseline": "12%", "current": "7.8%", "improvement": "35% reduction"}
+        {
+          "metric": "Inventory Accuracy",
+          "baseline": "75%",
+          "current": "99.5%",
+          "improvement": "24.5% improvement"
+        },
+        {
+          "metric": "Waste Reduction",
+          "baseline": "12%",
+          "current": "7.8%",
+          "improvement": "35% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "1,240,000"}
+      "roi_analysis": {
+        "annual_savings": "1,240,000"
+      }
     },
-    "technical_architecture": {"system_overview": "RFID infrastructure + WMS integration + Analytics dashboard"},
+    "technical_architecture": {
+      "system_overview": "RFID infrastructure + WMS integration + Analytics dashboard"
+    },
     "future_roadmap": [
-      {"timeline": "Q2 2024", "initiative": "Supplier integration", "description": "Extend RFID to supplier network"}
+      {
+        "timeline": "Q2 2024",
+        "initiative": "Supplier integration",
+        "description": "Extend RFID to supplier network"
+      }
     ],
     "lessons_learned": [
-      {"category": "Change Management", "lesson": "Staff training critical for adoption success"}
-    ]
+      {
+        "category": "Change Management",
+        "lesson": "Staff training critical for adoption success"
+      }
+    ],
+    "problem": "Manual tracking errors. Food spoilage. Stockout incidents.",
+    "technology": "RFID Tags: Food-safe passive tags\nReader Network: Warehouse and production readers",
+    "budget": "320,000",
+    "outcomes": "Inventory Accuracy: 24.5% improvement (from 75% to 99.5%).\nWaste Reduction: 35% reduction (from 12% to 7.8%).\nEstimated annual savings: 1,240,000.",
+    "challenges": ""
   },
   {
     "id": 5,
@@ -233,15 +383,33 @@
     "executive_summary": "Precision Manufacturing deployed collaborative robots achieving 50% production speed increase and 95% accuracy improvement, generating 3.2M SAR in productivity gains.",
     "business_challenge": {
       "industry_context": "Precision manufacturing quality demands",
-      "specific_problems": ["Manual assembly errors", "Production bottlenecks", "Labor shortages"],
-      "business_impact": {"financial_loss": "2.1M lost productivity annually"}
+      "specific_problems": [
+        "Manual assembly errors",
+        "Production bottlenecks",
+        "Labor shortages"
+      ],
+      "business_impact": {
+        "financial_loss": "2.1M lost productivity annually"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Collaborative safety", "Flexible programming", "Quick ROI"],
-      "vendor_evaluation": {"selected_vendor": "Universal Robots Middle East"},
+      "selection_criteria": [
+        "Collaborative safety",
+        "Flexible programming",
+        "Quick ROI"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Universal Robots Middle East"
+      },
       "technology_components": [
-        {"component": "Collaborative Robots", "details": "6-axis robotic arms"},
-        {"component": "Vision Systems", "details": "Quality inspection cameras"}
+        {
+          "component": "Collaborative Robots",
+          "details": "6-axis robotic arms"
+        },
+        {
+          "component": "Vision Systems",
+          "details": "Quality inspection cameras"
+        }
       ]
     },
     "implementation_details": {
@@ -251,18 +419,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Production Speed", "baseline": "100 units/hour", "current": "150 units/hour", "improvement": "50% increase"},
-        {"metric": "Defect Rate", "baseline": "5%", "current": "0.25%", "improvement": "95% reduction"}
+        {
+          "metric": "Production Speed",
+          "baseline": "100 units/hour",
+          "current": "150 units/hour",
+          "improvement": "50% increase"
+        },
+        {
+          "metric": "Defect Rate",
+          "baseline": "5%",
+          "current": "0.25%",
+          "improvement": "95% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "3,200,000"}
+      "roi_analysis": {
+        "annual_savings": "3,200,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Collaborative robots + Vision systems + MES integration"},
+    "technical_architecture": {
+      "system_overview": "Collaborative robots + Vision systems + MES integration"
+    },
     "future_roadmap": [
-      {"timeline": "Q4 2024", "initiative": "Line 2 automation", "description": "Expand to second production line"}
+      {
+        "timeline": "Q4 2024",
+        "initiative": "Line 2 automation",
+        "description": "Expand to second production line"
+      }
     ],
     "lessons_learned": [
-      {"category": "Safety", "lesson": "Comprehensive safety training essential for human-robot collaboration"}
-    ]
+      {
+        "category": "Safety",
+        "lesson": "Comprehensive safety training essential for human-robot collaboration"
+      }
+    ],
+    "problem": "Manual assembly errors. Production bottlenecks. Labor shortages.",
+    "technology": "Collaborative Robots: 6-axis robotic arms\nVision Systems: Quality inspection cameras",
+    "budget": "850,000",
+    "outcomes": "Production Speed: 50% increase (from 100 units/hour to 150 units/hour).\nDefect Rate: 95% reduction (from 5% to 0.25%).\nEstimated annual savings: 3,200,000.",
+    "challenges": ""
   },
   {
     "id": 6,
@@ -271,7 +465,7 @@
     "factoryName": "Agri-Tech Solutions Arabia",
     "city": "Al-Kharj",
     "latitude": 24.1486,
-    "longitude": 47.3050,
+    "longitude": 47.305,
     "images": [
       "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=400&fit=crop"
     ],
@@ -288,15 +482,33 @@
     "executive_summary": "Agri-Tech Solutions implemented IoT-based water management reducing consumption by 40% while achieving full environmental compliance and significant cost savings.",
     "business_challenge": {
       "industry_context": "Water scarcity in agricultural processing",
-      "specific_problems": ["High water consumption", "Regulatory compliance", "Rising water costs"],
-      "business_impact": {"financial_loss": "1.6M annual water costs"}
+      "specific_problems": [
+        "High water consumption",
+        "Regulatory compliance",
+        "Rising water costs"
+      ],
+      "business_impact": {
+        "financial_loss": "1.6M annual water costs"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Real-time monitoring", "Leak detection", "Regulatory reporting"],
-      "vendor_evaluation": {"selected_vendor": "AquaTech IoT Solutions"},
+      "selection_criteria": [
+        "Real-time monitoring",
+        "Leak detection",
+        "Regulatory reporting"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "AquaTech IoT Solutions"
+      },
       "technology_components": [
-        {"component": "Smart Meters", "details": "Ultrasonic flow meters"},
-        {"component": "Leak Detection", "details": "Acoustic sensor network"}
+        {
+          "component": "Smart Meters",
+          "details": "Ultrasonic flow meters"
+        },
+        {
+          "component": "Leak Detection",
+          "details": "Acoustic sensor network"
+        }
       ]
     },
     "implementation_details": {
@@ -306,18 +518,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Water Consumption", "baseline": "50,000 m³/month", "current": "30,000 m³/month", "improvement": "40% reduction"},
-        {"metric": "Water Costs", "baseline": "1.6M SAR", "current": "960K SAR", "improvement": "40% reduction"}
+        {
+          "metric": "Water Consumption",
+          "baseline": "50,000 m³/month",
+          "current": "30,000 m³/month",
+          "improvement": "40% reduction"
+        },
+        {
+          "metric": "Water Costs",
+          "baseline": "1.6M SAR",
+          "current": "960K SAR",
+          "improvement": "40% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "650,000"}
+      "roi_analysis": {
+        "annual_savings": "650,000"
+      }
     },
-    "technical_architecture": {"system_overview": "IoT sensors + Cloud analytics + Mobile monitoring"},
+    "technical_architecture": {
+      "system_overview": "IoT sensors + Cloud analytics + Mobile monitoring"
+    },
     "future_roadmap": [
-      {"timeline": "Q3 2024", "initiative": "Recycling system", "description": "Add water recycling capabilities"}
+      {
+        "timeline": "Q3 2024",
+        "initiative": "Recycling system",
+        "description": "Add water recycling capabilities"
+      }
     ],
     "lessons_learned": [
-      {"category": "Regulatory", "lesson": "Early engagement with authorities speeds approval process"}
-    ]
+      {
+        "category": "Regulatory",
+        "lesson": "Early engagement with authorities speeds approval process"
+      }
+    ],
+    "problem": "High water consumption. Regulatory compliance. Rising water costs.",
+    "technology": "Smart Meters: Ultrasonic flow meters\nLeak Detection: Acoustic sensor network",
+    "budget": "280,000",
+    "outcomes": "Water Consumption: 40% reduction (from 50,000 m³/month to 30,000 m³/month).\nWater Costs: 40% reduction (from 1.6M SAR to 960K SAR).\nEstimated annual savings: 650,000.",
+    "challenges": ""
   },
   {
     "id": 7,
@@ -343,15 +581,33 @@
     "executive_summary": "Al-Khobar Advanced Manufacturing created comprehensive digital twins of their production systems, achieving 30% efficiency gains and 1.5M SAR in process improvements through predictive analytics.",
     "business_challenge": {
       "industry_context": "Complex manufacturing optimization",
-      "specific_problems": ["Process inefficiencies", "Unpredictable maintenance", "Limited visibility"],
-      "business_impact": {"financial_loss": "2.5M opportunity costs annually"}
+      "specific_problems": [
+        "Process inefficiencies",
+        "Unpredictable maintenance",
+        "Limited visibility"
+      ],
+      "business_impact": {
+        "financial_loss": "2.5M opportunity costs annually"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Real-time simulation", "Predictive capabilities", "Scalable architecture"],
-      "vendor_evaluation": {"selected_vendor": "Siemens Digital Industries"},
+      "selection_criteria": [
+        "Real-time simulation",
+        "Predictive capabilities",
+        "Scalable architecture"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Siemens Digital Industries"
+      },
       "technology_components": [
-        {"component": "Digital Twin Platform", "details": "MindSphere IoT operating system"},
-        {"component": "Simulation Engine", "details": "Real-time process modeling"}
+        {
+          "component": "Digital Twin Platform",
+          "details": "MindSphere IoT operating system"
+        },
+        {
+          "component": "Simulation Engine",
+          "details": "Real-time process modeling"
+        }
       ]
     },
     "implementation_details": {
@@ -361,18 +617,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Overall Equipment Effectiveness", "baseline": "72%", "current": "94%", "improvement": "30% increase"},
-        {"metric": "Predictive Accuracy", "baseline": "N/A", "current": "92%", "improvement": "New capability"}
+        {
+          "metric": "Overall Equipment Effectiveness",
+          "baseline": "72%",
+          "current": "94%",
+          "improvement": "30% increase"
+        },
+        {
+          "metric": "Predictive Accuracy",
+          "baseline": "N/A",
+          "current": "92%",
+          "improvement": "New capability"
+        }
       ],
-      "roi_analysis": {"annual_savings": "1,500,000"}
+      "roi_analysis": {
+        "annual_savings": "1,500,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Digital twin platform + IoT integration + Analytics engine"},
+    "technical_architecture": {
+      "system_overview": "Digital twin platform + IoT integration + Analytics engine"
+    },
     "future_roadmap": [
-      {"timeline": "Q1 2025", "initiative": "Supply chain integration", "description": "Extend digital twin to supply network"}
+      {
+        "timeline": "Q1 2025",
+        "initiative": "Supply chain integration",
+        "description": "Extend digital twin to supply network"
+      }
     ],
     "lessons_learned": [
-      {"category": "Data Quality", "lesson": "High-quality sensor data is foundation for accurate digital twins"}
-    ]
+      {
+        "category": "Data Quality",
+        "lesson": "High-quality sensor data is foundation for accurate digital twins"
+      }
+    ],
+    "problem": "Process inefficiencies. Unpredictable maintenance. Limited visibility.",
+    "technology": "Digital Twin Platform: MindSphere IoT operating system\nSimulation Engine: Real-time process modeling",
+    "budget": "650,000",
+    "outcomes": "Overall Equipment Effectiveness: 30% increase (from 72% to 94%).\nPredictive Accuracy: New capability (from N/A to 92%).\nEstimated annual savings: 1,500,000.",
+    "challenges": ""
   },
   {
     "id": 8,
@@ -398,15 +680,33 @@
     "executive_summary": "Secure Supply Co. implemented blockchain technology for complete supply chain transparency, eliminating counterfeit products and achieving 25% logistics speed improvement.",
     "business_challenge": {
       "industry_context": "Supply chain fraud and counterfeiting",
-      "specific_problems": ["Product authenticity", "Supply chain opacity", "Regulatory compliance"],
-      "business_impact": {"financial_loss": "3.8M annual fraud losses"}
+      "specific_problems": [
+        "Product authenticity",
+        "Supply chain opacity",
+        "Regulatory compliance"
+      ],
+      "business_impact": {
+        "financial_loss": "3.8M annual fraud losses"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Immutable records", "Real-time tracking", "Partner integration"],
-      "vendor_evaluation": {"selected_vendor": "IBM Blockchain Platform"},
+      "selection_criteria": [
+        "Immutable records",
+        "Real-time tracking",
+        "Partner integration"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "IBM Blockchain Platform"
+      },
       "technology_components": [
-        {"component": "Blockchain Network", "details": "Hyperledger Fabric"},
-        {"component": "Smart Contracts", "details": "Automated compliance checks"}
+        {
+          "component": "Blockchain Network",
+          "details": "Hyperledger Fabric"
+        },
+        {
+          "component": "Smart Contracts",
+          "details": "Automated compliance checks"
+        }
       ]
     },
     "implementation_details": {
@@ -416,18 +716,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Supply Chain Visibility", "baseline": "30%", "current": "100%", "improvement": "Complete transparency"},
-        {"metric": "Counterfeit Detection", "baseline": "60%", "current": "100%", "improvement": "Zero counterfeits"}
+        {
+          "metric": "Supply Chain Visibility",
+          "baseline": "30%",
+          "current": "100%",
+          "improvement": "Complete transparency"
+        },
+        {
+          "metric": "Counterfeit Detection",
+          "baseline": "60%",
+          "current": "100%",
+          "improvement": "Zero counterfeits"
+        }
       ],
-      "roi_analysis": {"annual_savings": "2,100,000"}
+      "roi_analysis": {
+        "annual_savings": "2,100,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Blockchain network + Smart contracts + Partner integration APIs"},
+    "technical_architecture": {
+      "system_overview": "Blockchain network + Smart contracts + Partner integration APIs"
+    },
     "future_roadmap": [
-      {"timeline": "Q2 2024", "initiative": "Customer portal", "description": "Enable customer product verification"}
+      {
+        "timeline": "Q2 2024",
+        "initiative": "Customer portal",
+        "description": "Enable customer product verification"
+      }
     ],
     "lessons_learned": [
-      {"category": "Partnership", "lesson": "Strong partner commitment essential for network success"}
-    ]
+      {
+        "category": "Partnership",
+        "lesson": "Strong partner commitment essential for network success"
+      }
+    ],
+    "problem": "Product authenticity. Supply chain opacity. Regulatory compliance.",
+    "technology": "Blockchain Network: Hyperledger Fabric\nSmart Contracts: Automated compliance checks",
+    "budget": "720,000",
+    "outcomes": "Supply Chain Visibility: Complete transparency (from 30% to 100%).\nCounterfeit Detection: Zero counterfeits (from 60% to 100%).\nEstimated annual savings: 2,100,000.",
+    "challenges": ""
   },
   {
     "id": 9,
@@ -435,8 +761,8 @@
     "description": "AI algorithms detect microscopic defects in pharmaceutical production.",
     "factoryName": "Pharma Excellence Ltd",
     "city": "Riyadh",
-    "latitude": 24.7180,
-    "longitude": 46.6820,
+    "latitude": 24.718,
+    "longitude": 46.682,
     "images": [
       "https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=800&h=400&fit=crop"
     ],
@@ -453,15 +779,33 @@
     "executive_summary": "Pharma Excellence deployed machine learning quality control achieving 99.9% defect detection accuracy, ensuring FDA compliance and generating 2.8M SAR in quality improvements.",
     "business_challenge": {
       "industry_context": "Pharmaceutical quality regulations",
-      "specific_problems": ["Microscopic defect detection", "Regulatory compliance", "Manual inspection limitations"],
-      "business_impact": {"financial_loss": "4.2M potential recall costs"}
+      "specific_problems": [
+        "Microscopic defect detection",
+        "Regulatory compliance",
+        "Manual inspection limitations"
+      ],
+      "business_impact": {
+        "financial_loss": "4.2M potential recall costs"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["FDA validation", "99%+ accuracy", "Real-time processing"],
-      "vendor_evaluation": {"selected_vendor": "Cognex Machine Vision"},
+      "selection_criteria": [
+        "FDA validation",
+        "99%+ accuracy",
+        "Real-time processing"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Cognex Machine Vision"
+      },
       "technology_components": [
-        {"component": "AI Vision System", "details": "Deep learning algorithms"},
-        {"component": "High-resolution cameras", "details": "Microscopic defect detection"}
+        {
+          "component": "AI Vision System",
+          "details": "Deep learning algorithms"
+        },
+        {
+          "component": "High-resolution cameras",
+          "details": "Microscopic defect detection"
+        }
       ]
     },
     "implementation_details": {
@@ -471,18 +815,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Defect Detection Rate", "baseline": "95%", "current": "99.9%", "improvement": "5.2% improvement"},
-        {"metric": "False Positive Rate", "baseline": "8%", "current": "0.1%", "improvement": "98.8% reduction"}
+        {
+          "metric": "Defect Detection Rate",
+          "baseline": "95%",
+          "current": "99.9%",
+          "improvement": "5.2% improvement"
+        },
+        {
+          "metric": "False Positive Rate",
+          "baseline": "8%",
+          "current": "0.1%",
+          "improvement": "98.8% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "2,800,000"}
+      "roi_analysis": {
+        "annual_savings": "2,800,000"
+      }
     },
-    "technical_architecture": {"system_overview": "AI vision system + Quality management integration + Regulatory reporting"},
+    "technical_architecture": {
+      "system_overview": "AI vision system + Quality management integration + Regulatory reporting"
+    },
     "future_roadmap": [
-      {"timeline": "Q3 2024", "initiative": "Packaging line", "description": "Extend AI inspection to packaging"}
+      {
+        "timeline": "Q3 2024",
+        "initiative": "Packaging line",
+        "description": "Extend AI inspection to packaging"
+      }
     ],
     "lessons_learned": [
-      {"category": "Validation", "lesson": "Extensive validation documentation required for pharmaceutical applications"}
-    ]
+      {
+        "category": "Validation",
+        "lesson": "Extensive validation documentation required for pharmaceutical applications"
+      }
+    ],
+    "problem": "Microscopic defect detection. Regulatory compliance. Manual inspection limitations.",
+    "technology": "AI Vision System: Deep learning algorithms\nHigh-resolution cameras: Microscopic defect detection",
+    "budget": "580,000",
+    "outcomes": "Defect Detection Rate: 5.2% improvement (from 95% to 99.9%).\nFalse Positive Rate: 98.8% reduction (from 8% to 0.1%).\nEstimated annual savings: 2,800,000.",
+    "challenges": ""
   },
   {
     "id": 10,
@@ -508,15 +878,33 @@
     "executive_summary": "Safety First Industries implemented AR training systems achieving 70% faster training completion and 80% reduction in workplace accidents through immersive safety education.",
     "business_challenge": {
       "industry_context": "Industrial safety training effectiveness",
-      "specific_problems": ["Traditional training limitations", "High accident rates", "Knowledge retention"],
-      "business_impact": {"financial_loss": "1.9M annual accident costs"}
+      "specific_problems": [
+        "Traditional training limitations",
+        "High accident rates",
+        "Knowledge retention"
+      ],
+      "business_impact": {
+        "financial_loss": "1.9M annual accident costs"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Immersive experience", "Safety certification", "Easy content updates"],
-      "vendor_evaluation": {"selected_vendor": "Microsoft HoloLens Solutions"},
+      "selection_criteria": [
+        "Immersive experience",
+        "Safety certification",
+        "Easy content updates"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Microsoft HoloLens Solutions"
+      },
       "technology_components": [
-        {"component": "AR Headsets", "details": "HoloLens 2 devices"},
-        {"component": "Training Platform", "details": "Custom safety scenarios"}
+        {
+          "component": "AR Headsets",
+          "details": "HoloLens 2 devices"
+        },
+        {
+          "component": "Training Platform",
+          "details": "Custom safety scenarios"
+        }
       ]
     },
     "implementation_details": {
@@ -526,18 +914,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Training Completion Time", "baseline": "40 hours", "current": "12 hours", "improvement": "70% reduction"},
-        {"metric": "Safety Incidents", "baseline": "25 per month", "current": "5 per month", "improvement": "80% reduction"}
+        {
+          "metric": "Training Completion Time",
+          "baseline": "40 hours",
+          "current": "12 hours",
+          "improvement": "70% reduction"
+        },
+        {
+          "metric": "Safety Incidents",
+          "baseline": "25 per month",
+          "current": "5 per month",
+          "improvement": "80% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "1,520,000"}
+      "roi_analysis": {
+        "annual_savings": "1,520,000"
+      }
     },
-    "technical_architecture": {"system_overview": "AR headsets + Cloud training platform + Progress tracking"},
+    "technical_architecture": {
+      "system_overview": "AR headsets + Cloud training platform + Progress tracking"
+    },
     "future_roadmap": [
-      {"timeline": "Q4 2024", "initiative": "Maintenance training", "description": "Expand AR to maintenance procedures"}
+      {
+        "timeline": "Q4 2024",
+        "initiative": "Maintenance training",
+        "description": "Expand AR to maintenance procedures"
+      }
     ],
     "lessons_learned": [
-      {"category": "User Adoption", "lesson": "Gradual introduction helps overcome technology resistance"}
-    ]
+      {
+        "category": "User Adoption",
+        "lesson": "Gradual introduction helps overcome technology resistance"
+      }
+    ],
+    "problem": "Traditional training limitations. High accident rates. Knowledge retention.",
+    "technology": "AR Headsets: HoloLens 2 devices\nTraining Platform: Custom safety scenarios",
+    "budget": "240,000",
+    "outcomes": "Training Completion Time: 70% reduction (from 40 hours to 12 hours).\nSafety Incidents: 80% reduction (from 25 per month to 5 per month).\nEstimated annual savings: 1,520,000.",
+    "challenges": ""
   },
   {
     "id": 11,
@@ -545,8 +959,8 @@
     "description": "Automated LED lighting system reduces energy consumption and improves worker productivity.",
     "factoryName": "Eastern Province Construction Materials",
     "city": "Dammam",
-    "latitude": 26.3800,
-    "longitude": 50.1280,
+    "latitude": 26.38,
+    "longitude": 50.128,
     "images": [
       "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=400&fit=crop"
     ],
@@ -563,15 +977,33 @@
     "executive_summary": "Eastern Province Construction Materials deployed smart LED lighting achieving 45% energy savings while improving worker productivity through optimized lighting conditions and automated controls.",
     "business_challenge": {
       "industry_context": "Industrial facility energy costs",
-      "specific_problems": ["High lighting energy costs", "Poor visibility areas", "Maintenance overhead"],
-      "business_impact": {"financial_loss": "380K annual lighting costs"}
+      "specific_problems": [
+        "High lighting energy costs",
+        "Poor visibility areas",
+        "Maintenance overhead"
+      ],
+      "business_impact": {
+        "financial_loss": "380K annual lighting costs"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Energy efficiency", "Automated controls", "Long lifespan"],
-      "vendor_evaluation": {"selected_vendor": "Philips Industrial Lighting"},
+      "selection_criteria": [
+        "Energy efficiency",
+        "Automated controls",
+        "Long lifespan"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Philips Industrial Lighting"
+      },
       "technology_components": [
-        {"component": "Smart LED Fixtures", "details": "Connected lighting system"},
-        {"component": "Occupancy Sensors", "details": "Motion-activated controls"}
+        {
+          "component": "Smart LED Fixtures",
+          "details": "Connected lighting system"
+        },
+        {
+          "component": "Occupancy Sensors",
+          "details": "Motion-activated controls"
+        }
       ]
     },
     "implementation_details": {
@@ -581,18 +1013,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Energy Consumption", "baseline": "380K SAR/year", "current": "209K SAR/year", "improvement": "45% reduction"},
-        {"metric": "Maintenance Costs", "baseline": "45K SAR/year", "current": "12K SAR/year", "improvement": "73% reduction"}
+        {
+          "metric": "Energy Consumption",
+          "baseline": "380K SAR/year",
+          "current": "209K SAR/year",
+          "improvement": "45% reduction"
+        },
+        {
+          "metric": "Maintenance Costs",
+          "baseline": "45K SAR/year",
+          "current": "12K SAR/year",
+          "improvement": "73% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "204,000"}
+      "roi_analysis": {
+        "annual_savings": "204,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Smart LED network + Occupancy sensors + Central control system"},
+    "technical_architecture": {
+      "system_overview": "Smart LED network + Occupancy sensors + Central control system"
+    },
     "future_roadmap": [
-      {"timeline": "Q1 2024", "initiative": "Daylight harvesting", "description": "Add natural light sensors"}
+      {
+        "timeline": "Q1 2024",
+        "initiative": "Daylight harvesting",
+        "description": "Add natural light sensors"
+      }
     ],
     "lessons_learned": [
-      {"category": "Implementation", "lesson": "Minimal production disruption with proper scheduling"}
-    ]
+      {
+        "category": "Implementation",
+        "lesson": "Minimal production disruption with proper scheduling"
+      }
+    ],
+    "problem": "High lighting energy costs. Poor visibility areas. Maintenance overhead.",
+    "technology": "Smart LED Fixtures: Connected lighting system\nOccupancy Sensors: Motion-activated controls",
+    "budget": "120,000",
+    "outcomes": "Energy Consumption: 45% reduction (from 380K SAR/year to 209K SAR/year).\nMaintenance Costs: 73% reduction (from 45K SAR/year to 12K SAR/year).\nEstimated annual savings: 204,000.",
+    "challenges": ""
   },
   {
     "id": 12,
@@ -618,15 +1076,33 @@
     "executive_summary": "Arabian Food Processing automated their packaging line with robotic systems achieving 300% speed increase while eliminating contamination and generating 1.2M SAR annual savings.",
     "business_challenge": {
       "industry_context": "Food packaging speed and safety",
-      "specific_problems": ["Manual packaging bottlenecks", "Contamination risks", "Labor shortages"],
-      "business_impact": {"financial_loss": "2.1M lost production capacity"}
+      "specific_problems": [
+        "Manual packaging bottlenecks",
+        "Contamination risks",
+        "Labor shortages"
+      ],
+      "business_impact": {
+        "financial_loss": "2.1M lost production capacity"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Food-grade materials", "High-speed capability", "Contamination prevention"],
-      "vendor_evaluation": {"selected_vendor": "KRONES Packaging Solutions"},
+      "selection_criteria": [
+        "Food-grade materials",
+        "High-speed capability",
+        "Contamination prevention"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "KRONES Packaging Solutions"
+      },
       "technology_components": [
-        {"component": "Robotic Packaging System", "details": "Delta robots with vision"},
-        {"component": "Sterile Environment", "details": "Clean room packaging"}
+        {
+          "component": "Robotic Packaging System",
+          "details": "Delta robots with vision"
+        },
+        {
+          "component": "Sterile Environment",
+          "details": "Clean room packaging"
+        }
       ]
     },
     "implementation_details": {
@@ -636,18 +1112,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Packaging Speed", "baseline": "500 units/hour", "current": "2000 units/hour", "improvement": "300% increase"},
-        {"metric": "Contamination Rate", "baseline": "0.3%", "current": "0%", "improvement": "100% elimination"}
+        {
+          "metric": "Packaging Speed",
+          "baseline": "500 units/hour",
+          "current": "2000 units/hour",
+          "improvement": "300% increase"
+        },
+        {
+          "metric": "Contamination Rate",
+          "baseline": "0.3%",
+          "current": "0%",
+          "improvement": "100% elimination"
+        }
       ],
-      "roi_analysis": {"annual_savings": "1,200,000"}
+      "roi_analysis": {
+        "annual_savings": "1,200,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Robotic packaging + Vision inspection + ERP integration"},
+    "technical_architecture": {
+      "system_overview": "Robotic packaging + Vision inspection + ERP integration"
+    },
     "future_roadmap": [
-      {"timeline": "Q3 2024", "initiative": "Secondary packaging", "description": "Automate case packing"}
+      {
+        "timeline": "Q3 2024",
+        "initiative": "Secondary packaging",
+        "description": "Automate case packing"
+      }
     ],
     "lessons_learned": [
-      {"category": "Food Safety", "lesson": "Rigorous sanitation protocols essential for food automation"}
-    ]
+      {
+        "category": "Food Safety",
+        "lesson": "Rigorous sanitation protocols essential for food automation"
+      }
+    ],
+    "problem": "Manual packaging bottlenecks. Contamination risks. Labor shortages.",
+    "technology": "Robotic Packaging System: Delta robots with vision\nSterile Environment: Clean room packaging",
+    "budget": "480,000",
+    "outcomes": "Packaging Speed: 300% increase (from 500 units/hour to 2000 units/hour).\nContamination Rate: 100% elimination (from 0.3% to 0%).\nEstimated annual savings: 1,200,000.",
+    "challenges": ""
   },
   {
     "id": 13,
@@ -655,8 +1157,8 @@
     "description": "Machine learning algorithms optimize production schedules and resource allocation.",
     "factoryName": "Precision Manufacturing Ltd",
     "city": "Riyadh",
-    "latitude": 24.6950,
-    "longitude": 46.7150,
+    "latitude": 24.695,
+    "longitude": 46.715,
     "images": [
       "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=400&fit=crop"
     ],
@@ -673,15 +1175,33 @@
     "executive_summary": "Precision Manufacturing implemented AI-powered production planning achieving 35% efficiency increase and 890K SAR cost reduction through optimized scheduling and resource allocation.",
     "business_challenge": {
       "industry_context": "Complex production scheduling",
-      "specific_problems": ["Manual planning inefficiencies", "Resource bottlenecks", "Demand variability"],
-      "business_impact": {"financial_loss": "2.5M opportunity costs"}
+      "specific_problems": [
+        "Manual planning inefficiencies",
+        "Resource bottlenecks",
+        "Demand variability"
+      ],
+      "business_impact": {
+        "financial_loss": "2.5M opportunity costs"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Machine learning capabilities", "ERP integration", "Real-time optimization"],
-      "vendor_evaluation": {"selected_vendor": "Oracle Advanced Planning"},
+      "selection_criteria": [
+        "Machine learning capabilities",
+        "ERP integration",
+        "Real-time optimization"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Oracle Advanced Planning"
+      },
       "technology_components": [
-        {"component": "AI Planning Engine", "details": "Machine learning optimization"},
-        {"component": "Demand Forecasting", "details": "Predictive analytics"}
+        {
+          "component": "AI Planning Engine",
+          "details": "Machine learning optimization"
+        },
+        {
+          "component": "Demand Forecasting",
+          "details": "Predictive analytics"
+        }
       ]
     },
     "implementation_details": {
@@ -691,18 +1211,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Production Efficiency", "baseline": "68%", "current": "92%", "improvement": "35% increase"},
-        {"metric": "Resource Utilization", "baseline": "72%", "current": "89%", "improvement": "24% increase"}
+        {
+          "metric": "Production Efficiency",
+          "baseline": "68%",
+          "current": "92%",
+          "improvement": "35% increase"
+        },
+        {
+          "metric": "Resource Utilization",
+          "baseline": "72%",
+          "current": "89%",
+          "improvement": "24% increase"
+        }
       ],
-      "roi_analysis": {"annual_savings": "890,000"}
+      "roi_analysis": {
+        "annual_savings": "890,000"
+      }
     },
-    "technical_architecture": {"system_overview": "AI planning engine + ERP integration + Real-time dashboards"},
+    "technical_architecture": {
+      "system_overview": "AI planning engine + ERP integration + Real-time dashboards"
+    },
     "future_roadmap": [
-      {"timeline": "Q1 2025", "initiative": "Supply chain integration", "description": "Extend planning to suppliers"}
+      {
+        "timeline": "Q1 2025",
+        "initiative": "Supply chain integration",
+        "description": "Extend planning to suppliers"
+      }
     ],
     "lessons_learned": [
-      {"category": "Data Integration", "lesson": "Clean master data essential for AI accuracy"}
-    ]
+      {
+        "category": "Data Integration",
+        "lesson": "Clean master data essential for AI accuracy"
+      }
+    ],
+    "problem": "Manual planning inefficiencies. Resource bottlenecks. Demand variability.",
+    "technology": "AI Planning Engine: Machine learning optimization\nDemand Forecasting: Predictive analytics",
+    "budget": "420,000",
+    "outcomes": "Production Efficiency: 35% increase (from 68% to 92%).\nResource Utilization: 24% increase (from 72% to 89%).\nEstimated annual savings: 890,000.",
+    "challenges": ""
   },
   {
     "id": 14,
@@ -710,8 +1256,8 @@
     "description": "RFID and IoT sensors create fully automated warehouse operations with real-time tracking.",
     "factoryName": "Red Sea Logistics",
     "city": "King Abdullah Economic City",
-    "latitude": 22.4850,
-    "longitude": 39.0900,
+    "latitude": 22.485,
+    "longitude": 39.09,
     "images": [
       "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=400&fit=crop"
     ],
@@ -728,15 +1274,33 @@
     "executive_summary": "Red Sea Logistics transformed warehouse operations with smart technology achieving 99% inventory accuracy and 50% faster order fulfillment while reducing labor costs significantly.",
     "business_challenge": {
       "industry_context": "Logistics efficiency demands",
-      "specific_problems": ["Inventory inaccuracies", "Slow order fulfillment", "High labor costs"],
-      "business_impact": {"financial_loss": "1.8M operational inefficiencies"}
+      "specific_problems": [
+        "Inventory inaccuracies",
+        "Slow order fulfillment",
+        "High labor costs"
+      ],
+      "business_impact": {
+        "financial_loss": "1.8M operational inefficiencies"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Real-time tracking", "Automated workflows", "Scalable architecture"],
-      "vendor_evaluation": {"selected_vendor": "Manhattan Associates WMS"},
+      "selection_criteria": [
+        "Real-time tracking",
+        "Automated workflows",
+        "Scalable architecture"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "Manhattan Associates WMS"
+      },
       "technology_components": [
-        {"component": "RFID Infrastructure", "details": "Passive and active tags"},
-        {"component": "Automated Guided Vehicles", "details": "AGV fleet for material handling"}
+        {
+          "component": "RFID Infrastructure",
+          "details": "Passive and active tags"
+        },
+        {
+          "component": "Automated Guided Vehicles",
+          "details": "AGV fleet for material handling"
+        }
       ]
     },
     "implementation_details": {
@@ -746,18 +1310,44 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Inventory Accuracy", "baseline": "85%", "current": "99%", "improvement": "16.5% improvement"},
-        {"metric": "Order Fulfillment Time", "baseline": "4 hours", "current": "2 hours", "improvement": "50% reduction"}
+        {
+          "metric": "Inventory Accuracy",
+          "baseline": "85%",
+          "current": "99%",
+          "improvement": "16.5% improvement"
+        },
+        {
+          "metric": "Order Fulfillment Time",
+          "baseline": "4 hours",
+          "current": "2 hours",
+          "improvement": "50% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "1,350,000"}
+      "roi_analysis": {
+        "annual_savings": "1,350,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Smart warehouse system + RFID network + AGV integration"},
+    "technical_architecture": {
+      "system_overview": "Smart warehouse system + RFID network + AGV integration"
+    },
     "future_roadmap": [
-      {"timeline": "Q2 2024", "initiative": "AI optimization", "description": "Add machine learning for route optimization"}
+      {
+        "timeline": "Q2 2024",
+        "initiative": "AI optimization",
+        "description": "Add machine learning for route optimization"
+      }
     ],
     "lessons_learned": [
-      {"category": "Automation", "lesson": "Gradual automation reduces disruption and training needs"}
-    ]
+      {
+        "category": "Automation",
+        "lesson": "Gradual automation reduces disruption and training needs"
+      }
+    ],
+    "problem": "Inventory inaccuracies. Slow order fulfillment. High labor costs.",
+    "technology": "RFID Infrastructure: Passive and active tags\nAutomated Guided Vehicles: AGV fleet for material handling",
+    "budget": "680,000",
+    "outcomes": "Inventory Accuracy: 16.5% improvement (from 85% to 99%).\nOrder Fulfillment Time: 50% reduction (from 4 hours to 2 hours).\nEstimated annual savings: 1,350,000.",
+    "challenges": ""
   },
   {
     "id": 15,
@@ -783,15 +1373,33 @@
     "executive_summary": "NEOM Solar Power Systems achieved 60% renewable energy integration with smart grid technology, generating 750K SAR annual savings while reaching carbon neutral operations.",
     "business_challenge": {
       "industry_context": "Industrial carbon footprint reduction",
-      "specific_problems": ["High energy costs", "Carbon emissions", "Grid dependency"],
-      "business_impact": {"financial_loss": "4.5M annual energy costs"}
+      "specific_problems": [
+        "High energy costs",
+        "Carbon emissions",
+        "Grid dependency"
+      ],
+      "business_impact": {
+        "financial_loss": "4.5M annual energy costs"
+      }
     },
     "solution_details": {
-      "selection_criteria": ["Grid integration", "Energy storage", "Monitoring capabilities"],
-      "vendor_evaluation": {"selected_vendor": "First Solar Middle East"},
+      "selection_criteria": [
+        "Grid integration",
+        "Energy storage",
+        "Monitoring capabilities"
+      ],
+      "vendor_evaluation": {
+        "selected_vendor": "First Solar Middle East"
+      },
       "technology_components": [
-        {"component": "Solar Panel Array", "details": "2.5MW solar installation"},
-        {"component": "Battery Storage", "details": "1.2MWh lithium-ion storage"}
+        {
+          "component": "Solar Panel Array",
+          "details": "2.5MW solar installation"
+        },
+        {
+          "component": "Battery Storage",
+          "details": "1.2MWh lithium-ion storage"
+        }
       ]
     },
     "implementation_details": {
@@ -801,17 +1409,43 @@
     },
     "results": {
       "quantitative_metrics": [
-        {"metric": "Renewable Energy Share", "baseline": "0%", "current": "60%", "improvement": "60% renewable"},
-        {"metric": "Carbon Emissions", "baseline": "2,400 tons CO2", "current": "0 tons CO2", "improvement": "100% reduction"}
+        {
+          "metric": "Renewable Energy Share",
+          "baseline": "0%",
+          "current": "60%",
+          "improvement": "60% renewable"
+        },
+        {
+          "metric": "Carbon Emissions",
+          "baseline": "2,400 tons CO2",
+          "current": "0 tons CO2",
+          "improvement": "100% reduction"
+        }
       ],
-      "roi_analysis": {"annual_savings": "750,000"}
+      "roi_analysis": {
+        "annual_savings": "750,000"
+      }
     },
-    "technical_architecture": {"system_overview": "Solar array + Battery storage + Smart grid integration"},
+    "technical_architecture": {
+      "system_overview": "Solar array + Battery storage + Smart grid integration"
+    },
     "future_roadmap": [
-      {"timeline": "Q4 2024", "initiative": "Grid export", "description": "Enable excess energy sales to grid"}
+      {
+        "timeline": "Q4 2024",
+        "initiative": "Grid export",
+        "description": "Enable excess energy sales to grid"
+      }
     ],
     "lessons_learned": [
-      {"category": "Regulatory", "lesson": "Early coordination with utility essential for grid connection"}
-    ]
+      {
+        "category": "Regulatory",
+        "lesson": "Early coordination with utility essential for grid connection"
+      }
+    ],
+    "problem": "High energy costs. Carbon emissions. Grid dependency.",
+    "technology": "Solar Panel Array: 2.5MW solar installation\nBattery Storage: 1.2MWh lithium-ion storage",
+    "budget": "2,800,000",
+    "outcomes": "Renewable Energy Share: 60% renewable (from 0% to 60%).\nCarbon Emissions: 100% reduction (from 2,400 tons CO2 to 0 tons CO2).\nEstimated annual savings: 750,000.",
+    "challenges": ""
   }
 ]

@@ -42,7 +42,9 @@ class UserService:
             try:
                 # Create or link Organization by domain inferred from email
                 domain = email.split("@")[1]
-                org_name = domain.split(".")[0].replace("-", " ").title()
+                # Keep the exact organization name entered during signup. The domain is an
+                # identifier only and cannot preserve brand casing such as IIoT, 3M or iMile.
+                org_name = (profile_data.get("company") or "").strip() or domain.split(".")[0].replace("-", " ").title()
                 existing_org = await Organization.find_one(Organization.domain == domain)
                 if existing_org:
                     # Check if this organization already has an admin
@@ -52,6 +54,9 @@ class UserService:
                     )
                     if existing_admin:
                         raise ValueError(f"An admin already exists for the organization with domain '{domain}'. Please contact {existing_admin.email} for an invitation.")
+                    if org_name and existing_org.name != org_name:
+                        existing_org.name = org_name
+                        await existing_org.save()
                     organization_id = str(existing_org.id)
                 else:
                     new_org = Organization(

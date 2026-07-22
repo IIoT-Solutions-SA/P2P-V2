@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { EditProfilePanel } from '@/components/EditProfilePanel'
 import { Avatar } from '@/components/ui/Avatar'
+import { formatOrganizationName } from '@/lib/formatters'
 
 export default function Navigation() {
   const { user, organization, isAuthenticated, logout } = useAuth()
@@ -197,7 +198,7 @@ export default function Navigation() {
                         {user?.title || 'Member'}
                       </div>
                       <div className="text-xs text-slate-500">
-                        {organization?.name || 'Organization'} • {user?.role === 'admin' ? 'Admin' : 'Member'}
+                        {formatOrganizationName(organization?.name)} • {user?.role === 'admin' ? 'Admin' : 'Member'}
                       </div>
                     </div>
                   </div>

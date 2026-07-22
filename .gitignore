@@ -25,6 +25,7 @@ p2p-frontend-app/node_modules/
 
 # Logs (only backend app logs, not docs/Logs)
 p2p-backend-app/logs/
+p2p-backend-app/uploads/
 *.log
 
 # Coverage reports

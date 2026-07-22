@@ -1,325 +1,227 @@
+import type { ReactNode } from "react"
+import { useNavigate } from "react-router-dom"
+import { ArrowRight, BarChart3, BookOpen, CheckCircle2, Cog, Factory, MapPin, User, Users, Wrench } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Users, BookOpen, Cog, BarChart3, Factory, Wrench, CheckCircle, User } from "lucide-react"
 import InteractiveMap from "@/components/InteractiveMap"
 import { SaudiRiyalCurrency } from "@/components/SaudiRiyal"
-import { useNavigate } from "react-router-dom"
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from "@/contexts/AuthContext"
+
+const stats = [
+  { value: "1,200+", label: "Connected Factories" },
+  { value: "89", label: "Proven Use Cases" },
+  { value: <SaudiRiyalCurrency amount="45M+" />, label: "Cost Savings Achieved" },
+  { value: "67%", label: "Avg. Efficiency Gain" },
+]
+
+const features = [
+  { icon: BookOpen, title: "Browse use cases", body: "Explore real factory implementations with proven results across automation, quality, maintenance, and energy." },
+  { icon: Users, title: "Factory network", body: "Connect with manufacturing peers across Saudi Arabia and collaborate around shared operational challenges." },
+  { icon: BarChart3, title: "Performance tracking", body: "Monitor efficiency gains, cost savings, and operational improvements as implementation knowledge grows." },
+]
+
+const featuredCases = [
+  {
+    icon: Cog,
+    category: "Factory Automation",
+    title: "AI Quality Inspection Reduces Defects by 85%",
+    body: "Advanced Manufacturing Co. implemented computer vision for automated quality control, achieving significant defect reduction.",
+    primary: "85%",
+    primaryLabel: "Defect Reduction",
+    secondary: <SaudiRiyalCurrency amount="2.3M" />,
+    secondaryLabel: "Annual Savings",
+    path: "/usecases/advanced-electronics-co/ai-quality-inspection-system",
+  },
+  {
+    icon: Wrench,
+    category: "Predictive Maintenance",
+    title: "IoT Sensors Cut Downtime by 60%",
+    body: "Gulf Plastics Industries deployed IoT-based predictive maintenance, preventing equipment failures before they occur.",
+    primary: "60%",
+    primaryLabel: "Downtime Reduction",
+    secondary: <SaudiRiyalCurrency amount="1.8M" />,
+    secondaryLabel: "Annual Savings",
+    path: "/usecases/gulf-plastics-industries/predictive-maintenance-iot-system",
+  },
+]
+
+const stories = [
+  { icon: Cog, title: "Production Optimization", desc: "Automated production line monitoring increased output efficiency across multiple facilities.", metric: "45% efficiency gain" },
+  { icon: CheckCircle2, title: "Quality Improvements", desc: "Smart quality control systems reduced defects and improved product standards.", metric: "78% defect reduction" },
+  { icon: BarChart3, title: "Cost Savings", desc: "Energy management and predictive maintenance programs delivered operational savings.", metric: <><SaudiRiyalCurrency amount="3.2M" className="text-white" /> saved annually</> },
+]
 
 export default function LandingPage() {
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuth()
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-
-      {/* Hero Section with Video Background */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Video Background */}
-        <div className="absolute inset-0 w-full h-full">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-          >
-            <source src="/Video_Redo_Realistic_Technology.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-          {/* Dark overlay for better text readability */}
-          <div className="absolute inset-0 bg-slate-900/60"></div>
-        </div>
-
-        {/* Hero Content */}
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
-          <div className="text-center space-y-6 sm:space-y-8 lg:space-y-10">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
-              <span className="block sm:inline">Accelerate Your</span>
-              <br className="hidden sm:block" />
-              <span className="block sm:inline">Factory's</span>
-              {' '}
-              <span className="text-blue-400 block sm:inline">Digital Transformation</span>
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
-              Join Saudi Arabia's premier peer-to-peer platform where manufacturing executives share proven strategies and explore real implementation case studies.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 lg:space-x-6 px-4 sm:px-0">
-              <Button
-                size="lg"
-                className="w-full sm:w-auto text-base lg:text-lg px-6 sm:px-8 lg:px-10 py-3 lg:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg"
-                onClick={() => navigate('/usecases')}
-              >
-                Explore Success Stories
-                <ArrowRight className="ml-2 h-4 lg:h-5 w-4 lg:w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto text-base lg:text-lg px-6 sm:px-8 py-3 lg:py-4 text-white border-white/30 hover:bg-white/10 backdrop-blur-sm"
-                onClick={() => navigate('/forum')}
-              >
-                Join Discussions
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/50 rounded-full p-1">
-            <div className="w-1 h-3 bg-white/70 rounded-full mx-auto animate-pulse"></div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="container mx-auto px-6 py-20">
-        <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center space-y-2">
-              <div className="text-4xl font-bold text-blue-600">1,200+</div>
-              <div className="text-slate-600 font-medium">Connected Factories</div>
-            </div>
-            <div className="text-center space-y-2">
-              <div className="text-4xl font-bold text-blue-600">89</div>
-              <div className="text-slate-600 font-medium">Proven Use Cases</div>
-            </div>
-            <div className="text-center space-y-2">
-              <div className="text-4xl font-bold text-blue-600"><SaudiRiyalCurrency amount="45M+" /></div>
-              <div className="text-slate-600 font-medium">Cost Savings Achieved</div>
-            </div>
-            <div className="text-center space-y-2">
-              <div className="text-4xl font-bold text-blue-600">67%</div>
-              <div className="text-slate-600 font-medium">Avg. Efficiency Gain</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="container mx-auto px-6 py-24">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl font-bold text-slate-900 mb-6">Factory Optimization Tools</h2>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">Comprehensive platform designed for factory owners, plant managers, and operations teams</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="group">
-            <div className="bg-blue-600 p-6 rounded-xl mb-6 group-hover:bg-blue-700 transition-colors duration-300">
-              <BookOpen className="h-10 w-10 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">Browse Use Cases</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Explore real factory implementations with proven results. Find automation, quality control, and efficiency solutions that work.
-            </p>
-          </div>
-          <div className="group">
-            <div className="bg-slate-600 p-6 rounded-xl mb-6 group-hover:bg-slate-700 transition-colors duration-300">
-              <Users className="h-10 w-10 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">Factory Network</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Connect with factory owners across Saudi Arabia. Share challenges, solutions, and collaborate on optimization projects.
-            </p>
-          </div>
-          <div className="group">
-            <div className="bg-blue-500 p-6 rounded-xl mb-6 group-hover:bg-blue-600 transition-colors duration-300">
-              <BarChart3 className="h-10 w-10 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">Performance Tracking</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Monitor efficiency gains, cost savings, and operational improvements. Track your factory's optimization journey.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Map Section 1 - Main Featured Map */}
-      <section className="container mx-auto px-6 py-24">
-        <InteractiveMap 
-          height="600px"
-          title="Discover Success Stories Across Saudi Arabia"
-          className="mb-16"
-        />
-      </section>
-
-      {/* Featured Use Cases Section */}
-      <section className="container mx-auto px-6 py-24">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-900 mb-6">Featured Factory Solutions</h2>
-          <p className="text-xl text-slate-600">Real implementations with measurable results</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <Cog className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Factory Automation</span>
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">AI Quality Inspection Reduces Defects by 85%</h3>
-            <p className="text-slate-600 mb-4">Advanced Manufacturing Co. implemented computer vision for automated quality control, achieving significant defect reduction.</p>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">85%</div>
-                <div className="text-xs text-slate-500">Defect Reduction</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600"><SaudiRiyalCurrency amount="2.3M" /></div>
-                <div className="text-xs text-slate-500">Annual Savings</div>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => navigate('/usecases/advanced-electronics-co/ai-quality-inspection-system')}
-            >
-              View Full Case Study
+    <div className="bg-[var(--peer-paper)] text-[var(--peer-ink)]">
+      <section id="overview" className="relative grid min-h-screen scroll-mt-16 items-end overflow-hidden bg-[var(--peer-navy)] text-white">
+        <video autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover opacity-70">
+          <source src="/Video_Redo_Realistic_Technology.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(11,47,57,.9)_0%,rgba(11,47,57,.58)_45%,rgba(11,47,57,.22)_100%),linear-gradient(180deg,rgba(11,47,57,.14)_0%,rgba(11,47,57,.88)_100%)]" />
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-6 lg:px-8 lg:pb-14">
+          <p className="peer-eyebrow mb-5 inline-flex items-center gap-3 text-[#cde3de] before:h-px before:w-8 before:bg-[#76c5bd]">Saudi manufacturing knowledge network</p>
+          <h1 className="font-display max-w-4xl text-5xl font-bold leading-[0.98] text-white sm:text-6xl lg:text-7xl">
+            Accelerate factory transformation through verified peer knowledge.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/85 sm:text-xl">
+            Join Saudi Arabia's premier peer-to-peer platform where manufacturing executives share proven strategies and explore real implementation case studies.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button onClick={() => navigate("/usecases")} className="h-12 rounded-[5px] bg-[var(--peer-blue)] px-6 text-white hover:bg-[#0f5ccc]">
+              Explore success stories<ArrowRight className="size-4" />
+            </Button>
+            <Button onClick={() => navigate("/forum")} variant="outline" className="h-12 rounded-[5px] border-white/35 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">
+              Join discussions
             </Button>
           </div>
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="p-2 bg-slate-600 rounded-lg">
-                <Wrench className="h-6 w-6 text-white" />
+          <div className="mt-12 grid gap-3 border-t border-white/20 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="border-l border-[#76c5bd]/40 pl-4">
+                <div className="font-display text-3xl font-bold text-white">{stat.value}</div>
+                <div className="mt-1 text-sm text-[#c7d8d7]">{stat.label}</div>
               </div>
-              <span className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-full">Predictive Maintenance</span>
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">IoT Sensors Cut Downtime by 60%</h3>
-            <p className="text-slate-600 mb-4">Gulf Plastics Industries deployed IoT-based predictive maintenance, preventing equipment failures before they occur.</p>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-slate-600">60%</div>
-                <div className="text-xs text-slate-500">Downtime Reduction</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-slate-600"><SaudiRiyalCurrency amount="1.8M" /></div>
-                <div className="text-xs text-slate-500">Annual Savings</div>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-              onClick={() => navigate('/usecases/gulf-plastics-industries/predictive-maintenance-iot-system')}
-            >
-              View Full Case Study
-            </Button>
+            ))}
           </div>
         </div>
       </section>
 
-
-      {/* Success Stories */}
-      <section className="container mx-auto px-6 py-24">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-900 mb-6">Factory Success Stories</h2>
-          <p className="text-xl text-slate-600">Real results from Saudi manufacturing leaders</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { title: "Production Optimization", desc: "Automated production line monitoring increased output efficiency across multiple facilities", metric: "45% efficiency gain", color: "blue", icon: Cog },
-            { title: "Quality Improvements", desc: "Implemented smart quality control systems reducing defects and improving product standards", metric: "78% defect reduction", color: "slate", icon: CheckCircle },
-            { title: "Cost Savings", desc: "Energy management and predictive maintenance programs delivered significant operational savings", metric: "3.2M saved annually", color: "blue", icon: BarChart3 }
-          ].map((story, i) => {
-            const IconComponent = story.icon
-            return (
-              <div key={i} className="group relative overflow-hidden rounded-xl bg-white p-8 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300">
-                <div className={`absolute top-0 left-0 w-full h-1 ${
-                  story.color === 'blue' ? 'bg-blue-600' : 'bg-slate-600'
-                }`}></div>
-                <div className="flex items-center space-x-2 mb-4">
-                  <IconComponent className="h-5 w-5 text-blue-600" />
-                  <span className="text-sm font-medium text-slate-600">Factory Success</span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">{story.title}</h3>
-                <p className="text-slate-600 mb-6 leading-relaxed">{story.desc}</p>
-                <div className={`inline-block px-4 py-2 rounded-lg ${
-                  story.color === 'blue' ? 'bg-blue-600' : 'bg-slate-600'
-                } text-white text-sm font-semibold`}>
-                  {story.title === "Cost Savings" ? <><SaudiRiyalCurrency amount="3.2M" className="text-white" /> saved annually</> : story.metric}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-
-      {/* CTA Section */}
-      <section className="bg-slate-800 text-white py-24">
-        <div className="container mx-auto px-6 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-5xl font-bold mb-6">Join the Factory Network</h2>
-            <p className="text-xl mb-10 text-slate-300 leading-relaxed">
-              Connect with factory owners across Saudi Arabia, browse proven use cases, and optimize your operations - completely free
+      <section id="network" className="scroll-mt-16 border-y border-[var(--peer-line)] bg-[var(--peer-surface)]">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+          <div>
+            <p className="peer-eyebrow">Network workspace</p>
+            <h2 className="font-display mt-3 text-4xl font-bold leading-tight text-[#07161d]">Built around the decisions manufacturers make every week.</h2>
+            <p className="mt-4 text-[var(--peer-muted)]">
+              PeerLink organizes knowledge, collaborators, case studies, and discussion around verified manufacturing work instead of a generic content feed.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-              {isAuthenticated && user ? (
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-3 bg-blue-600 text-white px-6 py-4 rounded-lg">
-                    <User className="h-5 w-5" />
-                    <span className="text-lg font-semibold">Welcome back, {user.firstName} {user.lastName}!</span>
-                  </div>
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg"
-                    onClick={() => navigate('/dashboard')}
-                  >
-                    Go to Dashboard
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <Button 
-                    size="lg" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg font-semibold"
-                    onClick={() => navigate('/signup')}
-                  >
-                    Get Started Free
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="text-white border-slate-600 hover:bg-slate-700 text-lg px-8 py-4 rounded-lg"
-                    onClick={() => navigate('/login')}
-                  >
-                    Sign In
-                  </Button>
-                </>
-              )}
-            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {features.map((feature) => (
+              <article key={feature.title} className="border-l border-[var(--peer-line)] pl-5">
+                <span className="grid size-11 place-items-center rounded-[7px] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)]">
+                  <feature.icon className="size-5" />
+                </span>
+                <h3 className="mt-4 font-display text-lg font-bold text-[#07161d]">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--peer-muted)]">{feature.body}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-16">
-        <div className="container mx-auto px-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-3 mb-6">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <Factory className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white">
-                <span className="text-blue-400">Peer</span>Link
-              </span>
+      <section id="saudi-map" className="mx-auto max-w-7xl scroll-mt-16 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="peer-eyebrow">Saudi Arabia map</p>
+            <h2 className="font-display mt-3 text-4xl font-bold text-[#07161d]">Discover success stories across Saudi Arabia</h2>
+          </div>
+          <p className="max-w-md text-sm text-[var(--peer-muted)]">The existing interactive Saudi map remains live and connected to the use-case data contract.</p>
+        </div>
+        <InteractiveMap height="600px" showTitle={false} className="overflow-hidden rounded-[7px] border border-[var(--peer-line)] bg-[var(--peer-surface)] shadow-[var(--peer-shadow)]" />
+      </section>
+
+      <section id="featured-use-cases" className="scroll-mt-16 bg-[var(--peer-surface)]">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mb-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="peer-eyebrow">Featured factory solutions</p>
+              <h2 className="font-display mt-3 text-4xl font-bold text-[#07161d]">Real implementations with measurable results</h2>
             </div>
-            <p className="text-slate-400 mb-6 max-w-2xl mx-auto leading-relaxed">
-              Factory optimization network connecting Saudi Arabian manufacturers with proven solutions and expert knowledge
-            </p>
-            <div className="flex items-center justify-center space-x-6 mb-8">
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">Privacy</a>
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">Terms</a>
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">Support</a>
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition-colors">Contact</a>
+            <Button onClick={() => navigate("/usecases")} variant="outline" className="rounded-[5px]">Open library<ArrowRight className="size-4" /></Button>
+          </div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            {featuredCases.map((item) => (
+              <article key={item.title} className="peer-panel rounded-[7px] p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="grid size-11 place-items-center rounded-[7px] bg-[var(--peer-navy)] text-white">
+                    <item.icon className="size-5" />
+                  </span>
+                  <span className="rounded-full bg-[var(--peer-teal-soft)] px-3 py-1 text-xs font-bold text-[var(--peer-teal)]">{item.category}</span>
+                </div>
+                <h3 className="font-display text-2xl font-bold text-[#07161d]">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--peer-muted)]">{item.body}</p>
+                <div className="my-6 grid grid-cols-2 gap-4 border-y border-[var(--peer-line)] py-5">
+                  <Metric value={item.primary} label={item.primaryLabel} />
+                  <Metric value={item.secondary} label={item.secondaryLabel} />
+                </div>
+                <Button onClick={() => navigate(item.path)} variant="outline" className="w-full rounded-[5px]">View full case study</Button>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mb-9">
+          <p className="peer-eyebrow">Factory success stories</p>
+          <h2 className="font-display mt-3 text-4xl font-bold text-[#07161d]">Real results from Saudi manufacturing leaders</h2>
+        </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          {stories.map((story) => (
+            <article key={story.title} className="border-t-4 border-[var(--peer-teal)] bg-[var(--peer-surface)] p-6 shadow-[var(--peer-shadow)]">
+              <story.icon className="size-5 text-[var(--peer-teal)]" />
+              <h3 className="font-display mt-4 text-xl font-bold text-[#07161d]">{story.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--peer-muted)]">{story.desc}</p>
+              <div className="mt-6 inline-flex rounded-[5px] bg-[var(--peer-navy)] px-4 py-2 text-sm font-bold text-white">{story.metric}</div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="join-network" className="scroll-mt-16 bg-[var(--peer-navy)] py-16 text-white">
+        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
+          <p className="peer-eyebrow text-[#9cb4b5]">Join the factory network</p>
+          <h2 className="font-display mt-3 text-4xl font-bold sm:text-5xl">Connect with Saudi manufacturers and proven solutions.</h2>
+          <p className="mx-auto mt-5 max-w-2xl text-[#c7d8d7]">
+            Connect with factory owners across Saudi Arabia, browse proven use cases, and optimize your operations.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {isAuthenticated && user ? (
+              <>
+                <div className="inline-flex items-center gap-3 rounded-[5px] bg-white/10 px-5 py-3 font-semibold text-white">
+                  <User className="size-5" />Welcome back, {user.firstName} {user.lastName}
+                </div>
+                <Button onClick={() => navigate("/dashboard")} className="h-12 rounded-[5px] bg-[var(--peer-blue)] px-6 text-white hover:bg-[#0f5ccc]">Go to dashboard<ArrowRight className="size-4" /></Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => navigate("/signup")} className="h-12 rounded-[5px] bg-[var(--peer-blue)] px-6 text-white hover:bg-[#0f5ccc]">Get started free<ArrowRight className="size-4" /></Button>
+                <Button onClick={() => navigate("/login")} variant="outline" className="h-12 rounded-[5px] border-white/30 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">Sign in</Button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-[#07161d] py-12 text-white">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 text-center sm:px-6 md:flex-row md:text-left lg:px-8">
+          <div>
+            <div className="flex items-center justify-center gap-3 md:justify-start">
+              <span className="grid size-10 place-items-center rounded-[5px] bg-[var(--peer-teal)]"><Factory className="size-5" /></span>
+              <span className="font-display text-2xl font-bold">PeerLink</span>
             </div>
-            <p className="text-sm text-slate-500">
-              © 2024 PeerLink. All rights reserved. Built for Saudi Arabian SMEs.
-            </p>
+            <p className="mt-3 max-w-xl text-sm text-[#9cb4b5]">Factory optimization network connecting Saudi Arabian manufacturers with proven solutions and expert knowledge.</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-[#9cb4b5]">
+            <a href="#top" className="hover:text-white">Privacy</a>
+            <a href="#top" className="hover:text-white">Terms</a>
+            <a href="#top" className="hover:text-white">Support</a>
+            <span className="inline-flex items-center gap-1"><MapPin className="size-4" />Saudi Arabia</span>
+            <span>2026 PeerLink</span>
           </div>
         </div>
       </footer>
+    </div>
+  )
+}
+
+function Metric({ value, label }: { value: ReactNode; label: string }) {
+  return (
+    <div>
+      <div className="font-display text-2xl font-bold text-[var(--peer-teal)]">{value}</div>
+      <div className="mt-1 text-xs text-[var(--peer-muted)]">{label}</div>
     </div>
   )
 }

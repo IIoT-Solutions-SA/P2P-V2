@@ -1,944 +1,342 @@
-import { Button } from "@/components/ui/button"
-import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
-import { EditProfilePanel } from "@/components/EditProfilePanel"
-import { Avatar } from "@/components/ui/Avatar"
-import { ComingSoonModal } from "@/components/ui/ComingSoonModal"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 import {
-  MessageSquare,
-  FileText,
-  Users,
-  BookmarkCheck,
-  Award,
-  Calendar,
-  Sparkles,
-  Star,
-  Activity,
-  Target,
-  UserCog,
-  X
+  ArrowRight,
+  ArrowUpRight,
+  Eye,
+  Factory,
+  Gauge,
+  MessageCircleQuestion,
+  MessageSquareReply,
+  Network,
+  NotebookPen,
+  ScanEye,
+  UserSearch,
+  UsersRound,
 } from "lucide-react"
-import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { buildApiUrl } from '@/config/environment'
+import { EmptyState, ErrorState, LoadingState } from "@/components/shared/AppState"
+import { dashboardApi, type DashboardActivity, type DashboardStats, type ForumDraft } from "@/lib/api/dashboard"
+import { useCasesApi, type UseCaseDraftListItem, type UseCaseListItem } from "@/lib/api/usecases"
+import { peopleApi, type OrganizationMember } from "@/lib/api/people"
+import { useAuth } from "@/contexts/AuthContext"
+import { cn } from "@/lib/utils"
+import { formatOrganizationName } from "@/lib/formatters"
 
-interface DashboardStats {
-  questions_asked: number
-  answers_given: number
-  bookmarks_saved: number
-  reputation_score: number
-  activity_level: number
-  use_cases_submitted: number
-  best_answers: number
-  draft_posts: number
-  connections_count: number
+const defaultStats: DashboardStats = {
+  questions_asked: 0,
+  answers_given: 0,
+  bookmarks_saved: 0,
+  reputation_score: 0,
+  activity_level: 0,
+  use_cases_submitted: 0,
+  best_answers: 0,
+  draft_posts: 0,
+  connections_count: 0,
 }
 
-interface Activity {
-  type: string
-  user: string
-  action: string
-  content: string
-  time: string
-  category: string
+type ActivityFilter = "all" | "discussion" | "usecase"
+
+const memberName = (member: OrganizationMember) =>
+  member.name || `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.email
+
+const initials = (value: string) =>
+  value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "PL"
+
+const activityKind = (activity: DashboardActivity): Exclude<ActivityFilter, "all"> => {
+  const value = `${activity.type || ""} ${activity.activity_type || ""} ${activity.action || ""}`.toLowerCase()
+  return value.includes("usecase") || value.includes("use case") || value.includes("publish") ? "usecase" : "discussion"
+}
+
+const activityTitle = (activity: DashboardActivity) =>
+  activity.target_title || activity.content || activity.description || "PeerLink knowledge update"
+
+const activityLead = (activity: DashboardActivity) => {
+  const person = activity.user || "A PeerLink member"
+  const action = activity.action || activity.activity_type || activity.type || "shared an update"
+  return { person, action: action.replaceAll("_", " ") }
+}
+
+const activityTime = (activity: DashboardActivity) => {
+  if (activity.time) return activity.time
+  if (!activity.created_at) return "Recently"
+  const date = new Date(activity.created_at)
+  if (Number.isNaN(date.getTime())) return "Recently"
+  return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+    -Math.max(1, Math.round((Date.now() - date.getTime()) / 3_600_000)),
+    "hour",
+  )
+}
+
+const impactFacts = (item?: UseCaseListItem) => {
+  if (!item) return []
+  const benefits = item.results?.benefits
+  if (typeof benefits === "string") {
+    return benefits.split(";").map((value) => value.trim()).filter(Boolean).slice(0, 3)
+  }
+  return []
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate()
   const { user, organization } = useAuth()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [stats, setStats] = useState<DashboardStats>(defaultStats)
+  const [activities, setActivities] = useState<DashboardActivity[]>([])
+  const [forumDrafts, setForumDrafts] = useState<ForumDraft[]>([])
+  const [useCaseDrafts, setUseCaseDrafts] = useState<UseCaseDraftListItem[]>([])
+  const [featuredCases, setFeaturedCases] = useState<UseCaseListItem[]>([])
+  const [members, setMembers] = useState<OrganizationMember[]>([])
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all")
   const [loading, setLoading] = useState(true)
-  const [showBookmarks, setShowBookmarks] = useState(false)
-  const [forumBookmarkCount, setForumBookmarkCount] = useState(0)
-  const [useCaseBookmarkCount, setUseCaseBookmarkCount] = useState(0)
-  const [bookmarkModalTitle, setBookmarkModalTitle] = useState<string>('Saved Items')
-  const [showDrafts, setShowDrafts] = useState(false)
-  const [showEditProfile, setShowEditProfile] = useState(false)
-  const [showComingSoon, setShowComingSoon] = useState(false)
-  const [bookmarks, setBookmarks] = useState<any[]>([])
-  const [drafts, setDrafts] = useState<any[]>([])
-  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
-  const [loadingDrafts, setLoadingDrafts] = useState(false)
-  const setPrefillDraft = useState<{ title?: string; content?: string; category?: string } | null>(null)[1]
+  const [error, setError] = useState<string | null>(null)
 
-  // Use Case Drafts state (GROUP C)
-  const [useCaseDrafts, setUseCaseDrafts] = useState<any[]>([])
-  const [showUseCaseDraftsPanel, setShowUseCaseDraftsPanel] = useState(false)
-  const [loadingUseCaseDrafts, setLoadingUseCaseDrafts] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    show: boolean
-    title?: string
-    message?: string
-    onConfirm?: () => void
-  }>({ show: false })
-
-  // Dedicated loaders to avoid HMR/effect return confusion
-  const fetchStats = async () => {
+  const loadDashboard = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const statsResponse = await fetch(buildApiUrl('/api/v1/dashboard/stats'), {
-        credentials: 'include'
-      })
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json()
-        setStats(statsData)
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error)
-    }
-  }
-
-
-
-  const loadDashboard = async () => {
-      try {
-        setLoading(true)
-
-        // Fetch user stats
-        await fetchStats()
-
-        // Fetch use case drafts count (GROUP C)
-        await fetchUseCaseDrafts()
-
-        // Fetch community activities
-        const activitiesResponse = await fetch(buildApiUrl('/api/v1/dashboard/activities'), {
-          credentials: 'include'
-        })
-        if (activitiesResponse.ok) {
-          const activitiesData = await activitiesResponse.json()
-          setActivities(activitiesData.activities || [])
-        }
-
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error)
-        // Use fallback data if API fails
-        setStats({
-          questions_asked: 0,
-          answers_given: 0,
-          bookmarks_saved: 0,
-          reputation_score: 0,
-          activity_level: 0,
-          use_cases_submitted: 0,
-          best_answers: 0,
-          draft_posts: 0,
-          connections_count: 0
-        })
-        setActivities([])
-      } finally {
-        setLoading(false)
-      }
-  }
-
-  const preloadBookmarkCounts = async () => {
-    try {
-      const [forumRes, ucRes] = await Promise.all([
-        fetch(buildApiUrl('/api/v1/forum/bookmarks'), { credentials: 'include' }),
-        fetch(buildApiUrl('/api/v1/use-cases/bookmarks'), { credentials: 'include' })
+      const [statsData, activityData, forumDraftData, useCaseDraftData, caseData, peopleData] = await Promise.all([
+        dashboardApi.stats().catch(() => defaultStats),
+        dashboardApi.activities().catch(() => ({ activities: [] })),
+        dashboardApi.forumDrafts().catch(() => ({ drafts: [], total: 0 })),
+        useCasesApi.drafts().catch(() => []),
+        useCasesApi.list({ limit: 4, sortBy: "newest" }).catch(() => ({ items: [], total: 0, limit: 4, skip: 0, has_more: false })),
+        peopleApi.organizationMembers().catch(() => ({ users: [] })),
       ])
-      const forumData = forumRes.ok ? await forumRes.json() : []
-      const ucData = ucRes.ok ? await ucRes.json() : []
-      setForumBookmarkCount(Array.isArray(forumData) ? forumData.length : 0)
-      setUseCaseBookmarkCount(Array.isArray(ucData) ? ucData.length : 0)
-    } catch {
-      setForumBookmarkCount(0)
-      setUseCaseBookmarkCount(0)
+      setStats(statsData)
+      setActivities(activityData.activities || [])
+      setForumDrafts(forumDraftData.drafts || [])
+      setUseCaseDrafts(useCaseDraftData || [])
+      setFeaturedCases(caseData.items || [])
+      setMembers(peopleData.users || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load dashboard")
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
+    void loadDashboard()
+  }, [loadDashboard])
 
-    if (user) {
-      loadDashboard()
-      preloadBookmarkCounts()
-    }
-  }, [user])
+  const name = useMemo(
+    () => `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "PeerLink member",
+    [user],
+  )
+  const firstName = user?.firstName || name.split(" ")[0]
+  const organizationName = formatOrganizationName(organization?.name || user?.company, "Your organization")
+  const allDrafts = useMemo(
+    () => [
+      ...useCaseDrafts.map((draft) => ({ href: `/submit?draft=${draft.id}`, label: "Use-case draft", detail: draft.title || "Untitled use case" })),
+      ...forumDrafts.map((draft) => ({ href: "/forum", label: "Forum draft", detail: draft.title || "Untitled discussion" })),
+    ],
+    [forumDrafts, useCaseDrafts],
+  )
+  const visibleActivities = activities.filter((activity) => activityFilter === "all" || activityKind(activity) === activityFilter).slice(0, 4)
+  const featured = featuredCases[0]
+  const facts = impactFacts(featured)
+  const connectedMembers = members.filter((member) => member.isActive !== false).slice(0, 4)
+  const today = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Asia/Riyadh",
+  }).format(new Date())
 
-  const fetchBookmarks = async (type: 'posts' | 'use-cases') => {
-    try {
-      setLoadingBookmarks(true)
-      if (type === 'posts') {
-        setBookmarkModalTitle('Saved Posts')
-        const res = await fetch(buildApiUrl('/api/v1/forum/bookmarks'), { credentials: 'include' })
-        const list = res.ok ? await res.json() : []
-        setBookmarks(Array.isArray(list) ? list.map((b: any) => ({
-          title: b.target_title || b.title,
-          target_type: 'forum_post',
-          category: b.target_category,
-          saved_at: b.created_at || new Date().toISOString(),
-          post_id: Number(b.target_id) || b.target_id
-        })) : [])
-        setForumBookmarkCount(Array.isArray(list) ? list.length : 0)
-      } else {
-        setBookmarkModalTitle('Saved Use Cases')
-        const res = await fetch(buildApiUrl('/api/v1/use-cases/bookmarks'), { credentials: 'include' })
-        const list = res.ok ? await res.json() : []
-        setBookmarks(Array.isArray(list) ? list.map((b: any) => ({
-          title: b.title,
-          target_type: 'use_case',
-          category: b.category,
-          saved_at: b.created_at || new Date().toISOString(),
-          title_slug: b.title_slug,
-          company_slug: b.company_slug
-        })) : [])
-        setUseCaseBookmarkCount(Array.isArray(list) ? list.length : 0)
-      }
-    } catch (error) {
-      console.error('Error fetching bookmarks:', error)
-      setBookmarks([])
-    } finally {
-      setLoadingBookmarks(false)
-    }
-  }
-
-  const fetchDrafts = async () => {
-    try {
-      setLoadingDrafts(true)
-      const response = await fetch(buildApiUrl('/api/v1/dashboard/drafts'), {
-        credentials: 'include'
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setDrafts(data.drafts || [])
-      }
-    } catch (error) {
-      console.error('Error fetching drafts:', error)
-      setDrafts([])
-    } finally {
-      setLoadingDrafts(false)
-    }
-  }
-
-  // Fetch use case drafts (GROUP C)
-  const fetchUseCaseDrafts = async () => {
-    try {
-      setLoadingUseCaseDrafts(true)
-      const response = await fetch(buildApiUrl('/api/v1/use-cases/drafts'), {
-        credentials: 'include'
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setUseCaseDrafts(data || [])
-      }
-    } catch (error) {
-      console.error('Error fetching use case drafts:', error)
-      setUseCaseDrafts([])
-    } finally {
-      setLoadingUseCaseDrafts(false)
-    }
-  }
-
-  const handleQuickAccessClick = async (type: string) => {
-    if (type === 'Draft Posts') {
-      await fetchDrafts()
-      setShowDrafts(true)
-    } else if (type === 'My Connections') {
-      // TODO: Implement connections - for now just show coming soon modal
-      setShowComingSoon(true)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading dashboard...</p>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <div className="px-5 py-10 md:px-8 xl:px-[58px]"><LoadingState title="Loading network workspace" /></div>
+  if (error) return <div className="px-5 py-10 md:px-8 xl:px-[58px]"><ErrorState title="Dashboard unavailable" description={error} actionLabel="Retry" onAction={() => void loadDashboard()} /></div>
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
-      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-8">
-            {/* Welcome Section */}
-            <div className="bg-slate-800 rounded-2xl p-6 sm:p-8 text-white">
-              <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
-                <span className="text-base sm:text-lg font-medium">Good morning!</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 break-words">Welcome back, {user?.firstName || 'User'}! 👋</h1>
-              <p className="text-slate-300 text-sm sm:text-base lg:text-lg">Ready to connect and share knowledge today? Here's what's happening in your professional network.</p>
-            </div>
+    <div className="min-h-[calc(100vh-var(--peer-topbar-height))] bg-[var(--peer-paper)] [--peer-surface:#ffffff]">
+      <div className="mx-auto w-full max-w-[1430px] px-5 pb-16 pt-8 md:px-8 md:pt-11 xl:px-[58px]">
+        <header className="mb-8 grid items-end gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:gap-7">
+        <div>
+          <p className="peer-eyebrow mb-1.5">{today}</p>
+          <h1 className="font-display max-w-[760px] text-[clamp(30px,3.3vw,45px)] font-semibold leading-[1.13] tracking-[-0.045em] text-[var(--peer-ink)]">
+            Good morning, {firstName}. What can the network move forward today?
+          </h1>
+          <p className="mt-2 text-[15px] text-[var(--peer-muted)]">Your working view of shared knowledge, collaborators and contributions.</p>
+        </div>
+        <div className="min-w-[215px] border-l-2 border-[var(--peer-teal)] py-1 pl-4">
+          <strong className="font-display block text-sm font-semibold">{organizationName}</strong>
+          <span className="text-xs text-[var(--peer-muted)]">{user?.title || "Manufacturing professional"} · {user?.role === "admin" ? "Admin" : "Member"}</span>
+        </div>
+      </header>
 
-            {/* Quick Actions - Hide on mobile since it's in the hamburger menu */}
-            <div className="hidden md:block">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <button 
-                  onClick={() => navigate('/forum')}
-                  className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="bg-blue-600 p-4 rounded-lg mb-4 group-hover:bg-blue-700 transition-colors">
-                    <MessageSquare className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-slate-900 mb-1">Ask Question</h3>
-                    <p className="text-sm text-slate-600">Get help from experts</p>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => navigate('/submit')}
-                  className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="bg-slate-600 p-4 rounded-lg mb-4 group-hover:bg-slate-700 transition-colors">
-                    <FileText className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-slate-900 mb-1">Share Knowledge</h3>
-                    <p className="text-sm text-slate-600">Add your insights</p>
-                  </div>
-                </button>
-                {user?.role === 'admin' ? (
-                  <button 
-                    onClick={() => navigate('/user-management')}
-                    className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                  >
-                    <div className="bg-green-600 p-4 rounded-lg mb-4 group-hover:bg-green-700 transition-colors">
-                      <UserCog className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-semibold text-slate-900 mb-1">Manage Users</h3>
-                      <p className="text-sm text-slate-600">Organization settings</p>
-                    </div>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowComingSoon(true)}
-                    className="group bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
-                    <div className="bg-blue-500 p-4 rounded-lg mb-4 group-hover:bg-blue-600 transition-colors">
-                      <Users className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-semibold text-slate-900 mb-1">Connect</h3>
-                      <p className="text-sm text-slate-600">Find professionals</p>
-                    </div>
-                  </button>
+      <div className="grid items-start gap-[22px] lg:grid-cols-[minmax(0,1.7fr)_minmax(290px,0.78fr)]">
+        <div className="flex min-w-0 flex-col gap-[22px]">
+        <section className="peer-panel lg:col-start-1" aria-labelledby="start-something-title">
+          <div className="border-b border-[var(--peer-line)] px-[23px] py-[18px]">
+            <p className="peer-eyebrow mb-1">Create or connect</p>
+            <h2 id="start-something-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Start something useful</h2>
+          </div>
+          <div className="grid sm:grid-cols-2">
+            {[
+              { href: "/forum?compose=true", title: "Ask a question", copy: "Bring a manufacturing challenge to the community.", icon: MessageCircleQuestion },
+              { href: "/submit", title: "Share a use case", copy: "Document an implementation your peers can reuse.", icon: NotebookPen },
+              { href: "/connect", title: "Find collaborators", copy: "Connect with specialists across the network.", icon: UserSearch },
+              { href: "/organization", title: organizationName, copy: "View your organization profile, members and activity.", icon: UsersRound },
+            ].map(({ href, title, copy, icon: Icon }, index) => (
+              <Link
+                key={title}
+                to={href}
+                className={cn(
+                  "group grid min-h-[116px] grid-cols-[39px_1fr_20px] items-start gap-3 border-[var(--peer-line)] p-[22px] transition hover:bg-[#f2f5f1]",
+                  index % 2 === 0 && "sm:border-r",
+                  index < 2 && "border-b",
+                  index === 2 && "border-b sm:border-b-0",
                 )}
-              </div>
-            </div>
+              >
+                <span className="grid size-[39px] place-items-center border border-[#c4d7d1] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)]"><Icon className="size-[19px]" strokeWidth={1.8} /></span>
+                <span><strong className="mb-1 block text-sm">{title}</strong><span className="block text-xs leading-[1.4] text-[var(--peer-muted)]">{copy}</span></span>
+                <ArrowUpRight className="mt-2 size-[17px] text-[#899295] transition group-hover:text-[var(--peer-teal)]" />
+              </Link>
+            ))}
+          </div>
+        </section>
 
-            {/* Stats Cards */}
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Your Progress</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <div className="bg-blue-600 p-4 sm:p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
-                    <div className="text-right">
-                      <div className="text-xl sm:text-2xl font-bold">{stats?.questions_asked || 0}</div>
-                      <div className="text-blue-200 text-xs sm:text-sm">Questions</div>
-                    </div>
-                  </div>
-                  <div className="text-xs sm:text-sm text-blue-200">Forum posts created</div>
+        <section className="peer-panel lg:col-start-1" aria-labelledby="knowledge-motion-title">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[18px]">
+            <div><p className="peer-eyebrow mb-1">Across PeerLink</p><h2 id="knowledge-motion-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Knowledge in motion</h2></div>
+            <Link to="/forum" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">View all <ArrowRight className="size-3.5" /></Link>
+          </div>
+          <div className="flex gap-1 overflow-x-auto border-b border-[var(--peer-line)] px-[22px] pt-3">
+            {(["all", "discussion", "usecase"] as const).map((filter) => (
+              <button key={filter} type="button" onClick={() => setActivityFilter(filter)} className={cn("border-b-2 border-transparent px-3 py-2 text-xs font-semibold capitalize text-[var(--peer-muted)]", activityFilter === filter && "border-[var(--peer-teal)] text-[var(--peer-ink)]")}>
+                {filter === "all" ? "All activity" : filter === "discussion" ? "Discussions" : "Use cases"}
+              </button>
+            ))}
+          </div>
+          <div>
+            {visibleActivities.length > 0 ? visibleActivities.map((activity, index) => {
+              const kind = activityKind(activity)
+              const lead = activityLead(activity)
+              const Icon = kind === "usecase" ? (index % 2 === 0 ? ScanEye : Gauge) : MessageSquareReply
+              return (
+                <div key={`${activityTitle(activity)}-${index}`} className="grid grid-cols-[38px_minmax(0,1fr)_auto] gap-3 border-b border-[var(--peer-line)] px-[22px] py-[18px] last:border-b-0">
+                  <span className="grid size-[38px] place-items-center rounded-full bg-[#e7e6df] text-[var(--peer-teal)]"><Icon className="size-[17px]" /></span>
+                  <span className="min-w-0"><span className="block text-[13px]"><strong>{lead.person}</strong> {lead.action}</span><span className="block truncate text-xs text-[var(--peer-muted)]">{activityTitle(activity)}</span></span>
+                  <span className="pt-0.5 text-[11px] text-[#858e90]">{activityTime(activity)}</span>
                 </div>
-                <div className="bg-slate-600 p-4 sm:p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <Award className="h-6 w-6 sm:h-8 sm:w-8 text-slate-200" />
-                    <div className="text-right">
-                      <div className="text-xl sm:text-2xl font-bold">{stats?.answers_given || 0}</div>
-                      <div className="text-slate-200 text-xs sm:text-sm">Answers</div>
-                    </div>
-                  </div>
-                  <div className="text-xs sm:text-sm text-slate-200">{stats?.best_answers || 0} best answers</div>
-                </div>
-                <div className="bg-blue-500 p-4 sm:p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <BookmarkCheck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-200" />
-                    <div className="text-right">
-                      <div className="text-xl sm:text-2xl font-bold">{stats?.bookmarks_saved || 0}</div>
-                      <div className="text-blue-200 text-xs sm:text-sm">Saved</div>
-                    </div>
-                  </div>
-                  <div className="text-xs sm:text-sm text-blue-200">Bookmarked items</div>
-                </div>
-                <div className="bg-slate-700 p-4 sm:p-6 rounded-xl text-white">
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <Star className="h-6 w-6 sm:h-8 sm:w-8 text-slate-300" />
-                    <div className="text-right">
-                      <div className="text-xl sm:text-2xl font-bold">{stats?.reputation_score || 0}</div>
-                      <div className="text-slate-300 text-xs sm:text-sm">Reputation</div>
-                    </div>
-                  </div>
-                  <div className="text-xs sm:text-sm text-slate-300">{stats?.use_cases_submitted || 0} use cases shared</div>
-                </div>
-              </div>
-            </div>
+              )
+            }) : <EmptyState className="m-5 min-h-44 shadow-none" title="No activity in this view" description="New discussions and implementation stories will appear here." />}
+          </div>
+        </section>
 
-            {/* Quick Access - Mobile Only */}
-            <div className="lg:hidden">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Access</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={async () => { await fetchBookmarks('posts'); setShowBookmarks(true); }}
-                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-slate-900">Saved Posts</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {forumBookmarkCount}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={async () => { await fetchBookmarks('use-cases'); setShowBookmarks(true); }}
-                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-slate-900">Use Cases</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {useCaseBookmarkCount}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleQuickAccessClick('My Connections')}
-                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-slate-900">Connections</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-slate-600">
-                      {String(stats?.connections_count || 0)}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={async () => { await fetchDrafts(); setShowDrafts(true); }}
-                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-slate-900">Drafts</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {String(stats?.draft_posts || 0)}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={async () => { await fetchUseCaseDrafts(); setShowUseCaseDraftsPanel(true); }}
-                  className="bg-white p-3 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-slate-900">UC Drafts</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {String(useCaseDrafts.length)}
-                    </div>
-                  </div>
-                </button>
+        {featuredCases.length > 1 ? (
+          <section className="peer-panel" aria-labelledby="keep-exploring-title">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[16px]">
+              <div>
+                <p className="peer-eyebrow mb-1">From the network</p>
+                <h2 id="keep-exploring-title" className="font-display text-[18px] font-semibold tracking-[-0.025em]">Keep exploring</h2>
               </div>
+              <Link to="/usecases" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">Browse all <ArrowRight className="size-3.5" /></Link>
             </div>
-
-            {/* Activity Level - Mobile Only */}
-            <div className="lg:hidden">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">This Month</h3>
-              <div className="bg-white rounded-xl p-4 sm:p-6 border border-slate-200">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600">Activity Level</p>
-                      <p className="text-2xl font-bold text-blue-600">{Math.round(stats?.activity_level || 0)}%</p>
-                    </div>
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      <Activity className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-3">
-                    <div className="bg-blue-600 h-3 rounded-full" style={{ width: `${Math.round(stats?.activity_level || 0)}%` }}></div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Target className="h-4 w-4 text-green-500" />
-                    <p className="text-xs text-slate-600">
-                      {(stats?.activity_level || 0) > 70
-                        ? "Excellent progress! Keep it up!"
-                        : (stats?.activity_level || 0) > 40
-                          ? "Good activity level"
-                          : "Get more active in the community"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="grid sm:grid-cols-2">
+              {featuredCases.slice(1, 3).map((item, index) => (
+                <Link
+                  key={item.id}
+                  to={`/usecases/${item.company_slug}/${item.title_slug}`}
+                  className={cn("group grid min-w-0 grid-cols-[1fr_auto] gap-3 px-[22px] py-[17px] hover:bg-[#f2f5f1]", index === 0 && "sm:border-r sm:border-[var(--peer-line)]")}
+                >
+                  <span className="min-w-0">
+                    <strong className="block truncate text-[13px]">{item.title}</strong>
+                    <span className="mt-1 block truncate text-[11px] text-[var(--peer-muted)]">{item.category} · {item.company}</span>
+                  </span>
+                  <ArrowUpRight className="mt-1 size-4 text-[#899295] transition group-hover:text-[var(--peer-teal)]" />
+                </Link>
+              ))}
             </div>
+          </section>
+        ) : null}
 
-            {/* Activity Feed */}
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Activities</h2>
-                  <p className="text-sm sm:text-base text-gray-600">Stay updated with community happenings</p>
-                </div>
-                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 self-start sm:self-auto">
-                  View All
-                </Button>
-              </div>
-              <div className="space-y-4">
-                {activities.map((activity, i) => (
-                  <div key={i} className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300">
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ${
-                        activity.type === "question" ? "bg-blue-600" :
-                        activity.type === "answer" ? "bg-slate-600" :
-                        activity.type === "usecase" ? "bg-blue-500" :
-                        activity.type === "bookmark" ? "bg-green-600" :
-                        activity.type === "like" ? "bg-red-500" :
-                        "bg-gray-500"
-                      }`}>
-                        {activity.type === "question" && <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
-                        {activity.type === "answer" && <Award className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
-                        {(activity.type === "usecase" || activity.type === "case") && <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
-                        {activity.type === "bookmark" && <BookmarkCheck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
-                        {activity.type === "like" && <Star className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
-                        {activity.type === "comment" && <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm sm:text-base text-slate-900 font-medium mb-1 break-words">
-                          <span className="font-semibold">{activity.user}</span> {activity.action}
-                        </p>
-                        <p className="text-xs sm:text-sm text-slate-600 mb-3 break-words line-clamp-2">{activity.content}</p>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <span className="text-xs text-slate-500">{activity.time}</span>
-                          <span className="text-xs bg-slate-100 text-slate-700 px-2 sm:px-3 py-1 rounded-full font-medium whitespace-nowrap self-start">{activity.category}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        </div>
+        <div className="flex min-w-0 flex-col gap-[22px]">
+        <aside className="peer-panel lg:col-start-2 lg:row-start-1" aria-labelledby="workspace-pulse-title">
+          <div className="border-b border-[var(--peer-line)] px-[23px] py-[18px]">
+            <p className="peer-eyebrow mb-1">Your contribution</p>
+            <h2 id="workspace-pulse-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Workspace pulse</h2>
+          </div>
+          <div className="border-b border-[var(--peer-line)] px-[23px] py-6">
+            <div className="mb-2 flex items-baseline gap-2"><strong className="font-display text-[38px] font-semibold leading-none tracking-[-0.05em]">{stats.activity_level}%</strong><span className="text-xs text-[var(--peer-muted)]">activity level</span></div>
+            <p className="mb-4 text-xs text-[var(--peer-muted)]">One useful contribution this week will move your profile forward.</p>
+            <div className="h-[5px] overflow-hidden bg-[#deded7]" role="progressbar" aria-label="Activity level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={stats.activity_level}>
+              <div className="h-full bg-[var(--peer-teal)]" style={{ width: `${Math.min(100, Math.max(0, stats.activity_level))}%` }} />
             </div>
           </div>
-
-          {/* Sidebar - Hidden on mobile */}
-          <div className="space-y-8 hidden lg:block">
-            {/* Profile Summary - Hidden on mobile since it's in hamburger menu */}
-            <div className="hidden md:block bg-white rounded-2xl p-6 border border-slate-200">
-              <div className="text-center space-y-4">
-                <div className="relative inline-block">
-                  <Avatar
-                    src={user?.profilePictureUrl}
-                    name={`${user?.firstName} ${user?.lastName}`}
-                    size="xl"
-                  />
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-lg">{user?.firstName} {user?.lastName}</h3>
-                  <p className="text-slate-600">{user?.title} • {user?.role === 'admin' ? 'Admin' : 'Member'}</p>
-                  <p className="text-sm text-slate-500">{organization?.name}</p>
-                  <div className="inline-flex items-center space-x-1 bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full mt-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="font-medium">Verified</span>
-                  </div>
-                </div>
-                <Button 
-                  onClick={() => setShowEditProfile(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Edit Profile
-                </Button>
+          <dl>
+            {[
+              ["Questions", stats.questions_asked],
+              ["Answers", stats.answers_given],
+              ["Saved", stats.bookmarks_saved],
+              ["Use cases", stats.use_cases_submitted],
+              ["Reputation", stats.reputation_score],
+            ].map(([label, value], index) => (
+              <div key={label} className="flex items-center justify-between border-b border-[var(--peer-line)] px-[22px] py-[15px] last:border-b-0">
+                <dt className="text-xs text-[var(--peer-muted)]">{label}</dt>
+                <dd className={cn("font-display text-[17px] font-semibold", index > 2 && "text-[var(--peer-teal)]")}>{value}</dd>
               </div>
-            </div>
-
-            {/* Quick Access */}
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">Quick Access</h3>
-              <div className="space-y-3">
-                <button 
-                  onClick={async () => { await fetchBookmarks('posts'); setShowBookmarks(true); }}
-                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-900">Saved Posts</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {forumBookmarkCount}
-                    </div>
-                  </div>
-                </button>
-                <button 
-                  onClick={async () => { await fetchBookmarks('use-cases'); setShowBookmarks(true); }}
-                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-900">Saved Use Cases</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {useCaseBookmarkCount}
-                    </div>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => handleQuickAccessClick('My Connections')}
-                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-900">My Connections</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-slate-600">
-                      {String(stats?.connections_count || 0)}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={async () => { await fetchDrafts(); setShowDrafts(true); }}
-                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-900">Draft Posts</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {String(stats?.draft_posts || 0)}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={async () => { await fetchUseCaseDrafts(); setShowUseCaseDraftsPanel(true); }}
-                  className="w-full bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-900">Use Case Drafts</span>
-                    <div className="px-2 py-1 rounded-lg text-white text-xs font-bold bg-blue-600">
-                      {String(useCaseDrafts.length)}
-                    </div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Upcoming Events */}
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">Upcoming Events</h3>
-              <div className="bg-slate-800 p-6 rounded-xl text-white">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Calendar className="h-5 w-5 text-slate-300" />
-                  <span className="text-sm font-medium text-slate-300">Next Event</span>
-                </div>
-                <h4 className="font-bold text-lg mb-2">Industry Knowledge Summit</h4>
-                <div className="space-y-1 text-slate-300 text-sm mb-4">
-                  <p>December 15, 2024</p>
-                  <p>Virtual Event</p>
-                </div>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                  Join Event
-                </Button>
-              </div>
-            </div>
-
-            {/* Activity Insights */}
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4">This Month</h3>
-              <div className="bg-white rounded-xl p-6 border border-slate-200">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600">Activity Level</p>
-                      <p className="text-2xl font-bold text-blue-600">{Math.round(stats?.activity_level || 0)}%</p>
-                    </div>
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      <Activity className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-3">
-                    <div className="bg-blue-600 h-3 rounded-full" style={{ width: `${Math.round(stats?.activity_level || 0)}%` }}></div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Target className="h-4 w-4 text-green-500" />
-                    <p className="text-xs text-slate-600">
-                      {(stats?.activity_level || 0) > 70 
-                        ? "Excellent progress! Keep it up!" 
-                        : (stats?.activity_level || 0) > 40 
-                          ? "Good activity level" 
-                          : "Get more active in the community"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
+          </dl>
+          <div className="mx-[22px] border-t border-[var(--peer-line)] py-4">
+            {allDrafts[0] ? (
+              <Link to={allDrafts[0].href} className="grid grid-cols-[1fr_auto] items-center gap-3">
+                <span><strong className="mb-0.5 block text-[13px]">Continue where you left off</strong><span className="block text-[11px] text-[var(--peer-muted)]">{allDrafts[0].label} · {allDrafts[0].detail}</span></span>
+                <span className="font-display text-[22px] font-bold text-[var(--peer-amber)]">{allDrafts.length}</span>
+              </Link>
+            ) : (
+              <Link to="/submit" className="grid grid-cols-[1fr_auto] items-center gap-3">
+                <span><strong className="mb-0.5 block text-[13px]">No open drafts</strong><span className="block text-[11px] text-[var(--peer-muted)]">Start documenting a reusable implementation.</span></span>
+                <ArrowRight className="size-4 text-[var(--peer-teal)]" />
+              </Link>
+            )}
           </div>
+        </aside>
+
+        <section className="peer-panel lg:col-start-2" aria-labelledby="network-title">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-5 py-[18px]">
+            <div><p className="peer-eyebrow mb-1">Available now</p><h2 id="network-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Your network</h2></div>
+            <Link to="/connect" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">People <ArrowRight className="size-3.5" /></Link>
+          </div>
+          <div>
+            {connectedMembers.map((member, index) => {
+              const person = memberName(member)
+              return (
+                <Link key={member.id} to="/connect" className="grid grid-cols-[39px_minmax(0,1fr)_7px] items-center gap-3 border-b border-[var(--peer-line)] px-5 py-3.5 last:border-b-0 hover:bg-[#f2f5f1]">
+                  <span className="grid size-[39px] place-items-center overflow-hidden rounded-full bg-[#dfe8e5] text-xs font-bold text-[var(--peer-teal)]">{member.profilePictureUrl ? <img src={member.profilePictureUrl} alt="" className="size-full object-cover" /> : initials(person)}</span>
+                  <span className="min-w-0"><strong className="block truncate text-xs">{person}</strong><span className="block truncate text-[10px] text-[var(--peer-muted)]">{member.title || member.expertiseTags?.[0] || "Manufacturing network member"}</span></span>
+                  <span className={cn("size-[7px] rounded-full", index === 3 ? "bg-[#ca832f]" : "bg-[#1b8f75]")} />
+                </Link>
+              )
+            })}
+            {connectedMembers.length === 0 ? <EmptyState className="m-4 min-h-40 shadow-none" title="Your network is quiet" description="Organization members will appear here." /> : null}
+          </div>
+          <div className="flex items-center gap-2 border-t border-[var(--peer-line)] bg-[#f1f2ed] px-5 py-3.5 text-[11px] text-[var(--peer-muted)]"><Network className="size-4 text-[var(--peer-teal)]" />{members.length} verified colleagues in {organizationName}</div>
+        </section>
+
         </div>
       </div>
-
-      {/* Bookmarks Panel */}
-      {showBookmarks && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm" onClick={() => setShowBookmarks(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white border-l border-blue-100 shadow-2xl flex flex-col">
-            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
-              <h3 className="text-xl font-bold">{bookmarkModalTitle}</h3>
-              <button onClick={() => setShowBookmarks(false)} className="text-white/80 hover:text-white">✕</button>
-            </div>
-            <div className="p-6 overflow-y-auto">
-              {loadingBookmarks ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-slate-600 mt-2">Loading bookmarks...</p>
-                </div>
-              ) : bookmarks.length > 0 ? (
-                <div className="space-y-3">
-                  {bookmarks.map((bookmark, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        if (bookmark.target_type === 'use_case' && bookmark.company_slug && bookmark.title_slug) {
-                          navigate(`/usecases/${bookmark.company_slug}/${bookmark.title_slug}`)
-                          setShowBookmarks(false)
-                        } else if (bookmark.target_type === 'forum_post' && bookmark.post_id) {
-                          navigate('/forum', { state: { openPostId: bookmark.post_id } })
-                          setShowBookmarks(false)
-                        }
-                      }}
-                      className="w-full text-left p-4 bg-white hover:bg-blue-50 border border-blue-100 hover:border-blue-300 rounded-lg transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-3">
-                          <h4 className="font-medium text-slate-900 mb-1 line-clamp-2">{bookmark.title}</h4>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500 capitalize">{bookmark.target_type === 'use_case' ? 'Use Case' : 'Forum Post'}</span>
-                            {bookmark.category && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-blue-100 text-blue-800">
-                                {bookmark.category}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-xs text-slate-500 ml-4 whitespace-nowrap">
-                          {new Date(bookmark.saved_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <BookmarkCheck className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600">No saved items yet</p>
-                  <p className="text-sm text-slate-500">Start bookmarking posts and use cases!</p>
-                </div>
-              )}
-            </div>
+        <section className="peer-panel mt-[22px] overflow-hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(245px,0.5fr)]" aria-labelledby="featured-title">
+          <div className="relative min-h-[254px] overflow-hidden bg-[var(--peer-navy)] px-6 py-8 text-white md:px-9">
+            <div className="absolute -bottom-28 -right-9 h-[270px] w-[310px] -rotate-[18deg] border border-[#75c3ba40]" />
+            <p className="peer-eyebrow relative z-10 !text-[#76c5bd]">Featured implementation</p>
+            <h2 id="featured-title" className="font-display relative z-10 my-4 max-w-[680px] text-[clamp(23px,2.6vw,33px)] font-semibold leading-[1.22] tracking-[-0.035em]">{featured?.title || "Manufacturing knowledge moves further when teams share what worked"}</h2>
+            <p className="relative z-10 mb-6 max-w-[650px] text-[13px] text-[#b8cdca]">{featured?.description || "Explore a field-tested implementation from the PeerLink network, including practical methods, measured outcomes and lessons for reuse."}</p>
+            {featured ? <Link to={`/usecases/${featured.company_slug}/${featured.title_slug}`} className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)] hover:bg-[#e6efed]">Read implementation <ArrowUpRight className="size-4" /></Link> : <Link to="/usecases" className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)]">Explore use cases <ArrowUpRight className="size-4" /></Link>}
           </div>
-        </div>
-      )}
-
-      {/* Drafts Panel */}
-      {showDrafts && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm" onClick={() => setShowDrafts(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white border-l border-blue-100 shadow-2xl flex flex-col">
-            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
-              <h3 className="text-xl font-bold">Draft Posts</h3>
-              <button onClick={() => setShowDrafts(false)} className="text-white/80 hover:text-white">✕</button>
-            </div>
-            <div className="p-6 overflow-y-auto">
-              {loadingDrafts ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-slate-600 mt-2">Loading drafts...</p>
-                </div>
-              ) : drafts.length > 0 ? (
-                <div className="space-y-3">
-                  {drafts.map((draft, i) => (
-                    <div
-                      key={i}
-                      className="relative group bg-white border border-blue-100 rounded-lg transition-colors hover:border-blue-300"
-                    >
-                      <div
-                        onClick={() => {
-                          setPrefillDraft({ title: draft.title, content: draft.content, category: draft.category })
-                          navigate('/forum', { state: { openCreateWithDraft: { title: draft.title, content: draft.content, category: draft.category, draftId: draft.id } } })
-                          setShowDrafts(false)
-                        }}
-                        className="w-full text-left p-4 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-slate-900 line-clamp-2 pr-8">{draft.title}</h4>
-                          <span className="text-xs text-slate-500 ml-4 whitespace-nowrap">
-                            {new Date(draft.updated_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-3 line-clamp-2">{draft.content}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-slate-100 text-slate-700">
-                            {draft.post_type}
-                          </span>
-                          {draft.category && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-blue-100 text-blue-800">{draft.category}</span>
-                          )}
-                          <span className="ml-auto text-xs text-blue-700 font-medium">Continue writing →</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          e.preventDefault()
-                          console.log('Delete button clicked for draft:', draft.id)
-                          setDeleteConfirm({
-                            show: true,
-                            title: 'Delete Draft',
-                            message: 'Are you sure you want to delete this draft? This action cannot be undone.',
-                            onConfirm: async () => {
-                              try {
-                                const res = await fetch(buildApiUrl(`/api/v1/dashboard/drafts/${draft.id}`), {
-                                  method: 'DELETE',
-                                  credentials: 'include'
-                                })
-                                if (res.ok) {
-                                  // Refresh drafts list
-                                  fetchDrafts()
-                                  // Refresh stats
-                                  fetchStats()
-                                }
-                              } catch (error) {
-                                console.error('Error deleting draft:', error)
-                              }
-                              setDeleteConfirm({ show: false })
-                            }
-                          })
-                        }}
-                        className="absolute top-1 right-1 z-20 opacity-70 group-hover:opacity-100 transition-opacity p-2 bg-red-500 hover:bg-red-600 rounded-full text-white shadow-lg"
-                        title="Delete draft"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600">No draft posts yet</p>
-                  <p className="text-sm text-slate-500">Start writing and save drafts for later!</p>
-                </div>
-              )}
-            </div>
+          <div className="grid content-center bg-[#e1e7e2] p-7">
+            <dl>
+              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Organization</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.company || "PeerLink network"}</dd></div>
+              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Category</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.category || "Manufacturing"}</dd></div>
+              <div className="grid grid-cols-[1fr_auto] gap-3 py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Measured impact</dt><dd className="font-display max-w-[150px] text-right text-sm font-bold text-[var(--peer-teal)]">{facts[0] || featured?.timeframe || "Field-tested"}</dd></div>
+            </dl>
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--peer-muted)]"><Eye className="size-3.5" />{featured?.views || 0} network views <Factory className="ml-2 size-3.5" />Verified story</div>
           </div>
-        </div>
-      )}
-
-      {/* Use Case Drafts Panel (GROUP C) */}
-      {showUseCaseDraftsPanel && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm" onClick={() => setShowUseCaseDraftsPanel(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white border-l border-blue-100 shadow-2xl flex flex-col">
-            <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
-              <h3 className="text-xl font-bold">Use Case Drafts</h3>
-              <button onClick={() => setShowUseCaseDraftsPanel(false)} className="text-white/80 hover:text-white">✕</button>
-            </div>
-            <div className="p-6 overflow-y-auto">
-              {loadingUseCaseDrafts ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-slate-600 mt-2">Loading drafts...</p>
-                </div>
-              ) : useCaseDrafts.length > 0 ? (
-                <div className="space-y-3">
-                  {useCaseDrafts.map((draft, i) => (
-                    <div
-                      key={draft.id || i}
-                      className="relative group bg-white border border-blue-100 rounded-lg transition-colors hover:border-blue-300"
-                    >
-                      <div
-                        onClick={() => {
-                          navigate(`/submit?draft=${draft.id}`)
-                          setShowUseCaseDraftsPanel(false)
-                        }}
-                        className="w-full text-left p-4 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-slate-900 line-clamp-2 pr-8">{draft.title || 'Untitled Draft'}</h4>
-                          <span className="text-xs text-slate-500 ml-4 whitespace-nowrap">
-                            {new Date(draft.updated_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {draft.subtitle && (
-                          <p className="text-sm text-slate-600 mb-3 line-clamp-2">{draft.subtitle}</p>
-                        )}
-                        {draft.description && !draft.subtitle && (
-                          <p className="text-sm text-slate-600 mb-3 line-clamp-2">{draft.description}</p>
-                        )}
-                        <div className="flex items-center gap-2">
-                          {draft.category && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-blue-100 text-blue-800">{draft.category}</span>
-                          )}
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-slate-100 text-slate-700">
-                            Step {draft.current_step || 1} of 7
-                          </span>
-                          <span className="ml-auto text-xs text-blue-700 font-medium">Continue editing →</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          e.preventDefault()
-                          setDeleteConfirm({
-                            show: true,
-                            title: 'Delete Draft',
-                            message: 'Are you sure you want to delete this use case draft? This action cannot be undone.',
-                            onConfirm: async () => {
-                              try {
-                                const res = await fetch(buildApiUrl(`/api/v1/use-cases/drafts/${draft.id}`), {
-                                  method: 'DELETE',
-                                  credentials: 'include'
-                                })
-                                if (res.ok) {
-                                  // Refresh drafts list
-                                  fetchUseCaseDrafts()
-                                }
-                              } catch (error) {
-                                console.error('Error deleting use case draft:', error)
-                              }
-                              setDeleteConfirm({ show: false })
-                            }
-                          })
-                        }}
-                        className="absolute top-1 right-1 z-20 opacity-70 group-hover:opacity-100 transition-opacity p-2 bg-red-500 hover:bg-red-600 rounded-full text-white shadow-lg"
-                        title="Delete draft"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-600">No use case drafts yet</p>
-                  <p className="text-sm text-slate-500">Start creating a use case and save as draft!</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={deleteConfirm.show}
-        title={deleteConfirm.title || "Confirm Delete"}
-        message={deleteConfirm.message || "Are you sure you want to delete this item?"}
-        onConfirm={() => {
-          if (deleteConfirm.onConfirm) {
-            deleteConfirm.onConfirm()
-          }
-        }}
-        onClose={() => setDeleteConfirm({ show: false })}
-      />
-
-      {/* Edit Profile Panel */}
-      <EditProfilePanel
-        isOpen={showEditProfile}
-        onClose={() => setShowEditProfile(false)}
-        onSave={async () => {
-          // Reload user data after successful update
-          await loadDashboard()
-        }}
-      />
-
-      {/* Coming Soon Modal */}
-      <ComingSoonModal
-        isOpen={showComingSoon}
-        onClose={() => setShowComingSoon(false)}
-        featureName="Connect with Members"
-        description="This feature will allow you to browse and connect with other professionals in your organization."
-      />
+        </section>
+      </div>
     </div>
   )
 }

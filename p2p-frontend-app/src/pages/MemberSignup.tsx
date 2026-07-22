@@ -1,349 +1,244 @@
-import React, { useState, useEffect } from 'react'
+import { type FormEvent, useEffect, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { ArrowRight, BriefcaseBusiness, Building2, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck, TicketCheck, User, UserCheck, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  User,
-  Users,
-  XCircle
-} from "lucide-react"
-import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { API_BASE_URL } from '@/config/environment'
-
-interface InvitationData {
-  valid: boolean
-  email?: string
-  invited_by_name?: string
-  expires_at?: string
-  error?: string
-  // Organization data from inviter
-  organization_name?: string
-  industry?: string
-  organization_size?: string
-  city?: string
-  country?: string
-}
+import { useAuth } from "@/contexts/AuthContext"
+import { authApi } from "@/lib/api/auth"
+import type { InvitationValidationResponse } from "@/lib/api/types"
+import { AuthAlert, AuthCard, AuthHeading, AuthScaffold, PasswordRequirements } from "@/components/auth/AuthScaffold"
 
 export default function MemberSignup() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { signup } = useAuth()
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [invitationData, setInvitationData] = useState<InvitationData | null>(null)
+  const inviteToken = searchParams.get("token") || ""
+  const inviteEmail = searchParams.get("email") || ""
+  const [invitation, setInvitation] = useState<InvitationValidationResponse | null>(null)
   const [validatingToken, setValidatingToken] = useState(true)
-  
-  const inviteToken = searchParams.get('token')
-  const inviteEmail = searchParams.get('email')
-  
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [acceptedTerms, setAcceptedTerms] = useState(true)
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: inviteEmail || '',
-    password: '',
-    title: ''
+    firstName: "",
+    lastName: "",
+    email: inviteEmail,
+    password: "",
+    title: "",
   })
 
-  // Validate invitation token on mount
   useEffect(() => {
-    if (inviteToken) {
-      validateInvitation()
-    } else {
-      setError('No invitation token provided')
-      setValidatingToken(false)
+    let mounted = true
+    const validateInvitation = async () => {
+      if (!inviteToken) {
+        if (!mounted) return
+        setInvitation({ valid: false, error: "No invitation token provided" })
+        setError("No invitation token provided")
+        setValidatingToken(false)
+        return
+      }
+
+      try {
+        const data = await authApi.validateInvitation(inviteToken)
+        if (!mounted) return
+        setInvitation(data)
+        if (data.valid && data.email) {
+          setFormData((previous) => ({ ...previous, email: data.email || previous.email }))
+        } else {
+          setError(data.error || "Invalid or expired invitation")
+        }
+      } catch {
+        if (!mounted) return
+        setInvitation({ valid: false, error: "Failed to validate invitation" })
+        setError("Failed to validate invitation")
+      } finally {
+        if (mounted) setValidatingToken(false)
+      }
+    }
+
+    validateInvitation()
+    return () => {
+      mounted = false
     }
   }, [inviteToken])
-  
-  const validateInvitation = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/invites/validate/${inviteToken}`)
-      const data = await response.json()
-      
-      if (data.valid) {
-        setInvitationData(data)
-        setFormData(prev => ({ ...prev, email: data.email }))
-      } else {
-        setInvitationData({ valid: false, error: data.error || 'Invalid or expired invitation' })
-        setError(data.error || 'Invalid or expired invitation')
-      }
-    } catch (error) {
-      console.error('Error validating invitation:', error)
-      setError('Failed to validate invitation')
-      setInvitationData({ valid: false, error: 'Failed to validate invitation' })
-    } finally {
-      setValidatingToken(false)
-    }
+
+  const validateForm = () => {
+    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password.trim()) return "Complete all required fields."
+    if (formData.password.length < 8 || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) return "Password must be at least 8 characters with a lowercase letter and a number."
+    if (formData.password !== confirmPassword) return "Passwords do not match."
+    if (!acceptedTerms) return "Accept the terms and privacy policy to continue."
+    return ""
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    const issue = validateForm()
+    if (issue) {
+      setError(issue)
+      return
+    }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    
-    // Validation
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password.trim()) {
-      setError('Please fill in all required fields')
-      return
-    }
-    
-    if (formData.password.length < 8 || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-      setError('Password must be at least 8 characters with at least one lowercase letter and one number')
-      return
-    }
-    
+    setError("")
     setIsLoading(true)
 
     try {
-      const signupPayload = {
+      const signupResponse = await signup({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        title: formData.title || 'Team Member',
-        organizationName: invitationData?.organization_name || 'Organization',
-        industry: invitationData?.industry || 'Manufacturing',
-        organizationSize: invitationData?.organization_size || 'medium',
-        city: invitationData?.city || 'Riyadh',
-        country: invitationData?.country || 'Saudi Arabia',
+        title: formData.title || "Team Member",
+        organizationName: invitation?.organization_name || "Organization",
+        industry: invitation?.industry || "Manufacturing",
+        organizationSize: invitation?.organization_size || "medium",
+        city: invitation?.city || "Riyadh",
+        country: invitation?.country || "Saudi Arabia",
         inviteToken,
-        role: 'member',
-        isInvited: true
-      }
+        role: "member",
+        isInvited: true,
+      })
 
-      const signupResponse = await signup(signupPayload as any)
-
-      if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresOTPVerification) {
-        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}&inviteToken=${encodeURIComponent(inviteToken || '')}`)
+      if (signupResponse && typeof signupResponse === "object" && signupResponse.requiresOTPVerification) {
+        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}&inviteToken=${encodeURIComponent(inviteToken)}`)
       } else {
-        navigate('/dashboard')
+        navigate("/dashboard")
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Signup failed')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Signup failed")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Show loading state while validating token
   if (validatingToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-slate-600">Validating your invitation...</p>
-        </div>
-      </div>
+      <AuthScaffold
+        eyebrow="Member sign-up"
+        steps={[{ label: "Invitation", detail: "Confirm your invitation" }, { label: "Profile", detail: "Create member profile" }, { label: "Verify", detail: "Secure your account" }]}
+        activeStep={1}
+        contextTitle="Your invitation"
+        contextItems={[
+          { icon: TicketCheck, title: "Checking invitation", body: "PeerLink is validating this invitation token against the backend.", tone: "blue" },
+          { icon: ShieldCheck, title: "Secure activation", body: "Invalid, expired, or used invitations stop before account creation.", tone: "teal" },
+        ]}
+      >
+        <AuthCard className="text-center">
+          <Loader2 className="mx-auto mb-4 size-10 animate-spin text-[var(--peer-blue)]" />
+          <AuthHeading title="Validating invitation" subtitle="Checking whether this team invitation is still active." />
+        </AuthCard>
+      </AuthScaffold>
     )
   }
 
-  // Show error if invitation is invalid
-  if (invitationData && !invitationData.valid) {
+  if (invitation && !invitation.valid) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Invalid Invitation</h1>
-          <p className="text-slate-600 mb-6">{invitationData.error}</p>
-          <Button 
-            onClick={() => navigate('/login')}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Go to Login
-          </Button>
-        </div>
-      </div>
+      <AuthScaffold
+        eyebrow="Member sign-up"
+        steps={[{ label: "Invitation", detail: "Confirm your invitation" }, { label: "Profile", detail: "Create member profile" }, { label: "Verify", detail: "Secure your account" }]}
+        activeStep={1}
+        contextTitle="Safe stopping point"
+        contextItems={[
+          { icon: XCircle, title: "Invitation unavailable", body: "The backend rejected this invitation token.", tone: "danger" },
+          { icon: Mail, title: "Ask for a new invite", body: "An organization administrator can issue a fresh team invitation.", tone: "blue" },
+        ]}
+      >
+        <AuthCard className="text-center">
+          <XCircle className="mx-auto mb-5 size-16 text-[var(--peer-danger)]" />
+          <AuthHeading title="Invalid invitation" subtitle={invitation.error || error || "This invitation is invalid or expired."} />
+          <Button onClick={() => navigate("/login")} className="h-12 rounded-[5px] bg-[var(--peer-blue)] text-white hover:bg-[#0f5ccc]">Go to sign in</Button>
+        </AuthCard>
+      </AuthScaffold>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="flex items-center justify-center min-h-screen p-6">
-        <div className="w-full max-w-md mx-auto">
-          
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg">
-            
-            {/* Invitation Success Banner */}
-            {invitationData && invitationData.valid && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-green-800 font-medium">You're Invited!</p>
-                    <p className="text-green-700 text-sm mt-1">
-                      {invitationData.invited_by_name} has invited you to join their organization as a team member.
-                    </p>
-                    <p className="text-green-600 text-xs mt-2">
-                      This invitation expires on {new Date(invitationData.expires_at!).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+    <AuthScaffold
+      eyebrow="Member sign-up"
+      steps={[{ label: "Invitation", detail: "Confirm your invitation" }, { label: "Profile", detail: "Create member profile" }, { label: "Verify", detail: "Secure your account" }]}
+      activeStep={2}
+      wide
+      contextTitle="Your invitation"
+      contextItems={[
+        { icon: Building2, title: invitation?.organization_name || "Organization", body: "Your account will be connected to this verified organization.", tone: "teal" },
+        { icon: UserCheck, title: "Member access", body: "Your administrator controls role and workspace permissions.", tone: "blue" },
+        { icon: ShieldCheck, title: "Secure activation", body: "The backend sends a signup verification code before the account is activated.", tone: "amber" },
+      ]}
+    >
+      <AuthCard>
+        <AuthHeading title="Join your team" subtitle="Create a member account using your organization invitation." />
+        {invitation?.valid ? (
+          <AuthAlert tone="info" title="Invitation recognized">
+            {invitation.invited_by_name || "An administrator"} invited you to join {invitation.organization_name || "their organization"}.
+            {invitation.expires_at ? ` This invitation expires on ${new Date(invitation.expires_at).toLocaleDateString()}.` : ""}
+          </AuthAlert>
+        ) : null}
+        {error ? <AuthAlert tone="error">{error}</AuthAlert> : null}
 
-            {/* Header */}
-            <div className="text-center mb-8">
-              <Users className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">Join Your Team</h1>
-              <p className="text-slate-600">Create your account to start collaborating</p>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label className="text-xs font-bold text-[#07161d]">Work email</label>
+              <span className="text-[10px] text-[var(--peer-muted)]">Set by invitation</span>
             </div>
-
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <span className="text-red-700">{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
-              {/* Name Fields */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    First Name
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder="Ahmed"
-                    value={formData.firstName}
-                    onChange={(e) => handleInputChange('firstName', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Last Name
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder="Al-Faisal"
-                    value={formData.lastName}
-                    onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Email Field (Read-only for invited users) */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    className="pl-10 bg-slate-50"
-                    disabled
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  This email was used for your invitation
-                </p>
-              </div>
-
-              {/* Password Field */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Create a strong password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="pl-10 pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Must be more than 5 characters
-                </p>
-              </div>
-
-              {/* Job Title Field */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Job Title (Optional)
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    type="text"
-                    placeholder="e.g., Operations Manager"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              {/* Role Info */}
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Your Role:</strong> You'll join as a <span className="font-semibold">Member</span> with access to:
-                </p>
-                <ul className="text-xs text-blue-700 mt-2 space-y-1">
-                  <li>• Browse and connect with other members</li>
-                  <li>• View and collaborate on use cases</li>
-                  <li>• Participate in forum discussions</li>
-                  <li>• Submit your own use cases</li>
-                </ul>
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Account...
-                  </>
-                ) : (
-                  'Join Organization'
-                )}
-              </Button>
-            </form>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[var(--peer-muted)]" />
+              <Input type="email" value={formData.email} disabled className="h-12 rounded-[5px] bg-[#efeee9] pl-11" />
+            </div>
           </div>
 
-          {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-slate-600">
-              Already have an account?{' '}
-              <button
-                onClick={() => navigate('/login')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Sign in
-              </button>
-            </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField icon={User} label="First name" value={formData.firstName} onChange={(value) => setFormData((previous) => ({ ...previous, firstName: value }))} placeholder="Ahmed" />
+            <TextField icon={User} label="Last name" value={formData.lastName} onChange={(value) => setFormData((previous) => ({ ...previous, lastName: value }))} placeholder="Al-Faisal" />
           </div>
-        </div>
+          <TextField icon={BriefcaseBusiness} label="Job title" value={formData.title} onChange={(value) => setFormData((previous) => ({ ...previous, title: value }))} placeholder="Operations Manager" />
+
+          <PasswordField label="Create password" value={formData.password} onChange={(value) => setFormData((previous) => ({ ...previous, password: value }))} show={showPassword} onToggle={() => setShowPassword((value) => !value)} />
+          <PasswordRequirements password={formData.password} />
+          <PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} show={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} />
+
+          <label className="flex items-start gap-2 text-xs text-[var(--peer-muted)]">
+            <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 size-4 accent-[var(--peer-blue)]" />
+            <span>I agree to the terms and privacy policy.</span>
+          </label>
+
+          <Button type="submit" disabled={isLoading} className="h-12 rounded-[5px] bg-[var(--peer-blue)] text-white hover:bg-[#0f5ccc]">
+            {isLoading ? <><Loader2 className="size-4 animate-spin" />Creating member account...</> : <>Create member account<ArrowRight className="size-4" /></>}
+          </Button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-[var(--peer-muted)]">
+          Already registered? <Link className="font-bold text-[var(--peer-blue)]" to="/login">Sign in</Link>
+        </p>
+      </AuthCard>
+    </AuthScaffold>
+  )
+}
+
+function TextField({ icon: Icon, label, value, onChange, placeholder }: { icon: typeof User; label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-bold text-[#07161d]">{label}</label>
+      <div className="relative">
+        <Icon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[var(--peer-muted)]" />
+        <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-12 rounded-[5px] bg-white/70 pl-11" required={label !== "Job title"} />
+      </div>
+    </div>
+  )
+}
+
+function PasswordField({ label, value, onChange, show, onToggle }: { label: string; value: string; onChange: (value: string) => void; show: boolean; onToggle: () => void }) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-bold text-[#07161d]">{label}</label>
+      <div className="relative">
+        <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[var(--peer-muted)]" />
+        <Input type={show ? "text" : "password"} value={value} onChange={(event) => onChange(event.target.value)} placeholder={label} className="h-12 rounded-[5px] bg-white/70 pl-11 pr-11" required />
+        <button type="button" onClick={onToggle} aria-label={show ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center text-[var(--peer-muted)]">
+          {show ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+        </button>
       </div>
     </div>
   )

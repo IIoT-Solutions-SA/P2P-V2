@@ -224,7 +224,12 @@
         "solution": "Implemented dual-sensor validation with machine learning algorithms to filter noise and detect anomalies.",
         "outcome": "Achieved 99.7% accuracy in production counting, gaining full operator confidence."
       }
-    ]
+    ],
+    "problem": "Inconsistent OEE tracking due to manual data collection. Lack of visibility into real-time machine performance metrics. Increased downtime from undetected coolant or component issues.",
+    "technology": "IoT sensors: Spindle, axis, and coolant monitoring\nEdge modules: Local processing of sensor streams\nCloud-based OEE dashboard: Predictive analytics and visualization",
+    "budget": "SAR 375,000",
+    "outcomes": "Enhanced operator confidence\nStronger data-driven decision-making culture\nImproved maintenance planning\nOEE Accuracy: 36% improvement (from 70% (manual tracking) to 95% (automated tracking)).\nUnplanned Downtime: 60% reduction (from 10 hrs/month to 4 hrs/month).\nMaintenance Response Time: 75% faster (from 2 hrs to 30 min).\nEstimated annual savings: SAR 375,000.",
+    "challenges": "Legacy Machine Integration. Connecting sensors to 30-year-old equipment without disrupting production or voiding warranties. Response: Developed non-invasive magnetic current sensors and optical encoders that attach externally without any machine modifications. Outcome: Successfully integrated all legacy equipment with zero production downtime.\n\nData Accuracy Validation. Initial sensor readings showed 15% variance from manual counts, creating trust issues with operators. Response: Implemented dual-sensor validation with machine learning algorithms to filter noise and detect anomalies. Outcome: Achieved 99.7% accuracy in production counting, gaining full operator confidence."
   },
   {
     "title": "AI-Driven Performance Command Center for Manufacturing Excellence",
@@ -447,7 +452,12 @@
         "solution": "Collected 6 months of failure data and retrained models with domain-specific features including vibration patterns and temperature trends.",
         "outcome": "Improved prediction accuracy to 92%, preventing 8 major breakdowns in first quarter."
       }
-    ]
+    ],
+    "problem": "No real-time visibility of machine efficiency and performance data. Delays in identifying and responding to alarms. Lack of structured downtime analysis for root-cause resolution.",
+    "technology": "IoT-enabled performance engine: Real-time data capture\nDashboard platform: KPIs and machine state visualization\nAlarm management system: Responsibility assignment and prioritization",
+    "budget": "SAR 412,500",
+    "outcomes": "Stronger accountability among operators\nImproved collaboration between operations and maintenance\nHigher confidence in production planning\nMachine Efficiency Visibility: 43% improvement (from 65% (manual reports) to 93% (automated engine)).\nAlarm Response Time: 72% faster (from 90 min to 25 min).\nDowntime Analysis Accuracy: 113% improvement (from 40% to 85%).\nEstimated annual savings: SAR 412,500.",
+    "challenges": "Information Overload. Initial dashboards displayed too much data, overwhelming operators and managers. Response: Implemented role-based views with progressive disclosure - showing only critical KPIs first with drill-down capability. Outcome: 90% reduction in time to identify issues, with operators reporting improved focus.\n\nPredictive Model Accuracy. Early AI predictions had only 60% accuracy for equipment failures. Response: Collected 6 months of failure data and retrained models with domain-specific features including vibration patterns and temperature trends. Outcome: Improved prediction accuracy to 92%, preventing 8 major breakdowns in first quarter."
   },
   {
     "title": "Next-Generation Shop Floor Intelligence System",
@@ -672,6 +682,11 @@
         "solution": "Developed detailed business case with phased implementation showing incremental benefits",
         "outcome": "Achieved projected ROI within first year, exceeding initial estimates by 20%"
       }
-    ]
+    ],
+    "problem": "Manual shift reports prone to human error and delays. Lack of visibility into recurring machine alarms affecting uptime. Inability to evaluate machine performance per shift in real time.",
+    "technology": "Machine-level IoT data acquisition modules: Real-time data capture from machines\nMES software platform: Shift-based reporting and analytics\nDashboards: Machine time utilization, status, and alarm visualization",
+    "budget": "SAR 360,000",
+    "outcomes": "Improved transparency between shifts\nFaster root-cause analysis of alarms\nStronger collaboration between operators and maintenance teams\nShift Reporting Accuracy: 40% improvement (from 70% (manual logs) to 98% (automated MES)).\nAlarm Tracking: 111% improvement (from 45% of alarms logged to 95% (automated logging)).\nDowntime per Shift: 60% reduction (from 5 hrs/shift to 2 hrs/shift).\nEstimated annual savings: SAR 360,000.",
+    "challenges": "Change Management. Getting buy-in from operators and management for new technology implementation. Response: Conducted comprehensive training programs and demonstrated quick wins through pilot implementation. Outcome: Full adoption achieved with positive feedback from all stakeholders.\n\nROI Justification. Demonstrating clear return on investment to secure project funding and support. Response: Developed detailed business case with phased implementation showing incremental benefits. Outcome: Achieved projected ROI within first year, exceeding initial estimates by 20%."
   }
 ]

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -30,6 +30,43 @@ export default function LocationPicker({
     lat: defaultLat,
     lng: defaultLng
   })
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([])
+
+  const selectLocation = (lat: number, lng: number, zoom = 16) => {
+    markerRef.current?.setLatLng([lat, lng])
+    mapInstanceRef.current?.setView([lat, lng], zoom)
+    setSelectedLocation({ lat, lng })
+    onLocationSelect(lat, lng)
+    markerRef.current?.getPopup()?.setContent(`
+      <div style="text-align: center; font-family: system-ui, -apple-system, sans-serif;">
+        <strong style="color: #1e293b;">Factory Location</strong><br/>
+        <span style="color: #64748b; font-size: 12px;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+      </div>
+    `)
+  }
+
+  const searchLocation = async (event: FormEvent) => {
+    event.preventDefault()
+    const query = searchQuery.trim()
+    if (!query) return
+    setSearching(true)
+    setSearchError('')
+    try {
+      const params = new URLSearchParams({ format: 'jsonv2', limit: '5', countrycodes: 'sa', q: query })
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { headers: { Accept: 'application/json' } })
+      if (!response.ok) throw new Error('Location search failed')
+      const results = await response.json() as Array<{ display_name: string; lat: string; lon: string }>
+      setSearchResults(results)
+      if (!results.length) setSearchError('No matching location found in Saudi Arabia. Try a district, street, landmark, or city.')
+    } catch {
+      setSearchError('Location search is temporarily unavailable. You can still click the map or enter coordinates manually.')
+    } finally {
+      setSearching(false)
+    }
+  }
 
   useEffect(() => {
     if (!mapRef.current) return
@@ -173,17 +210,18 @@ export default function LocationPicker({
 
   return (
     <div className="location-picker-container">
-      <div className="map-wrapper rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+      <form onSubmit={searchLocation} className="mb-3 flex gap-2">
+        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search street, district, landmark, or city" aria-label="Search map location" className="h-11 min-w-0 flex-1 border border-slate-300 bg-white px-3 text-sm outline-none focus:border-teal-700" />
+        <button type="submit" disabled={searching || !searchQuery.trim()} className="h-11 bg-slate-900 px-4 text-sm font-semibold text-white disabled:opacity-50">{searching ? 'Searching…' : 'Search map'}</button>
+      </form>
+      {searchError ? <p className="mb-3 text-xs font-medium text-red-700">{searchError}</p> : null}
+      {searchResults.length ? <div className="mb-3 divide-y border border-slate-200 bg-white">{searchResults.map((result) => <button key={`${result.lat}-${result.lon}`} type="button" onClick={() => { selectLocation(Number(result.lat), Number(result.lon)); setSearchResults([]); setSearchQuery(result.display_name) }} className="block w-full px-3 py-2 text-left text-xs leading-5 hover:bg-slate-50">{result.display_name}</button>)}</div> : null}
+      <div className="map-wrapper overflow-hidden border border-slate-200 shadow-sm">
         <div ref={mapRef} style={{ height, width: '100%' }} />
       </div>
       
-      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <p className="text-sm text-blue-800 font-medium mb-2">📍 How to select location:</p>
-        <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Click anywhere on the map to place your factory marker</li>
-          <li>• Drag the marker to fine-tune the exact location</li>
-          <li>• Use zoom controls to get a better view of the area</li>
-        </ul>
+      <div className="mt-3 border border-blue-200 bg-blue-50 p-3">
+        <p className="text-xs leading-5 text-blue-800"><strong>Choose the exact site:</strong> search above, click anywhere on the map, drag the marker, or enter latitude and longitude manually.</p>
       </div>
       
       <style>{`

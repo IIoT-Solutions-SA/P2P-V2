@@ -194,7 +194,12 @@
         "solution": "Designed multi-angle camera array with synchronized capture and 3D reconstruction for complete surface coverage.",
         "outcome": "100% surface inspection coverage, detecting previously missed underside defects."
       }
-    ]
+    ],
+    "problem": "Inconsistent manual quality inspection results. High labor costs for quality control teams. Delayed defect detection causing production losses. Limited traceability of quality issues.",
+    "technology": "High-resolution industrial cameras: Multi-angle capture at 120 FPS\nEdge AI processing units: NVIDIA Jetson AGX Orin for real-time inference\nCustom defect detection models: Trained on 50,000+ defect samples\nQuality analytics dashboard: Real-time metrics and trend analysis",
+    "budget": "SAR 850,000",
+    "outcomes": "Enhanced brand reputation for quality\nImproved customer satisfaction scores\nEmpowered operators with data-driven insights",
+    "challenges": "False Positive Rate. Initial vision system flagged 30% good products as defective, causing unnecessary rework. Response: Implemented ensemble learning with multiple AI models voting on defects, plus continuous learning from operator feedback. Outcome: Reduced false positive rate to 2%, saving 120 hours monthly in unnecessary inspections.\n\nMulti-Surface Inspection. Single camera couldn't detect defects on all surfaces of complex 3D parts. Response: Designed multi-angle camera array with synchronized capture and 3D reconstruction for complete surface coverage. Outcome: 100% surface inspection coverage, detecting previously missed underside defects."
   },
   {
     "title": "Intelligent Safety Monitoring & Compliance System",
@@ -390,7 +395,12 @@
         "solution": "Trained models on 6 months of annotated footage specific to our facility, including various lighting conditions and typical work patterns.",
         "outcome": "Reduced false alarms by 94%, maintaining high sensitivity for real safety violations."
       }
-    ]
+    ],
+    "problem": "Inconsistent PPE compliance monitoring. Delayed response to safety violations. High accident rates and injury costs. Regulatory compliance challenges.",
+    "technology": "AI vision cameras at entry points: PPE detection and verification\nRFID-enabled smart PPE: Equipment tracking and usage monitoring\nSafety compliance dashboard: Real-time monitoring and reporting\nAlert management system: Instant notifications for violations",
+    "budget": "SAR 550,000",
+    "outcomes": "Enhanced safety culture across organization\nImproved worker morale and confidence\nStrengthened regulatory relationships",
+    "challenges": "Privacy Concerns. Workers worried about constant video surveillance affecting their privacy and job security. Response: Implemented edge AI processing with no video storage - only safety events recorded, with transparent policies and worker council involvement. Outcome: 95% worker acceptance rate with union endorsement of the system.\n\nEnvironmental False Alarms. System triggered false safety alerts from shadows, reflections, and normal work movements. Response: Trained models on 6 months of annotated footage specific to our facility, including various lighting conditions and typical work patterns. Outcome: Reduced false alarms by 94%, maintaining high sensitivity for real safety violations."
   },
   {
     "title": "Comprehensive Energy Optimization Platform",
@@ -632,6 +642,11 @@
         "solution": "Developed detailed business case with phased implementation showing incremental benefits",
         "outcome": "Achieved projected ROI within first year, exceeding initial estimates by 20%"
       }
-    ]
+    ],
+    "problem": "No real-time visibility into energy consumption patterns. High energy costs from peak demand charges. Inefficient equipment operation and scheduling. Difficulty meeting sustainability targets.",
+    "technology": "Smart energy meters: Real-time consumption monitoring at equipment level\nEnvironmental sensors: Temperature, humidity, and occupancy monitoring\nAI optimization engine: Predictive analytics and automated controls\nEnergy management platform: Centralized monitoring and control dashboard\nAutomated HVAC controls: Smart climate control based on production schedules",
+    "budget": "SAR 1,200,000",
+    "outcomes": "Achieved ISO 50001 energy management certification\nEnhanced corporate sustainability reputation\nImproved equipment reliability through optimized operation",
+    "challenges": "Change Management. Getting buy-in from operators and management for new technology implementation. Response: Conducted comprehensive training programs and demonstrated quick wins through pilot implementation. Outcome: Full adoption achieved with positive feedback from all stakeholders.\n\nROI Justification. Demonstrating clear return on investment to secure project funding and support. Response: Developed detailed business case with phased implementation showing incremental benefits. Outcome: Achieved projected ROI within first year, exceeding initial estimates by 20%."
   }
 ]

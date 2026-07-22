@@ -1,15 +1,19 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from supertokens_python.recipe.session import SessionContainer
 from supertokens_python.recipe.session.framework.fastapi import verify_session
 from datetime import datetime
 from typing import List, Optional
+from pathlib import Path
 import logging
+import uuid
 
 from app.core.database import get_db
-from app.services.s3_service import s3_service
+from app.core.config import settings
+from app.services.s3_service import SAFE_CONTENT_TYPE_EXTENSIONS, s3_service
 from app.models.pg_models import User, UserMedia
-from app.models.mongo_models import User as MongoUser, ForumPost, UseCase
+from app.models.mongo_models import User as MongoUser, ForumPost, ForumReply, UseCase
 from sqlalchemy import select
 from bson import ObjectId
 from app.core.upload_validation import validate_upload_file
@@ -22,6 +26,57 @@ MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB for videos
 ALLOWED_PROFILE_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_FORUM_ATTACHMENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"}
 ALLOWED_USECASE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"}
+LOCAL_FORUM_MEDIA_ROOT = Path("/app/uploads/forum")
+LOCAL_USECASE_MEDIA_ROOT = Path("/app/uploads/usecases")
+
+
+def _save_local_forum_attachment(target_id: str, content: bytes, mime_type: str) -> tuple[str, str]:
+    """Development fallback when the configured object-storage credentials are unavailable."""
+    extension = SAFE_CONTENT_TYPE_EXTENSIONS[mime_type]
+    generated_name = f"{uuid.uuid4()}.{extension}"
+    target_dir = LOCAL_FORUM_MEDIA_ROOT / target_id
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / generated_name
+    target_path.write_bytes(content)
+    key = f"local/{target_id}/{generated_name}"
+    return f"/api/v1/media/forum-files/{target_id}/{generated_name}", key
+
+
+def _save_local_usecase_media(usecase_id: str, content: bytes, mime_type: str) -> tuple[str, str]:
+    """Persist development use-case media when object storage is not in use."""
+    extension = SAFE_CONTENT_TYPE_EXTENSIONS[mime_type]
+    generated_name = f"{uuid.uuid4()}.{extension}"
+    target_dir = LOCAL_USECASE_MEDIA_ROOT / usecase_id
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / generated_name
+    target_path.write_bytes(content)
+    key = f"local/{usecase_id}/{generated_name}"
+    return f"/api/v1/media/usecase-files/{usecase_id}/{generated_name}", key
+
+
+@router.get("/forum-files/{target_id}/{filename}")
+async def get_local_forum_attachment(target_id: str, filename: str):
+    if settings.ENVIRONMENT.lower() == "production":
+        raise HTTPException(404, "Not found")
+    if not ObjectId.is_valid(target_id) or Path(filename).name != filename:
+        raise HTTPException(400, "Invalid media path")
+    path = LOCAL_FORUM_MEDIA_ROOT / target_id / filename
+    if not path.is_file():
+        raise HTTPException(404, "Attachment not found")
+    return FileResponse(path)
+
+
+@router.get("/usecase-files/{usecase_id}/{filename}")
+async def get_local_usecase_media(usecase_id: str, filename: str):
+    if settings.ENVIRONMENT.lower() == "production":
+        raise HTTPException(404, "Not found")
+    if not ObjectId.is_valid(usecase_id) or Path(filename).name != filename:
+        raise HTTPException(400, "Invalid media path")
+    path = LOCAL_USECASE_MEDIA_ROOT / usecase_id / filename
+    if not path.is_file():
+        raise HTTPException(404, "Media not found")
+    return FileResponse(path)
+
 
 @router.post("/profile-picture")
 async def upload_profile_picture(
@@ -123,15 +178,15 @@ async def upload_profile_picture(
 @router.post("/forum-attachment")
 async def upload_forum_attachment(
     file: UploadFile = File(...),
-    post_id: str = Form(...),
+    post_id: Optional[str] = Form(None),
+    reply_id: Optional[str] = Form(None),
     session: SessionContainer = Depends(verify_session()),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Upload attachment for forum post
+    """Upload an image or video to a forum post or reply.
 
-    Supports: Images (JPEG, PNG, WebP, GIF) and Videos (MP4, WebM)
-    Max size: 5MB for images, 50MB for videos
+    Exactly one of ``post_id`` or ``reply_id`` must be supplied. Images may be
+    up to 5 MB and videos up to 50 MB.
     """
     try:
         # Validate actual file bytes before trusting user-controlled metadata
@@ -164,26 +219,40 @@ async def upload_forum_attachment(
         if not mongo_user:
             raise HTTPException(404, "User profile not found")
 
-        try:
-            forum_post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
-        except Exception:
-            raise HTTPException(400, "Invalid forum post ID")
+        if bool(post_id) == bool(reply_id):
+            raise HTTPException(400, "Supply exactly one of post_id or reply_id")
 
-        if not forum_post:
-            raise HTTPException(404, "Forum post not found")
-        if forum_post.author_id != str(mongo_user.id) and user.role != "admin":
-            raise HTTPException(403, "Only the forum post owner can upload attachments")
+        target_id = post_id or reply_id
+        target = None
+        try:
+            if post_id:
+                target = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
+            else:
+                target = await ForumReply.find_one(ForumReply.id == ObjectId(reply_id))
+        except Exception:
+            raise HTTPException(400, "Invalid forum post or reply ID")
+
+        if not target:
+            raise HTTPException(404, "Forum post or reply not found")
+        if target.author_id != str(mongo_user.id) and user.role != "admin":
+            raise HTTPException(403, "Only the author can upload attachments")
+        if len(target.attachments or []) >= 5:
+            raise HTTPException(400, "A forum post or reply can have at most 5 attachments")
 
         file_content = validated_file.content
 
-        # Upload to S3
-        file_url, s3_key = await s3_service.upload_forum_attachment(
-            post_id=post_id,
-            user_id=str(user.id),
-            file_content=file_content,
-            filename=validated_file.safe_filename,
-            content_type=validated_file.mime_type
-        )
+        # Keep development media persistent in the bind-mounted app directory; production
+        # continues to use OCI Object Storage and fails closed if that service is unavailable.
+        if settings.ENVIRONMENT.lower() != "production":
+            file_url, s3_key = _save_local_forum_attachment(target_id, file_content, validated_file.mime_type)
+        else:
+            file_url, s3_key = await s3_service.upload_forum_attachment(
+                post_id=target_id,
+                user_id=str(user.id),
+                file_content=file_content,
+                filename=validated_file.safe_filename,
+                content_type=validated_file.mime_type
+            )
 
         # Create media tracking record
         media_record = UserMedia(
@@ -194,35 +263,20 @@ async def upload_forum_attachment(
             s3_url=file_url,
             file_size=len(file_content),
             mime_type=validated_file.mime_type,
-            context_id=post_id
+            context_id=target_id
         )
         db.add(media_record)
         await db.commit()
 
-        # Update MongoDB ForumPost to include the attachment
-        try:
-            forum_post = await ForumPost.find_one(ForumPost.id == ObjectId(post_id))
-            if forum_post:
-                attachment_data = {
-                    "url": file_url,
-                    "filename": validated_file.original_filename,
-                    "type": validated_file.mime_type,
-                    "size": len(file_content)
-                }
-
-                # Add to attachments array (initialize if empty)
-                if not forum_post.attachments:
-                    forum_post.attachments = []
-                forum_post.attachments.append(attachment_data)
-
-                # Save the updated post
-                await forum_post.save()
-                logger.info(f"Added attachment to MongoDB ForumPost {post_id}: {validated_file.original_filename}")
-            else:
-                logger.warning(f"ForumPost {post_id} not found in MongoDB when trying to add attachment")
-        except Exception as e:
-            logger.error(f"Error updating MongoDB ForumPost {post_id} with attachment: {e}")
-            # Don't fail the whole request if MongoDB update fails
+        attachment_data = {
+            "url": file_url,
+            "filename": validated_file.original_filename,
+            "type": validated_file.mime_type,
+            "size": len(file_content)
+        }
+        target.attachments.append(attachment_data)
+        await target.save()
+        logger.info(f"Added forum attachment to {target_id}: {validated_file.original_filename}")
 
         return {
             "success": True,
@@ -305,14 +359,20 @@ async def upload_usecase_media(
 
             file_content = validated_file.content
 
-            # Upload to S3
-            file_url, s3_key = await s3_service.upload_usecase_media(
-                usecase_id=usecase_id,
-                user_id=str(user.id),
-                file_content=file_content,
-                filename=validated_file.safe_filename,
-                content_type=validated_file.mime_type
-            )
+            # Keep development media persistent in the bind-mounted app directory; production
+            # continues to use OCI Object Storage and fails closed if that service is unavailable.
+            if settings.ENVIRONMENT.lower() != "production":
+                file_url, s3_key = _save_local_usecase_media(
+                    usecase_id, file_content, validated_file.mime_type
+                )
+            else:
+                file_url, s3_key = await s3_service.upload_usecase_media(
+                    usecase_id=usecase_id,
+                    user_id=str(user.id),
+                    file_content=file_content,
+                    filename=validated_file.safe_filename,
+                    content_type=validated_file.mime_type
+                )
 
             # Create media tracking record
             media_record = UserMedia(

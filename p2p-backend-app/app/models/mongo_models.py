@@ -177,7 +177,15 @@ class UseCase(Document):
     featured: bool = False
     title_slug: Optional[str] = Field(default=None, index=True)
     company_slug: Optional[str] = Field(default=None, index=True)
-    
+    organization_name: Optional[str] = None  # Canonical display name; slugs remain lowercase identifiers only
+
+    # Simplified submission fields (canonical contributor answers)
+    problem: Optional[str] = None
+    technology: Optional[str] = None
+    budget: Optional[str] = None
+    outcomes: Optional[str] = None
+    challenges: Optional[str] = None
+
     # Detailed Information
     subtitle: Optional[str] = None
     description_long: Optional[str] = None
@@ -185,13 +193,13 @@ class UseCase(Document):
     factory_name: Optional[str] = None
     implementation_time: Optional[str] = None
     roi_percentage: Optional[str] = None
-    
+
     # Contact & Metadata
     contact_person: Optional[str] = None
     contact_title: Optional[str] = None
     images: List[str] = Field(default_factory=list)  # S3 URLs for images
     videos: List[Dict[str, str]] = Field(default_factory=list)  # [{"url": "...", "thumbnail": "...", "filename": "..."}]
-    
+
     # Rich Content Sections
     executive_summary: Optional[str] = None
     business_challenge: Optional[Dict[str, Any]] = None
@@ -202,7 +210,7 @@ class UseCase(Document):
     technical_architecture: Optional[Dict[str, Any]] = None
     future_roadmap: List[Dict[str, str]] = Field(default_factory=list)
     lessons_learned: List[Dict[str, str]] = Field(default_factory=list)
-    
+
     # Additional Metadata
     published_date: Optional[str] = None
     last_updated: Optional[str] = None
@@ -212,13 +220,13 @@ class UseCase(Document):
     status: str = "draft"
     verified_by: Optional[str] = None
     technology_tags: List[str] = Field(default_factory=list)
-    
+
     # Linking Fields
     detailed_version_id: Optional[str] = None
     basic_version_id: Optional[str] = None
     has_detailed_view: bool = False
     is_detailed_version: bool = False
-    
+
     # Timestamps & Interaction
     view_count: int = 0
     like_count: int = 0
@@ -227,7 +235,7 @@ class UseCase(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     edited_at: Optional[datetime] = None
-    
+
     class Settings:
         name = "use_cases"
         indexes = [
@@ -306,7 +314,7 @@ class Invitation(Document):
     used: bool = False
     used_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     class Settings:
         name = "invitations"
         indexes = [

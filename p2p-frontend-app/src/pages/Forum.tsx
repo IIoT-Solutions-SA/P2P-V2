@@ -1,1385 +1,380 @@
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import type { FormEvent } from "react"
+import { useSearchParams } from "react-router-dom"
+import { ArrowLeft, BadgeCheck, Bookmark, Bot, CheckCircle2, CircleHelp, Clock3, DatabaseZap, Eye, Film, Flame, Gauge, ImageIcon, MessageSquare, Paperclip, Plus, ScanEye, Search, Send, ThumbsUp, Trash2, X } from "lucide-react"
+import { Avatar } from "@/components/ui/Avatar"
 import { Button } from "@/components/ui/button"
-import { CreatePostModal } from "@/components/ui/CreatePostModal"
-import { DeleteConfirmModal } from "@/components/ui/DeleteConfirmModal"
-import { Card } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Search,
-  Filter,
-  Plus,
-  MessageSquare,
-  Users,
-  Clock,
-  Eye,
-  ThumbsUp,
-  Pin,
-  CheckCircle,
-  Tag,
-  ArrowLeft,
-  Send,
-  Bookmark,
-  MoreVertical,
-  Loader2,
-  ChevronDown,
-  ChevronRight,
-  Edit,
-  Trash2,
-  Lightbulb,
-  Image,
-  Video
-} from "lucide-react"
-import { useAuth } from '@/contexts/AuthContext'
-import { useLocation } from 'react-router-dom'
-import { buildApiUrl } from '@/config/environment'
-import { MediaGallery } from '@/components/ui/MediaGallery'
-import { FileDropZone } from '@/components/ui/FileDropZone'
-import { Avatar } from '@/components/ui/Avatar'
+import { EmptyState, ErrorState, LoadingState } from "@/components/shared/AppState"
+import { forumApi, type ForumAttachment, type ForumCategory, type ForumContributor, type ForumPost, type ForumReply, type ForumStats } from "@/lib/api/forum"
+import { dashboardApi, type ForumDraft } from "@/lib/api/dashboard"
+import { buildApiUrl } from "@/config/environment"
+import { useAuth } from "@/contexts/AuthContext"
+import { cn } from "@/lib/utils"
 
-interface Category {
-  id: string
-  name: string
-  count: number
-  color: string
+const displayName = (value?: string) => value || "Community member"
+const acceptedMediaTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"]
+const maxImageBytes = 5 * 1024 * 1024
+const maxVideoBytes = 50 * 1024 * 1024
+
+const attachmentType = (attachment: ForumAttachment) => attachment.type || attachment.mime_type || ""
+const readableSize = (bytes?: number) => bytes ? `${(bytes / (1024 * 1024)).toFixed(bytes > 10 * 1024 * 1024 ? 0 : 1)} MB` : ""
+
+function AttachmentGallery({ attachments }: { attachments?: ForumAttachment[] }) {
+  if (!attachments?.length) return null
+  return (
+    <div className={cn("mt-4 grid gap-3", attachments.length > 1 && "sm:grid-cols-2")}>
+      {attachments.map((attachment, index) => {
+        const type = attachmentType(attachment)
+        const mediaUrl = attachment.url.startsWith("/") ? buildApiUrl(attachment.url) : attachment.url
+        return (
+          <figure key={`${attachment.url}-${index}`} className="overflow-hidden border border-[var(--peer-line)] bg-[#f2f4f0]">
+            {type.startsWith("video/") ? (
+              <video controls preload="metadata" className="max-h-[460px] w-full bg-black object-contain" src={mediaUrl}>
+                Your browser does not support this video.
+              </video>
+            ) : (
+              <a href={mediaUrl} target="_blank" rel="noreferrer" aria-label={`Open ${attachment.filename}`}>
+                <img src={mediaUrl} alt={attachment.filename} loading="lazy" className="max-h-[460px] w-full object-contain" />
+              </a>
+            )}
+            <figcaption className="flex items-center gap-2 border-t border-[var(--peer-line)] bg-white px-3 py-2 text-[11px] text-[var(--peer-muted)]">
+              {type.startsWith("video/") ? <Film className="size-3.5 shrink-0" /> : <ImageIcon className="size-3.5 shrink-0" />}
+              <span className="min-w-0 flex-1 truncate">{attachment.filename}</span><span>{readableSize(attachment.size)}</span>
+            </figcaption>
+          </figure>
+        )
+      })}
+    </div>
+  )
 }
 
-interface Comment {
-  id: number
-  author: string
-  authorTitle: string
-  authorProfilePicture?: string
-  content: string
-  timeAgo: string
-  likes: number
-  isVerified: boolean
-  parent_reply_id?: number; // Optional field for nested replies
-  replies?: Comment[]
+function SelectedFileCard({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const [previewUrl, setPreviewUrl] = useState("")
+  useEffect(() => {
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+  return (
+    <div className="relative overflow-hidden border border-[var(--peer-line)] bg-[#f2f4f0]">
+      {file.type.startsWith("video/") ? <video src={previewUrl} muted className="h-28 w-full bg-black object-contain" /> : <img src={previewUrl} alt="" className="h-28 w-full object-contain" />}
+      <div className="flex items-center gap-2 bg-white px-2 py-2 text-[10px]"><span className="min-w-0 flex-1 truncate">{file.name}</span><span className="text-[var(--peer-muted)]">{readableSize(file.size)}</span></div>
+      <button type="button" onClick={onRemove} aria-label={`Remove ${file.name}`} className="absolute right-1.5 top-1.5 grid size-7 place-items-center bg-black/75 text-white"><X className="size-3.5" /></button>
+    </div>
+  )
 }
 
-interface ForumPost {
-  id: number
-  title: string
-  author: string
-  author_id?: string  // SuperTokens ID for authorization
-  author_profile_picture?: string
-  authorTitle: string
-  category: string
-  content?: string
-  attachments?: Array<{
-    url: string
-    filename: string
-    type: string
-    size: number
-  }>
-  replies: number
-  views: number
-  likes: number
-  isLikedByUser?: boolean
-  timeAgo: string
-  isPinned: boolean
-  hasBestAnswer: boolean
-  isVerified: boolean
-  excerpt: string
-  comments?: Comment[]
+function MediaPicker({ id, files, onChange, onError }: { id: string; files: File[]; onChange: (files: File[]) => void; onError: (message: string | null) => void }) {
+  const addFiles = (incoming: File[]) => {
+    onError(null)
+    const next = [...files]
+    for (const file of incoming) {
+      if (!acceptedMediaTypes.includes(file.type)) { onError(`${file.name}: use JPEG, PNG, WebP, GIF, MP4, or WebM.`); continue }
+      const limit = file.type.startsWith("video/") ? maxVideoBytes : maxImageBytes
+      if (file.size > limit) { onError(`${file.name}: ${file.type.startsWith("video/") ? "videos" : "images"} must be under ${limit / 1024 / 1024} MB.`); continue }
+      if (next.length >= 5) { onError("You can attach up to 5 images or videos."); break }
+      next.push(file)
+    }
+    onChange(next)
+  }
+  return (
+    <div>
+      {files.length ? <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{files.map((file, index) => <SelectedFileCard key={`${file.name}-${file.lastModified}-${index}`} file={file} onRemove={() => onChange(files.filter((_, itemIndex) => itemIndex !== index))} />)}</div> : null}
+      <label htmlFor={id} className="inline-flex h-10 cursor-pointer items-center gap-2 border border-[var(--peer-line)] bg-white px-3 text-xs font-bold text-[var(--peer-blue)] hover:bg-[#f2f5f1]"><Paperclip className="size-4" />Add photos or videos</label>
+      <input id={id} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" className="sr-only" onChange={(event) => { addFiles(Array.from(event.target.files || [])); event.target.value = "" }} />
+      <p className="mt-2 text-[10px] text-[var(--peer-muted)]">Up to 5 files · images 5 MB each · videos 50 MB each</p>
+    </div>
+  )
+}
+
+function ReplyNode({
+  reply,
+  onReply,
+  onLike,
+}: {
+  reply: ForumReply
+  onReply: (replyId: string) => void
+  onLike: (replyId: string) => void
+}) {
+  return (
+    <div className="border-l border-[var(--peer-line)] pl-4">
+      <div className={reply.isBestAnswer ? "bg-[var(--peer-teal-soft)] p-4" : "p-4"}>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar name={reply.author} src={reply.authorProfilePicture} size="sm" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{reply.author}</p>
+              <p className="text-xs text-[var(--peer-muted)]">{reply.timeAgo}</p>
+            </div>
+          </div>
+          {reply.isBestAnswer ? <span className="flex items-center gap-1 text-xs font-bold text-[var(--peer-teal)]"><CheckCircle2 className="size-4" />Best answer</span> : null}
+        </div>
+        <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--peer-ink)]">{reply.content}</p>
+        <AttachmentGallery attachments={reply.attachments} />
+        <div className="mt-3 flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => onLike(reply.id)}><ThumbsUp className="size-4" />{reply.likes}</Button>
+          <Button variant="ghost" size="sm" onClick={() => onReply(reply.id)}><MessageSquare className="size-4" />Reply</Button>
+        </div>
+      </div>
+      {(reply.replies || []).map((child) => (
+        <ReplyNode key={child.id} reply={child} onReply={onReply} onLike={onLike} />
+      ))}
+    </div>
+  )
 }
 
 export default function Forum() {
   const { user } = useAuth()
-  const location = useLocation() as { state?: { openPostId?: number; openCreateWithDraft?: { title?: string; content?: string; category?: string; draftId?: string } } } | any
-  const [selectedCategoryId, setSelectedCategoryId] = useState("all")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [categories, setCategories] = useState<ForumCategory[]>([])
+  const [posts, setPosts] = useState<ForumPost[]>([])
+  const [stats, setStats] = useState<ForumStats>({ total_topics: 0, active_members: 0, helpful_answers: 0 })
+  const [contributors, setContributors] = useState<ForumContributor[]>([])
+  const [drafts, setDrafts] = useState<ForumDraft[]>([])
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null)
-  const [newComment, setNewComment] = useState("")
-  const [replyingToId, setReplyingToId] = useState<number | null>(null)
-  const [replyText, setReplyText] = useState("")
-  const [replyError, setReplyError] = useState<string | null>(null)
-  const [commentError, setCommentError] = useState<string | null>(null)
-  const [likedPosts, setLikedPosts] = useState<number[]>([])
-  const [likedComments, setLikedComments] = useState<number[]>([])
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [draftPrefill, setDraftPrefill] = useState<{ title?: string; content?: string; category?: string } | null>(null)
-  const [expandedComments, setExpandedComments] = useState<Record<number, boolean>>({})
-  
-  // Real data state
-  const [categories, setCategories] = useState<Category[]>([])
-  const [forumPosts, setForumPosts] = useState<ForumPost[]>([])
+  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
+  const [category, setCategory] = useState("all")
+  const [query, setQuery] = useState("")
+  const [viewFilter, setViewFilter] = useState<"recent" | "unanswered" | "solved" | "saved">("recent")
   const [loading, setLoading] = useState(true)
-  const [loadingPosts, setLoadingPosts] = useState(false)
-  const [forumStats, setForumStats] = useState({
-    total_topics: 0,
-    active_members: 0,
-    helpful_answers: 0
-  })
-  const [topContributors, setTopContributors] = useState<Array<{
-    name: string
-    points: number
-    avatar: string
-    rank: number
-  }>>([])
-  const [loadingContributors, setLoadingContributors] = useState(true)
-  const [bookmarkedPosts, setBookmarkedPosts] = useState<number[]>([])
-  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
-  const [editingPost, setEditingPost] = useState<number | null>(null)
-  const [editTitle, setEditTitle] = useState("")
-  const [editContent, setEditContent] = useState("")
-  const [editCategory, setEditCategory] = useState("")
-  const [editAttachments, setEditAttachments] = useState<File[]>([])
-  const [existingAttachments, setExistingAttachments] = useState<Array<{url: string, filename: string, type: string, size?: number}>>([])
-  const [editError, setEditError] = useState<string | null>(null)
-  const [editTitleError, setEditTitleError] = useState<string | null>(null)
-  const [editContentError, setEditContentError] = useState<string | null>(null)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [postToDelete, setPostToDelete] = useState<ForumPost | null>(null)
+  const [threadLoading, setThreadLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [composer, setComposer] = useState({ title: "", category: "General Discussion", content: "", tags: "" })
+  const [reply, setReply] = useState("")
+  const [replyTo, setReplyTo] = useState<string | null>(null)
+  const [postFiles, setPostFiles] = useState<File[]>([])
+  const [replyFiles, setReplyFiles] = useState<File[]>([])
+  const [mediaError, setMediaError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const postParam = searchParams.get("post")
 
-  // Fetch initial data (categories, stats, contributors)
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchInitialData = async () => {
-      setLoading(true);
-      try {
-        const [catRes, statsRes, contribRes] = await Promise.all([
-          fetch(buildApiUrl('/api/v1/forum/categories'), { credentials: 'include' }),
-          fetch(buildApiUrl('/api/v1/forum/stats'), { credentials: 'include' }),
-          fetch(buildApiUrl('/api/v1/forum/contributors?limit=3'), { credentials: 'include' })
-        ]);
-
-        if (catRes.ok) {
-            const data = await catRes.json();
-            setCategories(data.categories || []);
-        }
-        if (statsRes.ok) setForumStats(await statsRes.json());
-        if (contribRes.ok) {
-            const data = await contribRes.json();
-            setTopContributors(data.contributors || []);
-        }
-
-        // Prefetch bookmarks to highlight icon
-        try {
-          const bmRes = await fetch(buildApiUrl('/api/v1/forum/bookmarks'), { credentials: 'include' })
-          if (bmRes.ok) {
-            const list = await bmRes.json()
-            const ids = Array.isArray(list) ? list.map((b: any) => Number(b.target_id) || b.target_id) : []
-            setBookmarkedPosts(ids)
-          }
-        } catch {}
-
-      } catch (error) {
-        console.error('Error fetching initial forum data:', error)
-      } finally {
-        setLoading(false);
-        setLoadingContributors(false);
-      }
-    }
-    
-    fetchInitialData();
-  }, [user])
-
-  // Open a specific post if requested via navigation state
-  useEffect(() => {
-    const targetId = location?.state?.openPostId
-    if (!targetId) return
-    ;(async () => {
-      try {
-        await handlePostClick(targetId)
-      } catch (_) {}
-    })()
-  }, [location?.state?.openPostId])
-
-  // If asked to create a post with prefilled draft, open the create modal with data
-  useEffect(() => {
-    const draft = location?.state?.openCreateWithDraft
-    if (!draft) return
-    setDraftPrefill(draft)
-    setIsModalOpen(true)
-  }, [location?.state?.openCreateWithDraft])
-
-  const handleBookmarkPost = async (postId: number) => {
+  const loadForum = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const res = await fetch(buildApiUrl(`/api/v1/forum/posts/${postId}/bookmark`), {
-        method: 'POST',
-        credentials: 'include'
-      })
-      if (!res.ok) return
-      const data = await res.json()
-      setBookmarkedPosts(prev => data.bookmarked ? [...prev, postId] : prev.filter(id => id !== postId))
-    } catch (e) {
-      console.error('Error bookmarking post:', e)
+      const [categoryData, postData, bookmarkData, statsData, contributorData, draftData] = await Promise.all([
+        forumApi.categories(),
+        forumApi.posts(category, 100),
+        forumApi.bookmarks().catch(() => []),
+        forumApi.stats().catch(() => ({ total_topics: 0, active_members: 0, helpful_answers: 0 })),
+        forumApi.contributors(4).catch(() => ({ contributors: [] })),
+        dashboardApi.forumDrafts().catch(() => ({ drafts: [], total: 0 })),
+      ])
+      setCategories(categoryData.categories || [])
+      setPosts(postData.posts || [])
+      setBookmarks(new Set((bookmarkData || []).map((item) => String(item.target_id))))
+      setStats(statsData)
+      setContributors(contributorData.contributors || [])
+      setDrafts(draftData.drafts || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load forum")
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [category])
 
-  const handleEditPost = (post: ForumPost) => {
-    setEditingPost(post.id)
-    setEditTitle(post.title)
-    setEditContent(post.content || '')
-    setEditCategory(post.category)
-    setExistingAttachments(post.attachments || [])
-    setEditAttachments([])
-    setEditError(null)
-    setEditTitleError(null)
-    setEditContentError(null)
-    setOpenDropdown(null)
-  }
-
-  const DANGEROUS_RE = [
-    /<\s*script/i,
-    /javascript\s*:/i,
-    /on(error|load|click|mouseover|keydown|submit|focus|blur|change)\s*=/i,
-    /\.\.\//, /\/etc\/passwd/, /oastify\.com/i, /<!--#\w+/i, /[\x00]/
-  ]
-  const hasDanger = (val: string) => DANGEROUS_RE.some(re => re.test(val))
-
-  const handleSaveEdit = async () => {
-    if (!editingPost) return
-    setEditError(null)
-    setEditTitleError(null)
-    setEditContentError(null)
-
-    // Client-side validation
-    let hasFieldError = false
-    
-    const titleLetters = editTitle.match(/[a-zA-Z\u0600-\u06FF]/g) || [];
-    const titleSpecialChars = editTitle.match(/[^\w\s\.\-,\u0600-\u06FF]/g) || [];
-    const hasRepeatedChars = (val: string) => /(.)\1{4,}/.test(val);
-    const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{6,}/i.test(val);
-    
-    if (!editTitle.trim()) {
-      setEditTitleError('Title is required')
-      hasFieldError = true
-    } else if (hasDanger(editTitle)) {
-      setEditTitleError('Input contains disallowed characters or patterns (e.g. script tags)')
-      hasFieldError = true
-    } else if (editTitle.trim().length < 8) {
-      setEditTitleError(`Title should have at least 8 characters (${editTitle.trim().length}/8)`)
-      hasFieldError = true
-    } else if (titleLetters.length < 2) {
-      setEditTitleError('Title must contain at least 2 letters (cannot be only numbers)')
-      hasFieldError = true
-    } else if (/\d{6,}/.test(editTitle)) {
-      setEditTitleError('Title cannot contain 6 or more consecutive numbers')
-      hasFieldError = true
-    } else if (titleSpecialChars.length > 3) {
-      setEditTitleError('Too many special characters are not allowed in titles')
-      hasFieldError = true
-    } else if (hasRepeatedChars(editTitle)) {
-      setEditTitleError('Too many repeated characters are not allowed')
-      hasFieldError = true
-    } else if (hasConsecutiveConsonants(editTitle)) {
-      setEditTitleError('Too many consecutive consonants are not allowed')
-      hasFieldError = true
-    }
-    if (!editContent.trim()) {
-      setEditContentError('Content is required')
-      hasFieldError = true
-    } else if (hasDanger(editContent)) {
-      setEditContentError('Input contains disallowed characters or patterns (e.g. script tags)')
-      hasFieldError = true
-    } else if (editContent.trim().length < 20) {
-      setEditContentError(`Content should have at least 20 characters (${editContent.trim().length}/20)`)
-      hasFieldError = true
-    }
-    if (hasFieldError) return
-
+  const openThread = useCallback(async (postId: string) => {
+    setThreadLoading(true)
     try {
-      // First update the post content
-      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${editingPost}`), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          title: editTitle,
-          content: editContent,
-          category: editCategory,
-          attachments: existingAttachments
-        })
-      })
-
-      if (response.ok) {
-        // Upload new attachments if any
-        if (editAttachments.length > 0) {
-          console.log('Uploading new attachments:', editAttachments)
-          for (const file of editAttachments) {
-            const formData = new FormData()
-            formData.append('file', file)
-            formData.append('post_id', editingPost.toString())
-
-            const uploadResponse = await fetch(buildApiUrl('/api/v1/media/forum-attachment'), {
-              method: 'POST',
-              body: formData,
-              credentials: 'include'
-            })
-
-            if (uploadResponse.ok) {
-              const result = await uploadResponse.json()
-              console.log('Upload successful:', result)
-            } else {
-              const error = await uploadResponse.text()
-              console.error('Upload failed:', error)
-              alert(`Failed to upload ${file.name}: ${error}`)
-            }
-          }
-        }
-
-        // Refresh posts to show updated content
-        const categoryQueryParam = selectedCategoryId === 'all' 
-          ? 'all' 
-          : categories.find(c => c.id === selectedCategoryId)?.name
-        if (categoryQueryParam) {
-          const postsResponse = await fetch(buildApiUrl(`/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`), { 
-            credentials: 'include' 
-          })
-          if (postsResponse.ok) {
-            const data = await postsResponse.json()
-            setForumPosts(data.posts || [])
-          }
-        }
-        setEditingPost(null)
-        setEditTitle('')
-        setEditContent('')
-        setEditCategory('')
-        setEditAttachments([])
-        setExistingAttachments([])
-        setEditError(null)
-        
-        // Show success message
-        const successMessage = document.createElement('div')
-        successMessage.innerHTML = `
-          <div style="
-            position: fixed; 
-            top: 20px; 
-            right: 20px; 
-            background: #3B82F6; 
-            color: white; 
-            padding: 16px 20px; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            font-weight: 500;
-          ">
-            ✏️ Post updated successfully!
-          </div>
-        `
-        document.body.appendChild(successMessage)
-        setTimeout(() => successMessage.remove(), 3000)
-      } else {
-        // Map 422 per-field errors to the correct field
-        try {
-          const data = await response.json()
-          if (Array.isArray(data?.detail)) {
-            data.detail.forEach((e: any) => {
-              const loc: string[] = e.loc ?? []
-              const raw = e.msg?.replace('Value error, ', '') ?? 'Invalid value'
-              const msg = raw
-                .replace(/String should have at least (\d+)/i, 'Should have at least $1')
-                .replace(/String should have at most (\d+)/i, 'Should have at most $1')
-              if (loc.includes('title')) setEditTitleError(msg)
-              else if (loc.includes('content')) setEditContentError(msg)
-              else setEditError(msg)
-            })
-            return
-          }
-          setEditError(data?.message || data?.detail || `Request failed (${response.status})`)
-        } catch {
-          setEditError(`Request failed (${response.status})`)
-        }
-      }
-    } catch (error) {
-      console.error('Error updating post:', error)
+      const post = await forumApi.post(postId)
+      setSelectedPost(post)
+      setSearchParams({ post: postId })
+    } finally {
+      setThreadLoading(false)
     }
-  }
+  }, [setSearchParams])
 
-  const handleDeletePost = (post: ForumPost) => {
-    setPostToDelete(post)
-    setDeleteModalOpen(true)
-    setOpenDropdown(null)
-  }
+  useEffect(() => {
+    void loadForum()
+  }, [loadForum])
 
-  const confirmDeletePost = async () => {
-    if (!postToDelete) return
+  useEffect(() => {
+    if (postParam && selectedPost?.id !== postParam) void openThread(postParam)
+  }, [openThread, postParam, selectedPost?.id])
 
-    try {
-      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${postToDelete.id}`), {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-
-      if (response.ok) {
-        // Remove post from local state with success feedback
-        setForumPosts(prev => prev.filter(p => p.id !== postToDelete.id))
-        
-        // Refresh categories (in case category now has 0 posts and should be removed)
-        try {
-          const catRes = await fetch(buildApiUrl('/api/v1/forum/categories'), { credentials: 'include' })
-          if (catRes.ok) {
-            const catData = await catRes.json()
-            const newCategories = catData.categories || []
-            setCategories(newCategories)
-            console.log('Refreshed categories after deletion:', newCategories)
-          }
-        } catch (e) {
-          console.error('Error refreshing categories after deletion:', e)
-        }
-        
-        // Show success message
-        const successMessage = document.createElement('div')
-        successMessage.innerHTML = `
-          <div style="
-            position: fixed; 
-            top: 20px; 
-            right: 20px; 
-            background: #10B981; 
-            color: white; 
-            padding: 16px 20px; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            font-weight: 500;
-          ">
-            ✅ Post deleted successfully!
-          </div>
-        `
-        document.body.appendChild(successMessage)
-        setTimeout(() => successMessage.remove(), 3000)
-      } else {
-        alert('❌ Failed to delete post. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error deleting post:', error)
-      alert('❌ Network error. Please check your connection and try again.')
-    }
-  }
-
-  const isPostAuthor = (post: ForumPost): boolean => {
-    // Handle both old MongoDB ObjectIds and new SuperTokens IDs
-    if (!user || !post || !post.author_id) {
-      console.log('isPostAuthor check failed:', {
-        hasUser: !!user,
-        hasPost: !!post,
-        hasAuthorId: !!post?.author_id,
-        postId: post?.id,
-        postTitle: post?.title
-      })
-      return false
-    }
-
-    // Check both IDs:
-    // 1. For new posts: author_id will be SuperTokens ID
-    // 2. For old posts: author_id will be MongoDB ObjectId
-    const isAuthor = user.id === post.author_id || (user as any).mongo_id === post.author_id
-
-    console.log('Forum auth check:', {
-      postTitle: post.title,
-      postAuthorId: post.author_id,
-      userId: user.id,
-      userMongoId: (user as any).mongo_id,
-      isAuthor: isAuthor
+  const filteredPosts = useMemo(() => {
+    const needle = query.toLowerCase().trim()
+    return posts.filter((post) => {
+      const matchesQuery = !needle || [post.title, post.excerpt, post.content, post.author, post.category, ...(post.tags || [])].join(" ").toLowerCase().includes(needle)
+      const matchesView = viewFilter === "recent"
+        || (viewFilter === "unanswered" && post.replies === 0)
+        || (viewFilter === "solved" && post.hasBestAnswer)
+        || (viewFilter === "saved" && bookmarks.has(post.id))
+      return matchesQuery && matchesView
     })
+  }, [bookmarks, posts, query, viewFilter])
 
-    return isAuthor
+  const closeThread = () => {
+    setSelectedPost(null)
+    setReply("")
+    setReplyTo(null)
+    setReplyFiles([])
+    setMediaError(null)
+    setSearchParams({})
   }
 
-  // Handle clicking outside dropdown to close it
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element
-      if (!target.closest('.relative')) {
-        setOpenDropdown(null)
-      }
-    }
-    
-    if (openDropdown !== null) {
-      document.addEventListener('click', handleClickOutside)
-    }
-    
-    return () => {
-      document.removeEventListener('click', handleClickOutside)
-    }
-  }, [openDropdown])
-
-  // Fetch posts when category changes
-  useEffect(() => {
-    if (!user || categories.length === 0) return;
-
-    const fetchPosts = async () => {
-      setLoadingPosts(true)
+  const submitPost = async (event: FormEvent) => {
+    event.preventDefault()
+    setMediaError(null)
+    setSaving(true)
+    try {
+      const created = await forumApi.createPost({
+        title: composer.title,
+        category_id: composer.category,
+        content: composer.content,
+        tags: composer.tags.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 5),
+      })
       try {
-        // FIX: If the ID is 'all', send 'all'. Otherwise, find the name.
-        const categoryQueryParam = selectedCategoryId === 'all' 
-          ? 'all' 
-          : categories.find(c => c.id === selectedCategoryId)?.name;
-
-        // Ensure we don't send an undefined parameter if a category is somehow not found
-        if (!categoryQueryParam) {
-            console.error("Could not find category name for ID:", selectedCategoryId);
-            setLoadingPosts(false);
-            return;
-        }
-        
-        const response = await fetch(buildApiUrl(`/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`), {
-          credentials: 'include'
-        })
-        if (response.ok) {
-          const data = await response.json()
-          console.log('Forum posts received:', data.posts)
-          console.log('Current user:', user)
-          setForumPosts(data.posts || [])
-        }
-      } catch (error) {
-        console.error('Error fetching posts:', error)
-        setForumPosts([])
-      } finally {
-        setLoadingPosts(false)
+        for (const file of postFiles) await forumApi.uploadAttachment(file, { postId: created.id })
+      } catch (err) {
+        setMediaError(err instanceof Error ? `The discussion was posted, but media upload failed: ${err.message}` : "The discussion was posted, but media upload failed.")
       }
+      setComposer({ title: "", category: composer.category, content: "", tags: "" })
+      setPostFiles([])
+      setComposerOpen(false)
+      await loadForum()
+      await openThread(created.id)
+    } catch (err) {
+      setMediaError(err instanceof Error ? err.message : "Unable to publish the discussion.")
+    } finally {
+      setSaving(false)
     }
-    
-    fetchPosts()
-  }, [user, selectedCategoryId, categories])
+  }
 
-  const filteredPosts = forumPosts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesSearch
-  })
-
-  // Function to fetch full post details with comments
-  const handlePostClick = async (postId: number) => {
+  const submitReply = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!selectedPost || !reply.trim()) return
+    setMediaError(null)
+    setSaving(true)
     try {
-      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${postId}`), {
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const fullPost = await response.json();
-        // Server already returns nested comments; use as-is
-        setSelectedPost(fullPost);
-      } else {
-        console.error('Failed to fetch post details');
+      const created = await forumApi.reply(selectedPost.id, reply, replyTo)
+      try {
+        for (const file of replyFiles) await forumApi.uploadAttachment(file, { replyId: created.reply_id })
+      } catch (err) {
+        setMediaError(err instanceof Error ? `The reply was posted, but media upload failed: ${err.message}` : "The reply was posted, but media upload failed.")
       }
-    } catch (error) {
-      console.error('Error fetching post details:', error);
-    }
-  };
-
-  const handleLikePost = async (postId: number) => {
-    try {
-      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${postId}/like`), {
-        method: 'POST',
-        credentials: 'include'
-      })
-      if (response.ok) {
-        const data = await response.json() // { success, liked, likes }
-        setForumPosts(posts => posts.map(post => post.id === postId ? { ...post, likes: data.likes } : post))
-        if (selectedPost && selectedPost.id === postId) {
-          setSelectedPost({ ...selectedPost, likes: data.likes })
-        }
-        setLikedPosts(prev => data.liked ? [...prev, postId] : prev.filter(id => id !== postId))
-      }
-    } catch (error) {
-      console.error('Error liking post:', error)
+      setReply("")
+      setReplyTo(null)
+      setReplyFiles([])
+      await openThread(selectedPost.id)
+    } catch (err) {
+      setMediaError(err instanceof Error ? err.message : "Unable to publish the reply.")
+    } finally {
+      setSaving(false)
     }
   }
 
-  const handleLikeComment = async (commentId: number) => {
-    try {
-      const response = await fetch(buildApiUrl(`/api/v1/forum/replies/${commentId}/like`), {
-        method: 'POST',
-        credentials: 'include'
-      })
-      if (response.ok) {
-        const data = await response.json() // { success, liked, likes }
-        if (!selectedPost?.comments) return
-        // update likes in nested structure
-        const updateLikes = (nodes: Comment[]): Comment[] =>
-          nodes.map(n => {
-            if (n.id === commentId) return { ...n, likes: data.likes }
-            if (n.replies && n.replies.length) return { ...n, replies: updateLikes(n.replies) }
-            return n
-          })
-        setSelectedPost({ ...selectedPost, comments: updateLikes(selectedPost.comments) })
-        setLikedComments(prev => data.liked ? [...prev, commentId] : prev.filter(id => id !== commentId))
-      }
-    } catch (e) {
-      console.error('Error liking reply:', e)
-    }
+  const togglePostLike = async (post: ForumPost) => {
+    const result = await forumApi.likePost(post.id)
+    setPosts((prev) => prev.map((item) => item.id === post.id ? { ...item, likes: result.likes, isLikedByUser: result.liked } : item))
+    setSelectedPost((prev) => prev && prev.id === post.id ? { ...prev, likes: result.likes, isLikedByUser: result.liked } : prev)
   }
 
-  const handlePostComment = async () => {
-    if (!newComment.trim() || !selectedPost) return
-    setCommentError(null)
-    try {
-      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${selectedPost.id}/replies`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content: newComment })
-      })
-      if (!response.ok) {
-        let msg = 'Failed to post comment'
-        try {
-          const data = await response.json()
-          if (Array.isArray(data?.detail)) {
-            msg = data.detail[0]?.msg?.replace('Value error, ', '') ?? 'Invalid value'
-          } else {
-            msg = data?.detail || data?.message || msg
-          }
-        } catch {}
-        throw new Error(msg)
-      }
-      setNewComment('')
-      await handlePostClick(selectedPost.id)
-    } catch (error: any) {
-      console.error('Error posting comment:', error)
-      setCommentError(error.message)
-    }
+  const toggleBookmark = async (post: ForumPost) => {
+    const result = await forumApi.bookmarkPost(post.id)
+    setBookmarks((prev) => {
+      const next = new Set(prev)
+      if (result.bookmarked) next.add(post.id)
+      else next.delete(post.id)
+      return next
+    })
   }
 
-  const handleOpenReply = (commentId: number) => {
-    setReplyingToId(prev => (prev === commentId ? null : commentId))
-    setReplyText("")
-    setReplyError(null)
+  const deletePost = async (post: ForumPost) => {
+    if (!window.confirm(`Delete "${post.title}"?`)) return
+    await forumApi.deletePost(post.id)
+    closeThread()
+    await loadForum()
   }
 
-  const handleSubmitReply = async (parentReplyId: number) => {
-    if (!replyText.trim() || !selectedPost) return
-    setReplyError(null)
-    try {
-      const response = await fetch(buildApiUrl(`/api/v1/forum/posts/${selectedPost.id}/replies`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content: replyText, parent_reply_id: String(parentReplyId) })
-      })
-      if (!response.ok) {
-        let msg = 'Failed to post reply'
-        try {
-          const data = await response.json()
-          if (Array.isArray(data?.detail)) {
-            msg = data.detail[0]?.msg?.replace('Value error, ', '') ?? 'Invalid value'
-          } else {
-            msg = data?.detail || data?.message || msg
-          }
-        } catch {}
-        throw new Error(msg)
-      }
-      setReplyText("")
-      setReplyingToId(null)
-      await handlePostClick(selectedPost.id)
-    } catch (e: any) {
-      console.error('Error posting nested reply:', e)
-      setReplyError(e.message)
-    }
+  const canManagePost = (post: ForumPost) => {
+    const userWithMongoId = user as (typeof user & { mongo_id?: string })
+    return Boolean(user && (user.role === "admin" || user.id === post.author_id || userWithMongoId?.mongo_id === post.author_id))
   }
 
-  const toggleReplies = (commentId: number) => {
-    setExpandedComments(prev => ({ ...prev, [commentId]: !prev[commentId] }))
-  }
+  if (loading) return <div className="px-5 py-10 md:px-8 xl:px-[58px]"><LoadingState title="Loading forum workspace" /></div>
+  if (error) return <div className="px-5 py-10 md:px-8 xl:px-[58px]"><ErrorState title="Forum unavailable" description={error} actionLabel="Retry" onAction={() => void loadForum()} /></div>
 
-  if (selectedPost) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
-        <div className="w-full px-4 sm:px-6 lg:max-w-4xl lg:mx-auto py-6 sm:py-8">
-          <Button 
-            variant="ghost" 
-            className="mb-6"
-            onClick={() => setSelectedPost(null)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Forum
-          </Button>
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 mb-6">
-            <div className="mb-6">
-              <div className="flex items-center space-x-2 mb-4">
-                {selectedPost.isPinned && <Pin className="h-4 w-4 text-blue-600" />}
-                {selectedPost.hasBestAnswer && <CheckCircle className="h-4 w-4 text-green-600" />}
-                <span className={`text-xs px-3 py-1 rounded-full font-medium capitalize ${
-                  selectedPost.category === "Automation" ? "bg-blue-100 text-blue-700" :
-                  selectedPost.category === "Maintenance" ? "bg-yellow-100 text-yellow-700" :
-                  selectedPost.category === "Quality Management" ? "bg-green-100 text-green-700" :
-                  selectedPost.category === "Artificial Intelligence" ? "bg-purple-100 text-purple-700" :
-                  "bg-gray-100 text-gray-700"
-                }`}>
-                  <Tag className="h-3 w-3 mr-1 inline" />
-                  {selectedPost.category}
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-4">{selectedPost.title}</h1>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <Avatar
-                    src={selectedPost.author_profile_picture}
-                    name={selectedPost.author}
-                    size="md"
-                  />
-                  <div>
-                    <div className="flex items-center space-x-1">
-                      <span className="font-semibold text-slate-900">{selectedPost.author}</span>
-                      {selectedPost.isVerified && <CheckCircle className="h-4 w-4 text-blue-600" />}
-                    </div>
-                    <span className="text-sm text-slate-500">{selectedPost.authorTitle}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Button variant="ghost" size="sm" onClick={() => handleBookmarkPost(selectedPost.id)} className={`${bookmarkedPosts.includes(selectedPost.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}>
-                    <Bookmark className={`h-4 w-4 mr-1.5 ${bookmarkedPosts.includes(selectedPost.id) ? 'fill-current text-blue-600' : ''}`} /> Save
-                  </Button>
-                  <span className="text-sm text-slate-500">{selectedPost.timeAgo}</span>
-                </div>
-              </div>
-            </div>
-            <div className="prose prose-slate max-w-none mb-6">
-              <div className="whitespace-pre-line text-slate-700">
-                {selectedPost.content || selectedPost.excerpt}
-              </div>
-
-              {/* Display attachments using MediaGallery */}
-              {selectedPost.attachments && selectedPost.attachments.length > 0 && (
-                <div className="mt-6">
-                  <MediaGallery
-                    items={selectedPost.attachments.map(att => ({
-                      url: att.url,
-                      filename: att.filename,
-                      type: att.type,
-                      size: att.size,
-                      isVideo: att.type.startsWith('video/')
-                    }))}
-                  />
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-between pt-6 border-t border-slate-200">
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-1 text-slate-900 text-sm">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{selectedPost.comments?.length || selectedPost.replies}</span>
-                </div>
-                <div className="flex items-center space-x-1 text-slate-900 text-sm">
-                  <Eye className="h-4 w-4" />
-                  <span>{selectedPost.views}</span>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => handleLikePost(selectedPost.id)} className={`${likedPosts.includes(selectedPost.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100`}>
-                  <ThumbsUp className={`h-4 w-4 mr-1.5 ${likedPosts.includes(selectedPost.id) ? 'fill-current text-blue-600' : ''}`} /> {selectedPost.likes}
-                </Button>
-              </div>
-              <div className="flex items-center space-x-4 text-sm text-slate-500" />
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-8 border border-slate-200">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">Comments ({selectedPost.comments?.length || selectedPost.replies})</h2>
-            <div className="mb-8">
-              <div className="flex space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-white">{user?.firstName?.charAt(0) || 'U'}</span>
-                </div>
-                <div className="flex-1">
-                  <Textarea placeholder="Add your comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className="min-h-[100px] mb-3" />
-                  {commentError && <p className="text-sm text-red-600 mb-3">{commentError}</p>}
-                  <Button onClick={handlePostComment} disabled={!newComment.trim()} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Send className="h-4 w-4 mr-2" />
-                    Post Comment
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-6">
-              {selectedPost.comments?.map((comment) => (
-                <div key={comment.id} className="border-b border-slate-200 pb-6 last:border-0">
-                  <div className="flex space-x-3">
-                    <Avatar
-                      src={comment.authorProfilePicture}
-                      name={comment.author}
-                      size="md"
-                      className="flex-shrink-0"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <div className="flex items-center space-x-1">
-                            <span className="font-semibold text-slate-900">{comment.author}</span>
-                            {comment.isVerified && <CheckCircle className="h-4 w-4 text-blue-600" />}
-                          </div>
-                          <span className="text-sm text-slate-500">{comment.authorTitle}</span>
-                        </div>
-                        <span className="text-sm text-slate-500">{comment.timeAgo}</span>
-                      </div>
-                      <p className="text-slate-700 mb-3">{comment.content}</p>
-                      <div className="flex items-center space-x-4">
-                        <Button variant="ghost" size="sm" onClick={() => handleLikeComment(comment.id)} className={`text-sm ${likedComments.includes(comment.id) ? "text-blue-600" : ""}`}>
-                          <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(comment.id) ? "fill-current" : ""}`} />
-                          {comment.likes}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-sm" onClick={() => handleOpenReply(comment.id)}>Reply</Button>
-                        {comment.replies && comment.replies.length > 0 && (
-                          <button
-                            onClick={() => toggleReplies(comment.id)}
-                            className="text-xs text-slate-600 hover:text-slate-800 inline-flex items-center gap-1"
-                          >
-                            {expandedComments[comment.id] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                            {expandedComments[comment.id] ? "Hide replies" : `Show replies (${comment.replies.length})`}
-                          </button>
-                        )}
-                      </div>
-                      {replyingToId === comment.id && (
-                        <div className="mt-4 ml-8">
-                          <Textarea placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="min-h-[80px] mb-2" />
-                          {replyError && <p className="text-sm text-red-600 mb-2">{replyError}</p>}
-                          <div className="flex gap-2">
-                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleSubmitReply(comment.id)} disabled={!replyText.trim()}>Post Reply</Button>
-                            <Button size="sm" variant="ghost" onClick={() => { setReplyingToId(null); setReplyText("") }}>Cancel</Button>
-                          </div>
-                        </div>
-                      )}
-                      {comment.replies && comment.replies.length > 0 && expandedComments[comment.id] && (
-                        <div className="mt-4 ml-8 space-y-4">
-                          {comment.replies.map((reply) => (
-                            <div key={reply.id} className="flex space-x-3">
-                              <Avatar
-                                src={reply.authorProfilePicture}
-                                name={reply.author}
-                                size="sm"
-                                className="flex-shrink-0"
-                              />
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="flex items-center space-x-1">
-                                    <span className="font-semibold text-sm text-slate-900">{reply.author}</span>
-                                    {reply.isVerified && <CheckCircle className="h-3 w-3 text-blue-600" />}
-                                  </div>
-                                  <span className="text-xs text-slate-500">{reply.timeAgo}</span>
-                                </div>
-                                <p className="text-sm text-slate-700 mb-2">{reply.content}</p>
-                                <Button variant="ghost" size="sm" onClick={() => handleLikeComment(reply.id)} className={`text-xs ${likedComments.includes(reply.id) ? "text-blue-600" : ""}`}>
-                                  <ThumbsUp className={`h-3 w-3 mr-1 ${likedComments.includes(reply.id) ? "fill-current" : ""}`} />
-                                  {reply.likes}
-                                </Button>
-                                <Button variant="ghost" size="sm" className="text-xs" onClick={() => handleOpenReply(reply.id)}>Reply</Button>
-                              </div>
-                              {replyingToId === reply.id && (
-                                <div className="mt-3 ml-8">
-                                  <Textarea placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="min-h-[70px] mb-2" />
-                                  {replyError && <p className="text-sm text-red-600 mb-2">{replyError}</p>}
-                                  <div className="flex gap-2">
-                                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleSubmitReply(reply.id)} disabled={!replyText.trim()}>Post Reply</Button>
-                                    <Button size="sm" variant="ghost" onClick={() => { setReplyingToId(null); setReplyText("") }}>Cancel</Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-      </div>
-    )
-  }
+  const categoryIcons = [Bot, ScanEye, Gauge, DatabaseZap]
+  const featuredCategories = categories.filter((item) => item.id !== "all").slice(0, 4)
+  const totalTopics = stats.total_topics || posts.length
+  const solvedCount = posts.filter((post) => post.hasBestAnswer).length
+  const awaitingInput = posts.filter((post) => post.replies === 0).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 pb-20 md:pb-0">
-      <div className="w-full px-4 sm:px-6 lg:max-w-7xl lg:mx-auto py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-          {/* Sidebar - Hidden on mobile */}
-          <div className="space-y-6 hidden lg:block">
-            <div className="bg-white rounded-2xl p-6 border border-slate-200">
-              <h3 className="font-bold text-slate-900 text-lg mb-4">Categories</h3>
-              <div className="space-y-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategoryId(category.id)}
-                    className={`w-full p-3 rounded-lg transition-colors text-left ${
-                      selectedCategoryId === category.id
-                        ? "bg-blue-600 text-white"
-                        : "hover:bg-slate-50 text-slate-700"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{category.name}</span>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        selectedCategoryId === category.id 
-                          ? "bg-white/20 text-white" 
-                          : "bg-slate-600 text-white"
-                      }`}>
-                        {category.count}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Forum Stats */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200">
-              <h3 className="font-bold text-slate-900 text-lg mb-4">Forum Stats</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600">Total Topics</p>
-                    <p className="text-xl font-bold text-blue-600">{forumStats.total_topics}</p>
-                  </div>
-                  <div className="p-2 bg-blue-600 rounded-lg">
-                    <MessageSquare className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600">Active Members</p>
-                    <p className="text-xl font-bold text-slate-600">{forumStats.active_members}</p>
-                  </div>
-                  <div className="p-2 bg-slate-600 rounded-lg">
-                    <Users className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600">Helpful Answers</p>
-                    <p className="text-xl font-bold text-blue-500">{forumStats.helpful_answers}</p>
-                  </div>
-                  <div className="p-2 bg-blue-500 rounded-lg">
-                    <CheckCircle className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Top Contributors */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200">
-              <h3 className="font-bold text-slate-900 text-lg mb-4">Top Contributors</h3>
-              <div className="space-y-4">
-                {loadingContributors ? (
-                  <div className="text-center py-4"><Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" /></div>
-                ) : topContributors.length > 0 ? (
-                  topContributors.map((contributor) => (
-                    <div key={contributor.rank} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-bold text-white">{contributor.avatar}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{contributor.name}</p>
-                          <p className="text-xs text-slate-500">{contributor.points} points</p>
-                        </div>
-                      </div>
-                      <div className="px-3 py-1 bg-slate-600 text-white text-sm font-bold rounded-lg">
-                        #{contributor.rank}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500 text-center py-4">No contributors yet</p>
-                )}
-              </div>
-            </div>
+    <div className="min-h-[calc(100vh-var(--peer-topbar-height))] bg-[var(--peer-paper)] [--peer-surface:#ffffff]">
+      <div className="mx-auto w-full max-w-[1430px] px-5 pb-16 pt-8 md:px-8 md:pt-11 xl:px-[58px]">
+        <header className="mb-8 grid items-end gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:gap-7">
+          <div>
+            <p className="peer-eyebrow mb-2">Peer troubleshooting</p>
+            <h1 className="font-display max-w-[800px] text-[clamp(30px,3.2vw,44px)] font-semibold leading-[1.13] tracking-[-0.045em]">Forum built for practical manufacturing questions.</h1>
+            <p className="mt-3 max-w-[760px] text-[15px] leading-6 text-[var(--peer-muted)]">Search active discussions, browse technical categories, and move unresolved shop-floor problems toward tested answers.</p>
           </div>
+          <div className="min-w-[220px] border-l-2 border-[var(--peer-teal)] py-1 pl-4">
+            <strong className="font-display block text-xl font-semibold">{totalTopics} discussions</strong>
+            <span className="text-xs text-[var(--peer-muted)]">{solvedCount} solved · {awaitingInput} awaiting expert input</span>
+          </div>
+        </header>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 w-full space-y-6">
-            {/* START: Create Post Trigger Section */}
-            <div className="relative">
-              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 sm:p-6 border-2 border-blue-200 shadow-lg">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                  <div className="flex-1">
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="w-full text-left text-slate-600 bg-white border-2 border-blue-100 rounded-full px-4 sm:px-6 py-3 sm:py-4 hover:bg-blue-50 hover:border-blue-300 transition-all text-sm sm:text-base shadow-sm"
-                    >
-                      <div className="flex items-center">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                          <Plus className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <span className="text-slate-700 truncate">What's on your mind? Share your question or insight...</span>
-                      </div>
-                    </button>
-                  </div>
-                  <Button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-11 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 rounded-xl whitespace-nowrap"
-                  >
-                    <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                    New Post
-                  </Button>
-                </div>
-                <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-slate-600">
-                  <div className="flex items-center flex-wrap gap-x-3 sm:gap-x-4 gap-y-1">
-                    <span className="flex items-center whitespace-nowrap">
-                      <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-blue-500" />
-                      Ask questions
-                    </span>
-                    <span className="flex items-center whitespace-nowrap">
-                      <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-yellow-500" />
-                      Share insights
-                    </span>
-                    <span className="flex items-center whitespace-nowrap">
-                      <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-green-500" />
-                      Connect with peers
-                    </span>
-                  </div>
-                  <span className="text-blue-600 font-medium whitespace-nowrap hidden sm:inline">Join the conversation →</span>
-                </div>
-              </Card>
+        {mediaError ? <div role="alert" className="mb-5 flex items-start justify-between gap-3 border border-[#d7a7a1] bg-[#fff2f0] px-4 py-3 text-sm text-[var(--peer-danger)]"><span>{mediaError}</span><button type="button" onClick={() => setMediaError(null)} aria-label="Dismiss message"><X className="size-4" /></button></div> : null}
+
+        {composerOpen ? (
+          <section className="peer-panel mb-[22px]" aria-labelledby="composer-title">
+            <div className="flex items-start justify-between border-b border-[var(--peer-line)] px-6 py-5">
+              <div><p className="peer-eyebrow mb-1">New discussion</p><h2 id="composer-title" className="font-display text-xl font-semibold">Ask the network</h2></div>
+              <button type="button" onClick={() => setComposerOpen(false)} aria-label="Close composer" className="grid size-9 place-items-center border border-[var(--peer-line)]"><X className="size-4" /></button>
             </div>
-            {/* END: Create Post Trigger Section */}
-            <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search in forum..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 text-sm sm:text-base"
-                  />
+            <form onSubmit={submitPost} className="grid gap-4 p-6">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_260px]">
+                <label className="grid gap-1.5 text-xs font-semibold">Question title<input required minLength={8} maxLength={150} className="h-11 border border-[var(--peer-line)] bg-white px-3 text-sm font-normal" placeholder="What problem are you trying to solve?" value={composer.title} onChange={(event) => setComposer((prev) => ({ ...prev, title: event.target.value }))} /></label>
+                <label className="grid gap-1.5 text-xs font-semibold">Category<select className="h-11 border border-[var(--peer-line)] bg-white px-3 text-sm font-normal" value={composer.category} onChange={(event) => setComposer((prev) => ({ ...prev, category: event.target.value }))}>{categories.filter((item) => item.id !== "all").map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
+              </div>
+              <label className="grid gap-1.5 text-xs font-semibold">Context, constraints and what you tried<textarea required minLength={20} maxLength={5000} className="min-h-40 border border-[var(--peer-line)] bg-white p-3 text-sm font-normal leading-6" value={composer.content} onChange={(event) => setComposer((prev) => ({ ...prev, content: event.target.value }))} /></label>
+              <MediaPicker id="forum-post-media" files={postFiles} onChange={setPostFiles} onError={setMediaError} />
+              <label className="grid gap-1.5 text-xs font-semibold">Tags<input className="h-11 border border-[var(--peer-line)] bg-white px-3 text-sm font-normal" placeholder="PLC, compressed air, OEE" value={composer.tags} onChange={(event) => setComposer((prev) => ({ ...prev, tags: event.target.value }))} /></label>
+              <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" className="bg-white" onClick={() => { setComposerOpen(false); setPostFiles([]); setMediaError(null) }}>Cancel</Button><Button disabled={saving} className="bg-[var(--peer-teal)] text-white"><Send className="size-4" />{saving ? "Publishing…" : "Post question"}</Button></div>
+            </form>
+          </section>
+        ) : null}
+
+        {threadLoading ? <LoadingState title="Opening discussion" /> : selectedPost ? (
+          <article className="grid items-start gap-[22px] lg:grid-cols-[minmax(0,1fr)_310px]">
+            <div className="peer-panel min-w-0">
+              <div className="border-b border-[var(--peer-line)] px-6 py-5">
+                <button type="button" onClick={closeThread} className="mb-5 inline-flex items-center gap-2 text-xs font-bold text-[var(--peer-blue)]"><ArrowLeft className="size-4" />Back to discussions</button>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--peer-muted)]">
+                  {selectedPost.hasBestAnswer ? <span className="inline-flex items-center gap-1 bg-[var(--peer-teal-soft)] px-2 py-1 font-bold text-[var(--peer-teal)]"><BadgeCheck className="size-3.5" />Solved</span> : <span className="bg-[#f0e7da] px-2 py-1 font-bold text-[var(--peer-amber)]">Needs input</span>}
+                  <span>{selectedPost.category}</span><span>·</span><span>{selectedPost.timeAgo}</span>
                 </div>
-                <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 w-full sm:w-auto">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
+                <h1 className="font-display mt-3 text-[clamp(25px,3vw,36px)] font-semibold leading-tight tracking-[-0.035em]">{selectedPost.title}</h1>
+                <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-3"><Avatar name={selectedPost.author} src={selectedPost.author_profile_picture} size="sm" /><div><strong className="block text-sm">{displayName(selectedPost.author)}</strong><span className="text-xs text-[var(--peer-muted)]">{selectedPost.authorTitle || "PeerLink contributor"}</span></div></div>
+                  <div className="flex gap-2"><Button variant="outline" className="bg-white" onClick={() => void togglePostLike(selectedPost)}><ThumbsUp className={selectedPost.isLikedByUser ? "size-4 fill-current" : "size-4"} />{selectedPost.likes}</Button><Button variant="outline" className="bg-white" onClick={() => void toggleBookmark(selectedPost)}><Bookmark className={bookmarks.has(selectedPost.id) ? "size-4 fill-current" : "size-4"} /></Button>{canManagePost(selectedPost) ? <Button variant="outline" className="bg-white text-[var(--peer-danger)]" onClick={() => void deletePost(selectedPost)}><Trash2 className="size-4" /></Button> : null}</div>
+                </div>
+              </div>
+              <div className="border-b border-[var(--peer-line)] px-6 py-7"><p className="whitespace-pre-wrap text-[15px] leading-7">{selectedPost.content}</p><AttachmentGallery attachments={selectedPost.attachments} /><div className="mt-6 flex gap-5 text-xs text-[var(--peer-muted)]"><span className="inline-flex items-center gap-1.5"><Eye className="size-4" />{selectedPost.views} views</span><span className="inline-flex items-center gap-1.5"><MessageSquare className="size-4" />{selectedPost.comments?.length || selectedPost.replies} replies</span></div></div>
+              <div className="p-6"><p className="peer-eyebrow mb-1">Peer responses</p><h2 className="font-display mb-5 text-xl font-semibold">Replies</h2><div className="grid gap-4">{(selectedPost.comments || []).length === 0 ? <EmptyState className="min-h-52 shadow-none" title="No replies yet" description="Share the first answer or request clarification." /> : selectedPost.comments?.map((item) => <ReplyNode key={item.id} reply={item} onReply={(id) => setReplyTo(id)} onLike={(id) => void forumApi.likeReply(id).then(() => openThread(selectedPost.id))} />)}</div>
+                <form onSubmit={submitReply} className="mt-6 border-t border-[var(--peer-line)] pt-6">{replyTo ? <p className="mb-2 text-xs text-[var(--peer-muted)]">Replying to a response · <button type="button" className="font-bold text-[var(--peer-blue)]" onClick={() => setReplyTo(null)}>Cancel</button></p> : null}<textarea required minLength={3} maxLength={3000} className="mb-3 min-h-32 w-full border border-[var(--peer-line)] bg-white p-3 text-sm" value={reply} onChange={(event) => setReply(event.target.value)} placeholder="Add practical detail, a tested method, or a clarifying question." /><MediaPicker id="forum-reply-media" files={replyFiles} onChange={setReplyFiles} onError={setMediaError} /><Button disabled={saving} className="mt-3 bg-[var(--peer-teal)] text-white"><Send className="size-4" />{saving ? "Publishing…" : "Post reply"}</Button></form>
               </div>
             </div>
+            <aside className="grid gap-[22px] lg:sticky lg:top-[calc(var(--peer-topbar-height)+22px)]"><section className="peer-panel p-5"><p className="peer-eyebrow mb-2">Discussion status</p><dl className="grid gap-3 text-sm"><div className="flex justify-between"><dt className="text-[var(--peer-muted)]">Replies</dt><dd className="font-semibold">{selectedPost.replies}</dd></div><div className="flex justify-between"><dt className="text-[var(--peer-muted)]">Views</dt><dd className="font-semibold">{selectedPost.views}</dd></div><div className="flex justify-between"><dt className="text-[var(--peer-muted)]">Category</dt><dd className="max-w-[160px] text-right font-semibold">{selectedPost.category}</dd></div></dl></section><Button onClick={() => setComposerOpen(true)} className="min-h-11 bg-[var(--peer-teal)] text-white"><Plus className="size-4" />Ask another question</Button></aside>
+          </article>
+        ) : (
+          <>
+            <section className="peer-panel mb-[22px]" aria-labelledby="forum-tools-title">
+              <div className="flex flex-col justify-between gap-4 border-b border-[var(--peer-line)] px-6 py-5 sm:flex-row sm:items-center"><div><p className="peer-eyebrow mb-1">Find a discussion</p><h2 id="forum-tools-title" className="font-display text-xl font-semibold">Search, categories and filters</h2></div><Button onClick={() => setComposerOpen(true)} className="bg-[var(--peer-teal)] text-white"><Plus className="size-4" />Ask a question</Button></div>
+              <div className="grid gap-4 border-b border-[var(--peer-line)] p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"><label className="relative block"><Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--peer-muted)]" /><input className="h-11 w-full border border-[var(--peer-line)] bg-white pl-10 pr-3 text-sm" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search active manufacturing discussions" /></label><div className="flex flex-wrap gap-2">{([['recent', Clock3], ['unanswered', CircleHelp], ['solved', BadgeCheck], ['saved', Bookmark]] as const).map(([filter, Icon]) => <button key={filter} type="button" onClick={() => setViewFilter(filter)} className={viewFilter === filter ? "inline-flex h-10 items-center gap-1.5 bg-[var(--peer-teal)] px-3 text-xs font-bold capitalize text-white" : "inline-flex h-10 items-center gap-1.5 border border-[var(--peer-line)] bg-white px-3 text-xs font-semibold capitalize text-[var(--peer-muted)]"}><Icon className="size-3.5" />{filter}</button>)}</div></div>
+              <div className="grid sm:grid-cols-2 xl:grid-cols-4">{featuredCategories.map((item, index) => { const Icon = categoryIcons[index] || MessageSquare; return <button key={item.id} type="button" onClick={() => setCategory(item.name)} className={cn("group min-h-[155px] border-b border-[var(--peer-line)] p-5 text-left hover:bg-[#f2f5f1] sm:border-r", index > 1 && "sm:border-b-0", index === 1 && "sm:border-r-0 xl:border-r", index === 3 && "sm:border-r-0")}><span className="mb-5 flex items-start justify-between"><span className="grid size-10 place-items-center border border-[#c4d7d1] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)]"><Icon className="size-5" /></span><span className="font-display text-xl font-semibold text-[var(--peer-teal)]">{item.count}</span></span><strong className="block text-sm">{item.name}</strong><span className="mt-1 block text-xs text-[var(--peer-muted)]">Browse field questions and tested answers.</span></button> })}</div>
+            </section>
 
-            <div className="space-y-4">
-              {editingPost && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 border-2 border-amber-200 mb-6 shadow-lg">
-                  <div className="flex items-center mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mr-3">
-                      <Edit className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-slate-900">Edit Your Post</h3>
-                      <p className="text-sm text-slate-600">Make your changes and save to update your post</p>
-                    </div>
-                  </div>
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Post Title</label>
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => { setEditTitle(e.target.value); setEditTitleError(null) }}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 transition-all bg-white shadow-sm ${
-                          editTitleError ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500'
-                        }`}
-                        placeholder="Enter a clear, descriptive title..."
-                      />
-                      {editTitleError && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {editTitleError}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Content</label>
-                      <Textarea
-                        value={editContent}
-                        onChange={(e) => { setEditContent(e.target.value); setEditContentError(null) }}
-                        className={`min-h-[120px] border-2 rounded-xl focus:ring-2 transition-all bg-white shadow-sm ${
-                          editContentError ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500'
-                        }`}
-                        placeholder="Share your thoughts, questions, or insights..."
-                      />
-                      {editContentError && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {editContentError}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
-                      <select
-                        value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white shadow-sm"
-                      >
-                        {categories.filter(c => c.id !== 'all').map(category => (
-                          <option key={category.id} value={category.name}>{category.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Display existing attachments */}
-                    {existingAttachments.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Current Attachments</label>
-                        <MediaGallery
-                          items={existingAttachments.map(att => ({
-                            url: att.url,
-                            filename: att.filename,
-                            type: att.type,
-                            size: att.size,
-                            isVideo: att.type.startsWith('video/')
-                          }))}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setExistingAttachments([])}
-                          className="mt-2 text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove All Attachments
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Add new attachments */}
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Add New Attachments</label>
-                      <FileDropZone
-                        onFilesSelect={setEditAttachments}
-                        maxFiles={5}
-                        maxSize={50 * 1024 * 1024}
-                        acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm']}
-                        allowMultiple={true}
-                      />
-                    </div>
-                    {/* General error (not field-specific) */}
-                    {editError && (
-                      <p className="text-red-600 font-semibold text-sm bg-red-50 px-3 py-1 rounded-lg border-l-4 border-red-500">
-                        {editError}
-                      </p>
-                    )}
-                    <div className="flex gap-3 pt-2">
-                      <Button 
-                        onClick={handleSaveEdit} 
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 rounded-xl"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Save Changes
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setEditingPost(null)
-                          setEditTitle('')
-                          setEditContent('')
-                          setEditCategory('')
-                          setEditAttachments([])
-                          setExistingAttachments([])
-                        }}
-                        className="px-6 py-2.5 border-2 border-slate-300 hover:border-slate-400 transition-all rounded-xl"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {loadingPosts ? (
-                <div className="text-center py-8 bg-white rounded-2xl border"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" /></div>
-              ) : filteredPosts.length > 0 ? (
-                filteredPosts.map((post) => (
-                  <div key={post.id} className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 hover:shadow-md transition-all duration-300">
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex items-center flex-wrap gap-2">
-                            {post.isPinned && <Pin className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />}
-                            {post.hasBestAnswer && <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />}
-                            <span className="text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium bg-blue-600 text-white capitalize whitespace-nowrap">
-                              <Tag className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1 inline" />
-                              {post.category}
-                            </span>
-                          </div>
-                          <h3
-                            className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 hover:text-blue-600 cursor-pointer break-words line-clamp-2"
-                            onClick={() => handlePostClick(post.id)}
-                          >
-                            {post.title}
-                          </h3>
-                          <p className="text-xs sm:text-sm text-slate-600 break-words line-clamp-2">{post.excerpt}</p>
-
-                          {/* Display attachment indicators only */}
-                          {post.attachments && post.attachments.length > 0 && (
-                            <div className="flex items-center flex-wrap gap-2 mt-1">
-                              {post.attachments.some(att => att.type.startsWith('image/')) && (
-                                <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                  <Image className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                  <span className="text-[10px] sm:text-xs">
-                                    {post.attachments.filter(att => att.type.startsWith('image/')).length} image(s)
-                                  </span>
-                                </div>
-                              )}
-                              {post.attachments.some(att => att.type.startsWith('video/')) && (
-                                <div className="flex items-center space-x-1 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
-                                  <Video className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                  <span className="text-[10px] sm:text-xs">
-                                    {post.attachments.filter(att => att.type.startsWith('video/')).length} video(s)
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-3 pt-3 sm:pt-4 border-t border-slate-200">
-                        <div className="flex items-center gap-3 sm:gap-6">
-                          <div className="flex items-center space-x-1 text-xs sm:text-sm text-slate-900"><MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span>{post.replies}</span></div>
-                          <div className="flex items-center space-x-1 text-xs sm:text-sm text-slate-900"><Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span>{post.views}</span></div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleLikePost(post.id); }}
-                            className={`flex items-center space-x-1 text-xs sm:text-sm transition-colors ${likedPosts.includes(post.id) || post.isLikedByUser ? 'text-blue-600' : 'text-slate-900 hover:text-blue-600'}`}
-                          >
-                            <ThumbsUp className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${likedPosts.includes(post.id) || post.isLikedByUser ? 'fill-current' : ''}`} />
-                            <span>{post.likes}</span>
-                          </button>
-                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleBookmarkPost(post.id); }} className={`${bookmarkedPosts.includes(post.id) ? 'text-blue-600' : 'text-slate-900'} hover:bg-slate-100 px-2 sm:px-3 h-7 sm:h-8`}>
-                            <Bookmark className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${bookmarkedPosts.includes(post.id) ? 'fill-current text-blue-600' : ''}`} />
-                            <span className="hidden sm:inline ml-1.5">Save</span>
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-                            <Avatar
-                              src={post.author_profile_picture}
-                              name={post.author}
-                              size="sm"
-                              className="flex-shrink-0"
-                            />
-                            <div className="min-w-0">
-                              <div className="flex items-center space-x-1">
-                                <span className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{post.author}</span>
-                                {post.isVerified && <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />}
-                              </div>
-                              <span className="text-[10px] sm:text-xs text-slate-500 truncate block">{post.authorTitle}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                            <div className="flex items-center space-x-1 text-[10px] sm:text-xs text-slate-500">
-                              <Clock className="h-3 w-3" />
-                              <span className="hidden sm:inline">{post.timeAgo}</span>
-                            </div>
-                            {isPostAuthor(post) && (
-                              <div className="relative">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenDropdown(openDropdown === post.id ? null : post.id)
-                                  }}
-                                  className="text-slate-600 hover:text-slate-900"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                                {openDropdown === post.id && (
-                                  <div className="absolute right-0 top-8 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-10 min-w-[120px] sm:min-w-[140px] overflow-hidden">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditPost(post);
-                                    }}
-                                    className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-blue-50 flex items-center space-x-3 transition-colors group"
-                                  >
-                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                      <Edit className="h-3 w-3 text-blue-600" />
-                                    </div>
-                                    <span className="font-medium">Edit Post</span>
-                                  </button>
-                                  <div className="h-px bg-slate-200 mx-2"></div>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeletePost(post);
-                                    }}
-                                    className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors group"
-                                  >
-                                    <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                                      <Trash2 className="h-3 w-3 text-red-600" />
-                                    </div>
-                                    <span className="font-medium">Delete Post</span>
-                                  </button>
-                                </div>
-                              )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-white rounded-2xl border">
-                  <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-600 text-lg font-medium mb-2">No posts found</p>
-                  <p className="text-slate-500">Try selecting a different category or start a new discussion!</p>
-                </div>
-              )}
+            <div className="grid items-start gap-[22px] xl:grid-cols-[minmax(0,1fr)_320px]">
+              <section className="peer-panel min-w-0" aria-labelledby="threads-title"><div className="flex items-start justify-between border-b border-[var(--peer-line)] px-6 py-5"><div><p className="peer-eyebrow mb-1">Open questions</p><h2 id="threads-title" className="font-display text-xl font-semibold">Latest discussions</h2></div><span className="text-xs text-[var(--peer-muted)]">{filteredPosts.length} shown</span></div>{filteredPosts.length === 0 ? <EmptyState className="m-5 min-h-56 shadow-none" title="No matching discussions" description="Try a broader search or another filter." actionLabel="Clear filters" onAction={() => { setQuery(''); setViewFilter('recent'); setCategory('all') }} /> : <div>{filteredPosts.map((post) => <article key={post.id} className="grid gap-4 border-b border-[var(--peer-line)] px-5 py-5 last:border-b-0 md:grid-cols-[42px_minmax(0,1fr)_210px]"><Avatar name={post.author} src={post.author_profile_picture} size="md" /><button type="button" onClick={() => void openThread(post.id)} className="min-w-0 text-left"><div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--peer-muted)]">{post.hasBestAnswer ? <span className="inline-flex items-center gap-1 bg-[var(--peer-teal-soft)] px-2 py-1 font-bold text-[var(--peer-teal)]"><BadgeCheck className="size-3.5" />Solved</span> : post.replies > 3 ? <span className="inline-flex items-center gap-1 bg-[#f0e7da] px-2 py-1 font-bold text-[var(--peer-amber)]"><Flame className="size-3.5" />Active</span> : <span className="bg-[#eeece5] px-2 py-1 font-bold">Needs input</span>}<span>{post.category}</span><span>·</span><span>{post.timeAgo}</span></div><h3 className="font-display text-[17px] font-semibold leading-snug hover:text-[var(--peer-teal)]">{post.title}</h3><p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--peer-muted)]">{post.excerpt || post.content}</p><span className="mt-3 block text-[11px] text-[var(--peer-muted)]">{displayName(post.author)}{post.authorTitle ? ` · ${post.authorTitle}` : ''}</span></button><div className="grid grid-cols-3 border border-[var(--peer-line)] self-center"><span className="px-2 py-3 text-center"><strong className="font-display block text-base">{post.replies}</strong><span className="text-[10px] text-[var(--peer-muted)]">Replies</span></span><span className="border-x border-[var(--peer-line)] px-2 py-3 text-center"><strong className="font-display block text-base">{post.likes}</strong><span className="text-[10px] text-[var(--peer-muted)]">Useful</span></span><span className="px-2 py-3 text-center"><strong className="font-display block text-base">{post.views}</strong><span className="text-[10px] text-[var(--peer-muted)]">Views</span></span></div></article>)}</div>}</section>
+              <aside className="grid gap-[22px]"><section className="peer-panel"><div className="border-b border-[var(--peer-line)] px-5 py-4"><p className="peer-eyebrow mb-1">Draft access</p><h2 className="font-display text-lg font-semibold">Continue writing</h2></div><div>{drafts.slice(0, 2).map((draft) => <div key={draft.id} className="border-b border-[var(--peer-line)] px-5 py-4"><strong className="block truncate text-xs">{draft.title || 'Untitled forum draft'}</strong><span className="mt-1 block text-[10px] text-[var(--peer-muted)]">Forum draft · saved recently</span></div>)}</div><button type="button" onClick={() => setComposerOpen(true)} className="flex w-full items-center justify-between bg-[#f1f2ed] px-5 py-4 text-left"><span><strong className="block text-xs">Open forum composer</strong><span className="text-[10px] text-[var(--peer-muted)]">Recover or start a question</span></span><span className="font-display text-xl font-bold text-[var(--peer-amber)]">{drafts.length}</span></button></section><section className="peer-panel"><div className="border-b border-[var(--peer-line)] px-5 py-4"><p className="peer-eyebrow mb-1">Available expertise</p><h2 className="font-display text-lg font-semibold">Relevant peers</h2></div>{contributors.length ? contributors.map((person) => <div key={person.name} className="flex items-center gap-3 border-b border-[var(--peer-line)] px-5 py-4 last:border-b-0"><Avatar name={person.name} src={person.avatar} size="sm" /><span className="min-w-0"><strong className="block truncate text-xs">{person.name}</strong><span className="text-[10px] text-[var(--peer-muted)]">{person.points} contribution points</span></span></div>) : <div className="p-5 text-xs text-[var(--peer-muted)]">Peer expertise will appear as the network contributes.</div>}</section></aside>
             </div>
-            <div className="text-center">
-              <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
-                Load More
-              </Button>
-            </div>
-          </div>
-        </div>
-      {/* START: Add the Modal Dialog */}
-      <CreatePostModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        categories={categories.filter(c => c.id !== 'all')}
-        initialTitle={draftPrefill?.title}
-        initialContent={draftPrefill?.content}
-        initialCategoryId={draftPrefill?.category}
-        draftId={location?.state?.openCreateWithDraft?.draftId}
-        onPostSuccess={async () => {
-          setIsModalOpen(false)
-          setDraftPrefill(null)
-          
-          // Refresh categories first (in case new category was created)
-          try {
-            const catRes = await fetch(buildApiUrl('/api/v1/forum/categories'), { credentials: 'include' })
-            if (catRes.ok) {
-              const catData = await catRes.json()
-              const newCategories = catData.categories || []
-              setCategories(newCategories)
-              console.log('Refreshed categories:', newCategories)
-              
-              // Refresh posts after categories are updated
-              const categoryQueryParam = selectedCategoryId === 'all' ? 'all' : newCategories.find((c: any) => c.id === selectedCategoryId)?.name
-              if (categoryQueryParam) {
-                const response = await fetch(buildApiUrl(`/api/v1/forum/posts?category=${categoryQueryParam}&limit=20`), { credentials: 'include' })
-                if (response.ok) {
-                  const data = await response.json()
-                  setForumPosts(data.posts || [])
-                }
-              }
-            }
-          } catch (e) {
-            console.error('Error refreshing categories and posts:', e)
-          }
-        }}
-      />
-      {/* END: Add the Modal Dialog */}
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false)
-          setPostToDelete(null)
-        }}
-        onConfirm={confirmDeletePost}
-        title="Delete Post?"
-        message="Are you sure you want to delete this post? This action cannot be undone and the post will be permanently removed from the forum."
-        itemName={postToDelete?.title}
-      />
+          </>
+        )}
+      </div>
     </div>
-  </div>
   )
 }

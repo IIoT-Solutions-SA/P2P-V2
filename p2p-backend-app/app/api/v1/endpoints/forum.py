@@ -410,6 +410,7 @@ async def get_forum_post(
                 "authorProfilePicture": reply_author_profile_picture,
                 "authorTitle": "Community Member",
                 "content": reply.content,
+                "attachments": reply.attachments or [],
                 "timeAgo": reply_time_ago,
                 "likes": reply.upvotes,
                 "isVerified": True,

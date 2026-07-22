@@ -235,7 +235,12 @@
         "solution": "Hardened industrial Wi-Fi, local edge cache, and automatic retry logic.",
         "outcome": "99.8% tool data capture rate; all critical fasteners tracked."
       }
-    ]
+    ],
+    "problem": "Inconsistent assembly quality due to manual instructions and human error. Long operator training/onboarding time for complex builds. Limited traceability of who did what step, with which part/tool, and when.",
+    "technology": "Touchscreen workstation: Industrial PC with barcode/RFID readers and pick-to-light modules\nSmart torque tools: Programmatic torque/angle verification\nEdge gateway: Rule engine with MES integration and electronic traveler\nDigital Work Instruction software: Media-rich instructions with images/video/3D and e-signoff",
+    "budget": "SAR 320,000",
+    "outcomes": "Standardized build quality across shifts\nFaster onboarding for new operators\nImproved confidence during engineering changes\nFirst-Pass Yield (FPY): 6-pt improvement (from 93% to 99%).\nDefects per Unit (DPU): 73% reduction (from 0.45 to 0.12).\nAverage Assembly Cycle Time: 19% faster (from 18 min to 14.5 min).\nEstimated annual savings: SAR 320,000.",
+    "challenges": "Instruction Version Control. Operators sometimes followed outdated paper SOPs during early transition. Response: Enforced 'single source of truth' with digital release workflow and QR access per station. Outcome: 100% adherence to latest instructions; paper eliminated.\n\nTool Communication Reliability. Intermittent connectivity between smart torque tools and the workstation. Response: Hardened industrial Wi-Fi, local edge cache, and automatic retry logic. Outcome: 99.8% tool data capture rate; all critical fasteners tracked."
   },
   {
     "title": "Demanufacturing Workstation",
@@ -477,7 +482,12 @@
         "solution": "Standardized A/B/C rubric with photos, auto-linked to test results.",
         "outcome": "98% grading consistency across operators."
       }
-    ]
+    ],
+    "problem": "Unstructured teardown causing damaged recoverable parts. Limited traceability of what failed, why, and which lots were affected. High spare-parts procurement spend due to low reuse rate. Long mean time to diagnose (MTTD) and repair due to manual checks.",
+    "technology": "ESD-safe benches: Grounded mats, wrist straps, and ionizers\nSmart torque drivers: Data capture for fastener removal/installation\nVision camera: Part presence/ID and cosmetic checks\nModular test rigs: Power, communication, sensor, motor/ESC testing with automated pass/fail",
+    "budget": "SAR 420,000",
+    "outcomes": "Higher confidence in repair decisions\nBetter supplier feedback via defect evidence\nImproved sustainability through reuse\nParts Recovery Yield: 35-pt increase (from 45% to 80%).\nMean Time to Diagnose (MTTD): 62% faster (from 120 min to 45 min).\nSpare-Parts Procurement Cost: 35% year-over-year reduction (from 100% to 65%).\nScrap Weight: 40% reduction for teardown population (from 100% to 60%).\nEstimated annual savings: SAR 420,000.",
+    "challenges": "Damage During Teardown. Early teardowns occasionally damaged connectors and flex cables. Response: Added tool-specific steps, torque/sequence guidance, and connector fixtures. Outcome: Secondary damage incidents reduced by 85%.\n\nInconsistent Grading Criteria. Different shifts graded parts differently. Response: Standardized A/B/C rubric with photos, auto-linked to test results. Outcome: 98% grading consistency across operators."
   },
   {
     "title": "Robotic Inspection Station for Drone Arm Dimensional Accuracy",
@@ -751,6 +761,11 @@
         "solution": "Installed dedicated lighting systems and implemented adaptive algorithms that adjust to environmental changes",
         "outcome": "Consistent performance across all operating conditions with minimal false positives"
       }
-    ]
+    ],
+    "problem": "Manual transfer of parts between manufacturing and QC created delays, bottlenecks, and risk of damage. Manual dimensional checks using calipers were too slow and inconsistent. No automated way to sort passed and failed parts, leading to potential mix-ups. Inability to provide customers with quantitative quality assurance reports.",
+    "technology": "6-axis collaborative robotic arm: Handles all part picking and placing tasks\n3D laser scanner: High-resolution surface geometry and concavity data capture\nConveyor tracking system: Optical sensors to signal part arrival\nAMR dispatch integration: Node-RED based robot calling and confirmation\nDual safety laser scanners: 270-degree coverage for fenceless collaborative workspace",
+    "budget": "SAR 250,000",
+    "outcomes": "Guaranteed 100% geometric compliance for every drone arm\nEnabled creation of detailed Quality Certificates for each batch\nVastly improved ability to trace defects back to specific 3D printers\nDimensional Defect Escape Rate: 97.5% reduction (from 8% to 0.2%).\nInspection Throughput: 1100% increase (from 10 parts/hour to 120 parts/hour).\nAssembly Failure Rate (due to part fit): 100% elimination (from 4% to 0%).\nEstimated annual savings: SAR 350,000.",
+    "challenges": "Model Accuracy Requirements. Achieving the required detection accuracy while maintaining real-time processing speeds for production line integration. Response: Implemented extensive model training with augmented datasets and optimized inference pipeline using edge computing. Outcome: Achieved 99%+ accuracy with sub-second processing time, meeting all production requirements.\n\nVariable Environmental Conditions. Factory lighting variations and environmental factors affected vision system performance throughout different shifts. Response: Installed dedicated lighting systems and implemented adaptive algorithms that adjust to environmental changes. Outcome: Consistent performance across all operating conditions with minimal false positives."
   }
 ]

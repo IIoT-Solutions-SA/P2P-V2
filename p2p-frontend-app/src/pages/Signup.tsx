@@ -1,567 +1,264 @@
-import React, { useState } from 'react'
+import { type FormEvent, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, Building2, Eye, EyeOff, Loader2, LockKeyhole, Mail, MapPin, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Factory,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Loader2,
-  AlertCircle,
-  ArrowRight,
-  Building2,
-  User,
-  Users
-} from "lucide-react"
-import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
-import type { SignupData } from '@/types/auth'
-import { ProfilePictureEditor } from '@/components/ui/ProfilePictureEditor'
+import { useAuth } from "@/contexts/AuthContext"
+import type { SignupData } from "@/types/auth"
+import { AuthAlert, AuthCard, AuthHeading, AuthScaffold, FieldError, PasswordRequirements } from "@/components/auth/AuthScaffold"
+import { ProfilePictureEditor } from "@/components/ui/ProfilePictureEditor"
+
+const industries = [
+  "Electronics Manufacturing",
+  "Automotive Manufacturing",
+  "Plastics Manufacturing",
+  "Textile Manufacturing",
+  "Food & Beverage",
+  "Pharmaceutical",
+  "Chemical Processing",
+  "Metal Processing",
+  "Aerospace",
+  "Other",
+]
+
+const organizationSizes = [
+  { value: "startup", label: "Startup (1-10 employees)" },
+  { value: "small", label: "Small (11-50 employees)" },
+  { value: "medium", label: "Medium (51-200 employees)" },
+  { value: "large", label: "Large (201-1000 employees)" },
+  { value: "enterprise", label: "Enterprise (1000+ employees)" },
+]
+
+const saudiCities = ["Riyadh", "Jeddah", "Dammam", "Mecca", "Medina", "Khobar", "Tabuk", "Buraidah", "Khamis Mushait", "Hail", "Jubail", "Abha", "Yanbu", "Other"]
+const blockedDomains = new Set(["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "protonmail.com", "icloud.com", "live.com", "msn.com"])
+
+const getEmailError = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return ""
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return "Please enter a valid work email address."
+  const domain = trimmed.split("@")[1]?.toLowerCase()
+  if (blockedDomains.has(domain)) return "Please use your company email address."
+  return ""
+}
 
 export default function Signup() {
   const navigate = useNavigate()
   const { signup } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [emailError, setEmailError] = useState('')
+  const [error, setError] = useState("")
+  const [emailError, setEmailError] = useState("")
   const [profilePicture, setProfilePicture] = useState<File | null>(null)
-
+  const [acceptedTerms, setAcceptedTerms] = useState(true)
   const [formData, setFormData] = useState<SignupData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    title: '',
-    organizationName: '',
-    industry: '',
-    organizationSize: '',
-    country: 'Saudi Arabia',
-    city: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    title: "",
+    organizationName: "",
+    industry: "",
+    organizationSize: "",
+    country: "Saudi Arabia",
+    city: "",
   })
 
-  const industries = [
-    'Electronics Manufacturing',
-    'Automotive Manufacturing',
-    'Plastics Manufacturing',
-    'Textile Manufacturing',
-    'Food & Beverage',
-    'Pharmaceutical',
-    'Chemical Processing',
-    'Metal Processing',
-    'Aerospace',
-    'Other'
-  ]
-
-  const organizationSizes = [
-    { value: 'startup', label: 'Startup (1-10 employees)' },
-    { value: 'small', label: 'Small (11-50 employees)' },
-    { value: 'medium', label: 'Medium (51-200 employees)' },
-    { value: 'large', label: 'Large (201-1000 employees)' },
-    { value: 'enterprise', label: 'Enterprise (1000+ employees)' }
-  ]
-
-  const saudiCities = [
-    'Riyadh', 'Jeddah', 'Dammam', 'Mecca', 'Medina', 'Khobar', 'Tabuk',
-    'Buraidah', 'Khamis Mushait', 'Hail', 'Jubail', 'Abha', 'Yanbu', 'Other'
-  ]
-
   const handleInputChange = (field: keyof SignupData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (field === 'email' && emailError) {
-      setEmailError('')
-    }
-    if (field === 'email') {
-      setEmailError(getEmailError(value))
-    }
+    setFormData((previous) => ({ ...previous, [field]: value }))
+    if (field === "email") setEmailError(getEmailError(value))
   }
 
-  const isValidEmail = (value: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+  const validateStep = () => {
+    if (currentStep === 1) {
+      const emailIssue = getEmailError(formData.email)
+      setEmailError(emailIssue)
+      if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.title.trim()) return "Complete your name, job title, and work email."
+      if (emailIssue) return ""
+      return ""
+    }
+    if (currentStep === 2) {
+      if (!formData.organizationName.trim() || !formData.industry || !formData.organizationSize || !formData.city) return "Complete the organization details."
+      return ""
+    }
+    if (formData.password.length < 8 || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) return "Password must be at least 8 characters with a lowercase letter and a number."
+    if (formData.password !== confirmPassword) return "Passwords do not match."
+    if (!acceptedTerms) return "Accept the terms and privacy policy to continue."
+    return ""
   }
 
-  const isBlockedDomain = (value: string) => {
-    const blockedDomains = [
-      'gmail.com',
-      'yahoo.com',
-      'hotmail.com',
-      'outlook.com',
-      'protonmail.com',
-      'icloud.com',
-      'live.com',
-      'msn.com'
-    ]
-    const domain = value.split('@')[1]?.toLowerCase() || ''
-    return blockedDomains.includes(domain)
+  const handleNext = () => {
+    const issue = validateStep()
+    if (issue) {
+      setError(issue)
+      return
+    }
+    setError("")
+    setCurrentStep((step) => Math.min(3, step + 1))
   }
 
-  const getEmailError = (value: string) => {
-    const trimmed = value.trim()
-    if (!trimmed) {
-      return ''
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    const issue = validateStep()
+    if (issue) {
+      setError(issue)
+      return
     }
-    if (!isValidEmail(trimmed)) {
-      return 'Please enter a valid email address'
-    }
-    if (isBlockedDomain(trimmed)) {
-      return 'Please use your company email address'
-    }
-    return ''
-  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    setError("")
     setIsLoading(true)
 
     try {
-      const signupResponse = await signup(formData)
+      const signupResponse = await signup({ ...formData, email: formData.email.trim().toLowerCase() })
 
-      // Admin signup — OTP verification required
-      if (signupResponse && typeof signupResponse === 'object' && signupResponse.requiresOTPVerification) {
-        // Store profile picture in localStorage for upload after login
-        if (profilePicture) {
-          const reader = new FileReader()
-          reader.onload = () => {
-            localStorage.setItem('pendingProfilePicture', reader.result as string)
-            localStorage.setItem('pendingProfilePictureType', profilePicture.type)
-          }
-          reader.readAsDataURL(profilePicture)
+      if (profilePicture) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          localStorage.setItem("pendingProfilePicture", reader.result as string)
+          localStorage.setItem("pendingProfilePictureType", profilePicture.type)
         }
-        // Redirect to OTP verification page
-        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(formData.email)}`)
-      } else {
-        // This path should not be reached for admin; member signup goes to dashboard via AuthContext
-        navigate('/dashboard')
+        reader.readAsDataURL(profilePicture)
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Signup failed')
+
+      if (signupResponse && typeof signupResponse === "object" && signupResponse.requiresOTPVerification) {
+        navigate(`/verify-otp?purpose=signup_verify&email=${encodeURIComponent(signupResponse.email || formData.email)}`)
+      } else {
+        navigate("/dashboard")
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Signup failed")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const nextStep = () => {
-    // Validation for each step
-    if (currentStep === 1) {
-      setEmailError('')
-      if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.password.trim()) {
-        setError('Please fill in all required fields')
-        return
-      }
-      if (!isValidEmail(formData.email.trim())) {
-        setEmailError('Please enter a valid email address')
-        setError('')
-        return
-      }
-      if (isBlockedDomain(formData.email.trim())) {
-        setEmailError('Please use your company email address')
-        setError('')
-        return
-      }
-      if (formData.password.length < 8 || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-        setError('Password must be at least 8 characters with at least one lowercase letter and one number')
-        return
-      }
-    } else if (currentStep === 2) {
-      if (!formData.organizationName.trim() || !formData.industry.trim() || !formData.organizationSize.trim() || !formData.city.trim()) {
-        setError('Please fill in all required fields')
-        return
-      }
-    }
-
-    setError('')
-    if (currentStep < 3) setCurrentStep(currentStep + 1)
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
-  }
-
-  const steps = [
-    { number: 1, title: "Personal Info", icon: User },
-    { number: 2, title: "Organization", icon: Building2 },
-    { number: 3, title: "Complete Setup", icon: Factory }
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="flex items-center justify-center min-h-screen p-6">
-        <div className="w-full max-w-2xl mx-auto">
+    <AuthScaffold
+      eyebrow="Get started"
+      steps={[
+        { label: "Work email", detail: "Use your company domain" },
+        { label: "Organization", detail: "Create or match workspace" },
+        { label: "Verify", detail: "Confirm email and security" },
+      ]}
+      activeStep={currentStep}
+      wide
+      contextTitle="What happens next"
+      contextItems={[
+        { icon: Mail, title: "Verify your work email", body: "A one-time code confirms your account and activates the existing SuperTokens verification path.", tone: "teal" },
+        { icon: Building2, title: "Create or match organization", body: "Your company domain helps locate or create the correct organization workspace.", tone: "amber" },
+        { icon: User, title: "Invite teammates after signup", body: "Organization administrators can add members once the workspace is active.", tone: "blue" },
+      ]}
+    >
+      <AuthCard>
+        <AuthHeading title="Create organization account" subtitle="Set up a verified workspace for your manufacturing team." />
+        {error ? <AuthAlert tone="error">{error}</AuthAlert> : null}
 
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center space-x-8 mb-12">
-            {steps.map((step, index) => {
-              const IconComponent = step.icon
-              const isActive = currentStep === step.number
-              const isCompleted = currentStep > step.number
-
-              return (
-                <div key={step.number} className="flex items-center">
-                  <div className={`flex items-center space-x-3 ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isActive
-                        ? 'border-blue-600 bg-blue-50'
-                        : isCompleted
-                          ? 'border-green-600 bg-green-50'
-                          : 'border-slate-300 bg-white'
-                      }`}>
-                      <IconComponent className="h-5 w-5" />
-                    </div>
-                    <div className="hidden sm:block">
-                      <div className="font-medium">{step.title}</div>
-                    </div>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`hidden sm:block w-16 h-0.5 mx-4 ${currentStep > step.number ? 'bg-green-600' : 'bg-slate-300'
-                      }`} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-lg">
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <span className="text-red-700">{error}</span>
+        <form onSubmit={handleSubmit} className="grid gap-5">
+          {currentStep === 1 ? (
+            <div className="grid gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField icon={User} label="First name" value={formData.firstName} onChange={(value) => handleInputChange("firstName", value)} placeholder="Ahmed" />
+                <TextField icon={User} label="Last name" value={formData.lastName} onChange={(value) => handleInputChange("lastName", value)} placeholder="Al-Faisal" />
               </div>
+              <TextField icon={Mail} label="Work email" value={formData.email} onChange={(value) => handleInputChange("email", value)} placeholder="name@company.com" type="email" hint="Use your company domain" error={emailError} />
+              <TextField icon={BriefcaseBusiness} label="Job title" value={formData.title} onChange={(value) => handleInputChange("title", value)} placeholder="Operations Manager" />
+            </div>
+          ) : null}
+
+          {currentStep === 2 ? (
+            <div className="grid gap-4">
+              <TextField icon={Building2} label="Organization name" value={formData.organizationName} onChange={(value) => handleInputChange("organizationName", value)} placeholder="Enter your organization name" hint="We match existing organizations using your verified email domain where possible." />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField label="Industry" value={formData.industry} onChange={(value) => handleInputChange("industry", value)} options={industries.map((industry) => ({ value: industry, label: industry }))} />
+                <SelectField label="Organization size" value={formData.organizationSize} onChange={(value) => handleInputChange("organizationSize", value)} options={organizationSizes} />
+              </div>
+              <SelectField label="City" value={formData.city} onChange={(value) => handleInputChange("city", value)} options={saudiCities.map((city) => ({ value: city, label: city }))} />
+            </div>
+          ) : null}
+
+          {currentStep === 3 ? (
+            <div className="grid gap-4">
+              <div className="rounded-[5px] border border-[var(--peer-line)] bg-white/50 p-4">
+                <p className="mb-3 text-xs font-bold text-[var(--peer-ink)]">Optional profile photo</p>
+                <ProfilePictureEditor onImageUpload={async (file) => setProfilePicture(file)} size="md" />
+              </div>
+              <PasswordField label="Password" value={formData.password} onChange={(value) => handleInputChange("password", value)} show={showPassword} onToggle={() => setShowPassword((value) => !value)} />
+              <PasswordRequirements password={formData.password} />
+              <PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} show={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} />
+              <label className="flex items-start gap-2 text-xs text-[var(--peer-muted)]">
+                <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 size-4 accent-[var(--peer-blue)]" />
+                <span>I agree to the terms and privacy policy.</span>
+              </label>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+            <Button type="button" variant="outline" onClick={() => currentStep === 1 ? navigate("/login") : setCurrentStep((step) => step - 1)} className="rounded-[5px]">
+              <ArrowLeft className="size-4" />{currentStep === 1 ? "Sign in instead" : "Back"}
+            </Button>
+            {currentStep < 3 ? (
+              <Button type="button" onClick={handleNext} className="rounded-[5px] bg-[var(--peer-blue)] text-white hover:bg-[#0f5ccc]">
+                Continue<ArrowRight className="size-4" />
+              </Button>
+            ) : (
+              <Button type="submit" disabled={isLoading} className="rounded-[5px] bg-[var(--peer-blue)] text-white hover:bg-[#0f5ccc]">
+                {isLoading ? <><Loader2 className="size-4 animate-spin" />Creating account...</> : <>Create account<ArrowRight className="size-4" /></>}
+              </Button>
             )}
-
-            <form onSubmit={handleSubmit}>
-
-              {/* Step 1: Personal Information */}
-              {currentStep === 1 && (
-                <div className="space-y-6">
-                  <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Create Your Account</h1>
-                    <p className="text-slate-600">Let's start with your personal information</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        First Name
-                      </label>
-                      <Input
-                        type="text"
-                        placeholder="Ahmed"
-                        value={formData.firstName}
-                        onChange={(e) => handleInputChange('firstName', e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Last Name
-                      </label>
-                      <Input
-                        type="text"
-                        placeholder="Al-Faisal"
-                        value={formData.lastName}
-                        onChange={(e) => handleInputChange('lastName', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                      <Input
-                        type="email"
-                        placeholder="your.email@company.com"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                    {emailError && (
-                      <p className="text-sm text-red-600 mt-2">{emailError}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a strong password"
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="pl-10 pr-10"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Job Title
-                    </label>
-                    <div className="relative">
-                      <Users className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                      <Input
-                        type="text"
-                        placeholder="e.g., Operations Lead"
-                        value={formData.title}
-                        onChange={(e) => handleInputChange('title', e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-center py-6">
-                    <label className="block text-sm font-medium text-slate-700 mb-4">
-                      Profile Picture (Optional)
-                    </label>
-                    <ProfilePictureEditor
-                      onImageUpload={async (file: File) => {
-                        setProfilePicture(file)
-                      }}
-                      size="lg"
-                      disabled={isLoading}
-                    />
-                    <p className="text-xs text-slate-500 mt-2">
-                      You can add or change this later in your profile settings
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Organization Information */}
-              {currentStep === 2 && (
-                <div className="space-y-6">
-                  <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Organization Details</h1>
-                    <p className="text-slate-600">Tell us about your manufacturing organization</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Organization Name
-                    </label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                      <Input
-                        type="text"
-                        placeholder="Advanced Electronics Co."
-                        value={formData.organizationName}
-                        onChange={(e) => handleInputChange('organizationName', e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Industry
-                    </label>
-                    <Select
-                      value={formData.industry}
-                      onValueChange={(value) => handleInputChange('industry', value)}
-                    >
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select your industry" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" className="z-50 bg-white border border-slate-200 shadow-xl rounded-md max-h-64 overflow-y-auto">
-                        {industries.map((industry) => (
-                          <SelectItem key={industry} value={industry} className="cursor-pointer">
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Organization Size
-                    </label>
-                    <Select
-                      value={formData.organizationSize}
-                      onValueChange={(value) => handleInputChange('organizationSize', value)}
-                    >
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select organization size" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" className="z-50 bg-white border border-slate-200 shadow-xl rounded-md max-h-64 overflow-y-auto">
-                        {organizationSizes.map((size) => (
-                          <SelectItem key={size.value} value={size.value} className="cursor-pointer">
-                            {size.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Country
-                      </label>
-                      <Input
-                        type="text"
-                        value={formData.country}
-                        onChange={(e) => handleInputChange('country', e.target.value)}
-                        disabled
-                        className="bg-slate-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        City
-                      </label>
-                      <Select
-                        value={formData.city}
-                        onValueChange={(value) => handleInputChange('city', value)}
-                      >
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Select city" />
-                        </SelectTrigger>
-                        <SelectContent position="popper" className="z-50 bg-white border border-slate-200 shadow-xl rounded-md max-h-64 overflow-y-auto">
-                          {saudiCities.map((city) => (
-                            <SelectItem key={city} value={city} className="cursor-pointer">
-                              {city}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Complete Setup */}
-              {currentStep === 3 && (
-                <div className="space-y-6">
-                  <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Ready to Launch</h1>
-                    <p className="text-slate-600">Review your information and create your organization</p>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="font-semibold text-slate-900 mb-2">Administrator</h3>
-                        <p className="text-slate-600">{formData.firstName} {formData.lastName}</p>
-                        <p className="text-slate-500 text-sm">{formData.email}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-900 mb-2">Organization</h3>
-                        <p className="text-slate-600">{formData.organizationName}</p>
-                        <p className="text-slate-500 text-sm">{formData.industry}</p>
-                      </div>
-                    </div>
-
-                    <div className="p-6 bg-blue-50 rounded-lg">
-                      <h3 className="font-semibold text-blue-900 mb-3">What happens next?</h3>
-                      <ul className="text-sm text-blue-700 space-y-2">
-                        <li className="flex items-center space-x-2">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span>A 6-digit code will be sent to your email</span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span>Enter the code to verify your account</span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span>You can invite team members to join your organization</span>
-                        </li>
-                        <li className="flex items-center space-x-2">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span>Access the full P2P Sandbox platform</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation Buttons */}
-              <div className="flex justify-between items-center pt-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                >
-                  Previous
-                </Button>
-
-                <div className="flex space-x-4">
-                  {currentStep < 3 ? (
-                    <Button
-                      type="button"
-                      onClick={nextStep}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Next
-                    </Button>
-                  ) : (
-                    <Button
-                      type="submit"
-                      disabled={isLoading}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating Organization...
-                        </>
-                      ) : (
-                        <>
-                          Create Organization
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </form>
           </div>
+        </form>
 
-          {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-slate-600">
-              Already have an account?{' '}
-              <button
-                onClick={() => navigate('/login')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Sign in
-              </button>
-            </p>
-          </div>
-        </div>
+        <p className="mt-6 text-center text-sm text-[var(--peer-muted)]">
+          Already have an account? <Link className="font-bold text-[var(--peer-blue)]" to="/login">Sign in</Link>
+        </p>
+      </AuthCard>
+    </AuthScaffold>
+  )
+}
+
+function TextField({ icon: Icon, label, value, onChange, placeholder, type = "text", hint, error }: { icon: typeof User; label: string; value: string; onChange: (value: string) => void; placeholder: string; type?: string; hint?: string; error?: string }) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <label className="text-xs font-bold text-[#07161d]">{label}</label>
+        {hint ? <span className="text-right text-[10px] text-[var(--peer-muted)]">{hint}</span> : null}
+      </div>
+      <div className="relative">
+        <Icon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[var(--peer-muted)]" />
+        <Input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className={`h-12 rounded-[5px] bg-white/70 pl-11 ${error ? "border-[var(--peer-danger)]" : ""}`} required />
+      </div>
+      <FieldError message={error} />
+    </div>
+  )
+}
+
+function PasswordField({ label, value, onChange, show, onToggle }: { label: string; value: string; onChange: (value: string) => void; show: boolean; onToggle: () => void }) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-bold text-[#07161d]">{label}</label>
+      <div className="relative">
+        <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[var(--peer-muted)]" />
+        <Input type={show ? "text" : "password"} value={value} onChange={(event) => onChange(event.target.value)} placeholder={label} className="h-12 rounded-[5px] bg-white/70 pl-11 pr-11" required />
+        <button type="button" onClick={onToggle} aria-label={show ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center text-[var(--peer-muted)]">
+          {show ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }> }) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-bold text-[#07161d]">{label}</label>
+      <div className="relative">
+        <MapPin className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[var(--peer-muted)]" />
+        <select value={value} onChange={(event) => onChange(event.target.value)} className="h-12 w-full rounded-[5px] border border-[var(--peer-line)] bg-white/70 pl-11 pr-3 text-sm text-[var(--peer-ink)]" required>
+          <option value="">Select {label.toLowerCase()}</option>
+          {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
       </div>
     </div>
   )

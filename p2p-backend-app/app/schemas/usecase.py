@@ -144,6 +144,13 @@ class UseCaseCreate(BaseModel):
     category: str
     factoryName: Annotated[str, Field(min_length=2, max_length=80)]
 
+    # Canonical simplified contributor answers
+    problem: Optional[Annotated[str, Field(min_length=20, max_length=5000)]] = None
+    technology: Optional[Annotated[str, Field(min_length=20, max_length=5000)]] = None
+    budget: Optional[Annotated[str, Field(max_length=120)]] = None
+    outcomes: Optional[Annotated[str, Field(min_length=20, max_length=5000)]] = None
+    challenges: Optional[Annotated[str, Field(max_length=2000)]] = None
+
     # Location
     city: Annotated[str, Field(min_length=2, max_length=50)]
     latitude: Annotated[float, Field(ge=-90, le=90)]
@@ -165,7 +172,7 @@ class UseCaseCreate(BaseModel):
     methodology: Annotated[str, Field(min_length=20, max_length=5000)]
 
     # Results
-    quantitativeResults: Annotated[List[QuantitativeResult], Field(min_length=2, max_length=4)]
+    quantitativeResults: Annotated[List[QuantitativeResult], Field(max_length=4)] = Field(default_factory=list)
     roiPercentage: Optional[Annotated[str, Field(max_length=100)]] = None
     annualSavings: Optional[Annotated[str, Field(max_length=100)]] = None
 
@@ -240,6 +247,16 @@ class UseCaseCreate(BaseModel):
             for item in v:
                 check_safe_tag(item)
         return v
+
+    @field_validator('problem', 'technology', 'outcomes', 'challenges')
+    @classmethod
+    def validate_simplified_answers(cls, v):
+        return check_safe_text(v, allow_urls=True) if v is not None else v
+
+    @field_validator('budget')
+    @classmethod
+    def validate_simplified_budget(cls, v):
+        return check_safe_text(v) if v is not None else v
 
 
 # ===== DRAFT SCHEMAS =====

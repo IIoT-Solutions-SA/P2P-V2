@@ -1,7 +1,7 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { Loader2 } from 'lucide-react'
+import { LoadingState } from '@/components/shared/AppState'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -14,11 +14,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-slate-600">Loading...</p>
-        </div>
+      <div className="peer-workspace flex min-h-screen items-center justify-center p-4">
+        <LoadingState title="Checking your session" description="PeerLink is confirming your authenticated workspace access." />
       </div>
     )
   }

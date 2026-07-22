@@ -221,7 +221,12 @@
         "solution": "Created digital shift handover module with mandatory acknowledgment and automated escalation for unresolved issues.",
         "outcome": "Zero critical issues lost between shifts, 70% reduction in repeated problems."
       }
-    ]
+    ],
+    "problem": "Lack of centralized view of CNC machine status. Delays in identifying idle or offline machines. Reduced productivity due to late interventions.",
+    "technology": "IoT-enabled machine status sensors: Real-time status detection\nCentralized monitoring dashboard: Live machine states visualization\nShop floor displays: Real-time visualization integration",
+    "budget": "SAR 300,000",
+    "outcomes": "Improved shop floor awareness\nStronger communication between operators and supervisors\nReduced bottlenecks\nMachine Utilization Visibility: 63% improvement (from 60% (manual checks) to 98% (real-time dashboard)).\nResponse Time to Idle Machines: 67% faster (from 30 min to 10 min).\nProductivity Impact: 20% improvement (from 75% efficiency to 90% efficiency).\nEstimated annual savings: SAR 300,000.",
+    "challenges": "Real-Time Data Latency. Initial system had 30-second delays in data updates, missing critical production events. Response: Implemented edge computing with MQTT protocol for sub-second data transmission and local caching for network resilience. Outcome: Achieved real-time updates with <500ms latency, capturing 100% of production events.\n\nCross-Shift Communication. Important production issues were lost during shift changes, causing repeated problems. Response: Created digital shift handover module with mandatory acknowledgment and automated escalation for unresolved issues. Outcome: Zero critical issues lost between shifts, 70% reduction in repeated problems."
   },
   {
     "title": "Smart Energy Analytics for Sustainable Manufacturing",
@@ -440,7 +445,12 @@
         "solution": "Gamified energy savings with team competitions, real-time scoreboards, and monthly recognition programs.",
         "outcome": "67% increase in operator-initiated energy saving actions, 12% overall energy reduction."
       }
-    ]
+    ],
+    "problem": "No visibility into energy consumption per individual machine. Inability to track real-time energy costs in SAR/hour. Inefficient budgeting due to reliance on monthly utility summaries.",
+    "technology": "IoT-enabled smart energy meters: Per-asset energy monitoring\nCloud analytics platform: Cost calculation in SAR/hour\nDashboards and reporting tools: Real-time energy insights",
+    "budget": "SAR 250,000",
+    "outcomes": "Improved transparency in energy consumption\nEnhanced accountability for machine operators\nStronger alignment with sustainability targets\nEnergy Cost Visibility: Complete visibility achieved (from 0 SAR/hour per machine to 100% asset-level SAR/hour visibility).\nEnergy Overspending Reduction: 33% savings (from SAR 675,000/year to SAR 450,000/year).\nBudget Forecast Accuracy: 75% improvement (from ±20% variance to ±5% variance).\nEstimated annual savings: SAR 250,000.",
+    "challenges": "Granular Energy Attribution. Couldn't determine which specific processes consumed the most energy within shared production lines. Response: Installed sub-meters at process level and developed ML algorithms to disaggregate shared consumption based on production patterns. Outcome: Achieved 95% accuracy in energy attribution, identifying top 3 energy waste sources.\n\nBehavioral Change Resistance. Operators continued energy-wasteful practices despite having data showing inefficiencies. Response: Gamified energy savings with team competitions, real-time scoreboards, and monthly recognition programs. Outcome: 67% increase in operator-initiated energy saving actions, 12% overall energy reduction."
   },
   {
     "title": "Digital Bridge: Modernizing Legacy Manufacturing Systems",
@@ -665,6 +675,11 @@
         "solution": "Developed adaptive control algorithms and buffer systems to handle variable production rates",
         "outcome": "Seamless integration with 95% efficiency improvement and flexible production capacity"
       }
-    ]
+    ],
+    "problem": "Legacy machines produced no real-time data for monitoring. 3D printers lacked integration with the factory's MES and ERP systems. Manual logging from operators was time-consuming and error-prone.",
+    "technology": "Retrofit IoT sensor kits and gateways: Legacy machine connectivity\nMQTT broker: Real-time data streaming\nMiddleware APIs: MES/ERP dashboard integration",
+    "budget": "SAR 487,500",
+    "outcomes": "Improved confidence in older machines\nReduced manual logging\nExtended asset life by digitally enabling legacy equipment\nMachine Connectivity: 54% increase (from 65% (only modern machines connected) to 100% (legacy + 3D printers included)).\nData Availability: Complete transformation (from 0% real-time visibility for legacy systems to 95% continuous streaming).\nDowntime Detection Speed: 87% faster detection (from 2 hrs average to < 15 min).\nEstimated annual savings: SAR 487,500.",
+    "challenges": "Safety Compliance. Ensuring robotic systems meet all safety standards while operating alongside human workers. Response: Implemented comprehensive safety zones, sensors, and emergency stop systems with thorough testing protocols. Outcome: Achieved full safety certification with zero incidents during implementation and operation.\n\nProcess Synchronization. Coordinating automated systems with existing manual processes and varying production speeds. Response: Developed adaptive control algorithms and buffer systems to handle variable production rates. Outcome: Seamless integration with 95% efficiency improvement and flexible production capacity."
   }
 ]

@@ -42,7 +42,9 @@ class UseCaseSubmissionService:
                 if existing_org:
                     organization_id = str(existing_org.id)
                 else:
-                    org_name = domain.split(".")[0].replace("-", " ").title()
+                    # Preserve the exact organization name supplied during signup. Domain-derived
+                    # identifiers are only a legacy fallback and must never replace brand casing.
+                    org_name = (getattr(mongo_user, "company", None) or "").strip() or domain.split(".")[0].replace("-", " ").title()
                     new_org = Organization(name=org_name, domain=domain, country="Saudi Arabia")
                     await new_org.insert()
                     organization_id = str(new_org.id)
@@ -52,16 +54,20 @@ class UseCaseSubmissionService:
             if not organization_id:
                 raise HTTPException(status_code=400, detail="User is not linked to an organization and auto-link failed")
 
-        # Resolve slugs
+        # Keep a lowercase slug for URLs and the exact canonical organization name for display.
+        # Display text must never be reconstructed from the slug because that destroys brand casing
+        # such as IIoT, 3M, e& and iMile.
         title_slug = _slugify(data.title)
-        # Try to read organization name to derive company_slug
         company_slug = None
+        organization_name = None
         try:
             org = await Organization.get(organization_id)
             if org and getattr(org, "name", None):
-                company_slug = _slugify(org.name)
+                organization_name = org.name.strip()
+                company_slug = _slugify(organization_name)
         except Exception:
             company_slug = None
+            organization_name = None
 
         # Map request to UseCase document
         use_case_doc = UseCase(
@@ -125,6 +131,12 @@ class UseCaseSubmissionService:
             contact_title=data.contactTitle,
             title_slug=title_slug,
             company_slug=company_slug,
+            organization_name=organization_name,
+            problem=data.problem or data.industryContext,
+            technology=data.technology or data.methodology,
+            budget=data.budget or data.totalBudget,
+            outcomes=data.outcomes or "\n".join(data.qualitativeImpacts or [r.improvement for r in data.quantitativeResults]),
+            challenges=data.challenges or "\n\n".join(c.description for c in data.challengesSolutions),
             impact_metrics={
                 "benefits": "; ".join(
                     [f"{r.improvement} {r.metric}" for r in data.quantitativeResults if r.improvement and r.metric]

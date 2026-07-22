@@ -74,16 +74,16 @@ async def get_current_user(
     try:
         # Get SuperTokens user ID from session
         supertokens_user_id = session.get_user_id()
-        
+
         # Find user in our database by supertokens_id
         user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
-        
+
         if not user:
             raise HTTPException(
                 status_code=404,
                 detail="User profile not found. Please contact support."
             )
-        
+
         # Resolve organization from Mongo profile if available; fallback to domain inference
         mongo_profile = await MongoUser.find_one(MongoUser.email == user.email)
         organization = None
@@ -104,7 +104,7 @@ async def get_current_user(
                 }
         if organization is None:
             domain = user.email.split('@')[1]
-            company_name = domain.split('.')[0].replace('-', ' ').title()
+            company_name = ((mongo_profile.company if mongo_profile else None) or "").strip() or domain.split('.')[0].replace('-', ' ').title()
             organization = {
                 "id": f"org-{user.id}",
                 "name": company_name,
@@ -117,7 +117,7 @@ async def get_current_user(
                 "createdAt": user.created_at,
                 "adminUserId": str(user.id)
             }
-        
+
         # Format user response
         user_response = {
             "id": str(user.id),
@@ -137,12 +137,12 @@ async def get_current_user(
             "lastLogin": user.updated_at,  # Using updated_at as proxy for last login
             "createdAt": user.created_at
         }
-        
+
         return {
             "user": user_response,
             "organization": organization
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -166,38 +166,38 @@ async def update_profile(
     try:
         # Get SuperTokens user ID from session
         supertokens_user_id = session.get_user_id()
-        
+
         # Find user in our database by supertokens_id
         user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
-        
+
         if not user:
             raise HTTPException(
                 status_code=404,
                 detail="User profile not found."
             )
-        
+
         # Update PostgreSQL user if name fields are provided
         if profile_data.firstName or profile_data.lastName:
             full_name = f"{profile_data.firstName or user.name.split(' ')[0]} {profile_data.lastName or ' '.join(user.name.split(' ')[1:]) if len(user.name.split(' ')) > 1 else ''}".strip()
             user.name = full_name
             await db.commit()
             await db.refresh(user)
-        
+
         # Update MongoDB profile
         mongo_profile = await MongoUser.find_one(MongoUser.email == user.email)
-        
+
         if mongo_profile:
             # Update existing profile
             if profile_data.firstName or profile_data.lastName:
                 mongo_profile.name = f"{profile_data.firstName or mongo_profile.name.split(' ')[0]} {profile_data.lastName or ' '.join(mongo_profile.name.split(' ')[1:]) if len(mongo_profile.name.split(' ')) > 1 else ''}".strip()
-            
+
             if profile_data.title is not None:
                 mongo_profile.title = profile_data.title
             if profile_data.location is not None:
                 mongo_profile.location = profile_data.location
             if profile_data.expertiseTags is not None:
                 mongo_profile.expertise_tags = profile_data.expertiseTags
-            
+
             mongo_profile.updated_at = datetime.utcnow()
             await mongo_profile.save()
         else:
@@ -212,10 +212,10 @@ async def update_profile(
                 verified=user.is_verified
             )
             await mongo_profile.insert()
-        
+
         # Return updated profile using the same format as get_current_user
         return await get_current_user(session, db)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -347,29 +347,29 @@ async def update_password(
         # Get current user
         supertokens_user_id = session.get_user_id()
         user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Verify current password
         sign_in_result = await sign_in("public", user.email, password_data.currentPassword)
         if not isinstance(sign_in_result, SignInOkResult):
             raise HTTPException(status_code=401, detail="Current password is incorrect")
-        
+
         # Get the recipe_user_id from the sign in result for the update
         recipe_user_id = sign_in_result.user.id
-        
+
         # Update password in SuperTokens
         update_result = await update_email_or_password(
             recipe_user_id=RecipeUserId(recipe_user_id),
             password=password_data.newPassword
         )
-        
+
         if not isinstance(update_result, UpdateEmailOrPasswordOkResult):
             raise HTTPException(status_code=400, detail="Failed to update password")
-        
+
         return {"status": "OK", "message": "Password updated successfully"}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -379,6 +379,65 @@ async def update_password(
             status_code=500,
             detail="An error occurred while updating your password. Please try again."
         )
+
+@router.get("/users/directory")
+async def get_people_directory(
+    session: SessionContainer = Depends(verify_session()),
+    db: AsyncSession = Depends(get_db)
+):
+    """Return the authenticated PeerLink-wide collaborator directory.
+
+    Unlike ``/users/organization``, this endpoint is intentionally not scoped to
+    the current organization. It exposes only profile fields already intended
+    for the shared People workspace and leaves organization administration to
+    the dedicated organization route.
+    """
+    try:
+        supertokens_user_id = session.get_user_id()
+        current_user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        current_profile = await MongoUser.find_one(MongoUser.email == current_user.email)
+        current_organization_id = current_profile.organization_id if current_profile else None
+        directory_profiles = await MongoUser.find_all().to_list()
+        users_list = []
+        for profile in directory_profiles:
+            pg_user = await UserService.get_user_by_email_pg(db, profile.email)
+            if pg_user and not pg_user.is_active:
+                continue
+
+            profile_name = profile.name or ""
+            name_parts = profile_name.split()
+            users_list.append({
+                "id": str(pg_user.id) if pg_user else str(profile.id),
+                "email": profile.email,
+                "firstName": name_parts[0] if name_parts else "",
+                "lastName": " ".join(name_parts[1:]) if len(name_parts) > 1 else "",
+                "name": profile_name,
+                "role": profile.role,
+                "title": profile.title or "Manufacturing professional",
+                "company": profile.company or "",
+                "location": profile.location or "",
+                "industrySector": profile.industry_sector or "",
+                "expertiseTags": profile.expertise_tags or [],
+                "isActive": pg_user.is_active if pg_user else True,
+                "createdAt": pg_user.created_at if pg_user else profile.created_at,
+                "profilePictureUrl": profile.profile_picture_url,
+                "isCurrentOrganization": bool(
+                    profile.organization_id
+                    and current_organization_id == profile.organization_id
+                ),
+            })
+
+        return {"users": users_list, "total": len(users_list)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error fetching people directory: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="The People directory could not be loaded. Please try again.")
+
 
 @router.get("/users/organization")
 async def get_organization_members(
@@ -393,13 +452,13 @@ async def get_organization_members(
         # Get current user
         supertokens_user_id = session.get_user_id()
         user = await UserService.get_user_by_supertokens_id(db, supertokens_user_id)
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Get current user's MongoDB profile to find organization
         mongo_profile = await MongoUser.find_one(MongoUser.email == user.email)
-        
+
         if not mongo_profile or not mongo_profile.organization_id:
             # If no organization, return just the current user
             return {
@@ -419,16 +478,16 @@ async def get_organization_members(
                     "createdAt": user.created_at
                 }]
             }
-        
+
         # Find all MongoDB users in the same organization
         org_members = await MongoUser.find(MongoUser.organization_id == mongo_profile.organization_id).to_list()
-        
+
         # Build the response with all organization members
         users_list = []
         for member in org_members:
             # Try to find the corresponding PostgreSQL user
             pg_user = await UserService.get_user_by_email_pg(db, member.email)
-            
+
             users_list.append({
                 "id": str(pg_user.id) if pg_user else str(member.id),
                 "email": member.email,
@@ -444,9 +503,9 @@ async def get_organization_members(
                 "isActive": pg_user.is_active if pg_user else True,
                 "createdAt": pg_user.created_at if pg_user else member.created_at
             })
-        
+
         return {"users": users_list}
-        
+
     except HTTPException:
         raise
     except Exception as e:

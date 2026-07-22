@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Session from "supertokens-auth-react/recipe/session";
 import type { User, AuthState, LoginCredentials, SignupData } from '@/types/auth';
-import { buildApiUrl } from '@/config/environment';
+import { ApiError } from '@/lib/api/client';
+import { authApi } from '@/lib/api/auth';
+import type { MfaRequiredResponse, OtpErrorResponse, SigninResponse } from '@/lib/api/types';
 
 export interface MfaChallenge {
   mfaRequired: true;
@@ -19,6 +21,15 @@ interface AuthContextType extends AuthState {
   verifyLoginOtp: (email: string, challengeId: string, code: string) => Promise<void>;
   resendOtp: (email: string, purpose: 'signup_verify' | 'login_mfa') => Promise<{ retryAfterSeconds?: number }>;
 }
+
+interface OtpVerificationException extends Error {
+  status?: string;
+  attemptsRemaining?: number;
+}
+
+const isMfaRequiredResponse = (result: SigninResponse): result is MfaRequiredResponse => {
+  return result.status === 'MFA_REQUIRED';
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -48,15 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfileAndSetState = async () => {
     try {
-      const response = await fetch(buildApiUrl('/api/v1/auth/me'), {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const { user, organization } = await response.json();
-        setAuthState({ user, organization, isAuthenticated: true, isLoading: false });
-      } else {
-        throw new Error('Failed to fetch user profile.');
-      }
+      const { user, organization } = await authApi.me();
+      setAuthState({ user, organization, isAuthenticated: true, isLoading: false });
     } catch (error) {
       console.error("Profile fetch failed:", error);
       await Session.signOut();
@@ -71,14 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Returns void (and sets auth state) if the device is trusted.
    */
   const login = async (credentials: LoginCredentials): Promise<MfaChallenge | void> => {
-    const response = await fetch(buildApiUrl('/api/v1/auth/custom-signin'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(credentials)
-    });
-
-    const result = await response.json();
+    const result = await authApi.signin(credentials);
 
     if (result.status === 'OK') {
       // Trusted device — session created, fetch profile
@@ -86,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (result.status === 'MFA_REQUIRED') {
+    if (isMfaRequiredResponse(result)) {
       // New device — caller must redirect to OTP page
       return {
         mfaRequired: true,
@@ -103,14 +100,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * On success, fetches profile and sets auth state.
    */
   const verifyLoginOtp = async (email: string, challengeId: string, code: string): Promise<void> => {
-    const response = await fetch(buildApiUrl('/api/v1/auth/verify-login-otp'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, challengeId, code })
-    });
-
-    const result = await response.json();
+    let result: OtpErrorResponse;
+    try {
+      result = await authApi.verifyLoginOtp(email, challengeId, code);
+    } catch (error) {
+      if (error instanceof ApiError && error.payload && typeof error.payload === 'object') {
+        result = error.payload as OtpErrorResponse;
+      } else {
+        throw error;
+      }
+    }
 
     if (result.status === 'OK') {
       await fetchProfileAndSetState();
@@ -118,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Propagate structured errors for the OTP page to display
-    const err: any = new Error(result.message || 'OTP verification failed');
+    const err: OtpVerificationException = new Error(result.message || 'OTP verification failed');
     err.status = result.status;
     err.attemptsRemaining = result.attemptsRemaining;
     throw err;
@@ -128,13 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Request a new OTP code (signup_verify or login_mfa).
    */
   const resendOtp = async (email: string, purpose: 'signup_verify' | 'login_mfa'): Promise<{ retryAfterSeconds?: number }> => {
-    const response = await fetch(buildApiUrl('/api/v1/auth/resend-otp'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, purpose })
-    });
-
-    const result = await response.json();
+    let result: OtpErrorResponse;
+    try {
+      result = await authApi.resendOtp(email, purpose);
+    } catch (error) {
+      if (error instanceof ApiError && error.payload && typeof error.payload === 'object') {
+        result = error.payload as OtpErrorResponse;
+      } else {
+        throw error;
+      }
+    }
 
     if (result.status === 'OK') return {};
     if (result.status === 'RATE_LIMITED') return { retryAfterSeconds: result.retryAfterSeconds };
@@ -148,28 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Member path → session is created server-side; fetches profile then returns void.
    */
   const signup = async (data: SignupData): Promise<{ requiresOTPVerification?: boolean; requiresEmailVerification?: boolean; email?: string } | void> => {
-    const payload = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      password: data.password,
-      title: data.title,
-      companyName: data.organizationName,
-      industrySector: data.industry,
-      companySize: data.organizationSize,
-      city: data.city,
-      ...(data.inviteToken && { inviteToken: data.inviteToken }),
-      ...(data.isInvited && { isInvited: data.isInvited })
-    };
-
-    const signupResponse = await fetch(buildApiUrl('/api/v1/auth/custom-signup'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(payload)
-    });
-
-    const signupResult = await signupResponse.json();
+    const signupResult = await authApi.signup(data);
 
     if (signupResult.status === 'OK') {
       if (signupResult.requiresOTPVerification) {
@@ -190,10 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch(buildApiUrl('/api/v1/auth/custom-signout'), { 
-        method: 'POST', 
-        credentials: 'include' 
-      });
+      await authApi.signout();
     } catch (e) {
       console.error('Failed to clear trusted device cookie', e);
     }

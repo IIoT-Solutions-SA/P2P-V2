@@ -104,6 +104,11 @@ async def seed_amro_usecases():
                     "updated_at": datetime.utcnow()
                 }
 
+                # Persist canonical simplified contributor answers when present.
+                for field in ("problem", "technology", "budget", "outcomes", "challenges"):
+                    if case_json.get(field) is not None:
+                        db_case[field] = case_json.get(field)
+
                 # Add optional fields if present
                 if case_json.get("roiPercentage"):
                     db_case["roi_percentage"] = case_json.get("roiPercentage")

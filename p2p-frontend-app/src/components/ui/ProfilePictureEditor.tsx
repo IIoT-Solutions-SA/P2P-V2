@@ -1,219 +1,104 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Loader } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react"
+import { Camera, ImagePlus, Loader2, X } from "lucide-react"
 
 interface ProfilePictureEditorProps {
-  currentImageUrl?: string;
-  onImageUpload: (file: File) => Promise<void>;
-  size?: 'sm' | 'md' | 'lg';
-  disabled?: boolean;
-  showUploadButton?: boolean;
+  currentImageUrl?: string
+  onImageUpload: (file: File) => Promise<void>
+  size?: "sm" | "md" | "lg"
+  disabled?: boolean
+  showUploadButton?: boolean
 }
 
 export const ProfilePictureEditor: React.FC<ProfilePictureEditorProps> = React.memo(({
   currentImageUrl,
   onImageUpload,
-  size = 'md',
+  size = "md",
   disabled = false,
-  showUploadButton = true
+  showUploadButton = true,
 }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const sizeClasses = {
-    sm: 'w-16 h-16',
-    md: 'w-24 h-24',
-    lg: 'w-32 h-32'
-  };
-
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('handleFileSelect triggered', event.target.files);
-    const file = event.target.files?.[0];
-    if (!file) {
-      console.log('No file selected');
-      return;
-    }
-
-    console.log('File selected:', file.name, file.type, file.size);
-
-    // Validate file
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      console.log('Invalid file type:', file.type);
-      setError('Please select a valid image file (JPEG, PNG, or WebP)');
-      return;
-    }
-
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      setError('Image must be smaller than 5MB');
-      return;
-    }
-
-    setError(null);
-    setIsUploading(true);
-
-    try {
-      // Create preview
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-
-      // Upload file
-      await onImageUpload(file);
-
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError('Failed to upload image. Please try again.');
-
-      // Clean up preview on error
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const sizeClasses = { sm: "size-16", md: "size-24", lg: "size-32" }
+  const displayImageUrl = previewUrl || currentImageUrl
 
   const openFileDialog = () => {
-    console.log('openFileDialog called', { disabled, isUploading, hasRef: !!fileInputRef.current });
-    if (!disabled && !isUploading && fileInputRef.current) {
-      console.log('Triggering file input click');
-      fileInputRef.current.click();
+    if (!disabled && !isUploading) fileInputRef.current?.click()
+  }
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Choose a JPEG, PNG, or WebP image.")
+      return
     }
-  };
+    if (file.size > 5 * 1024 * 1024) {
+      setError("The image must be smaller than 5 MB.")
+      return
+    }
+
+    setError(null)
+    setIsUploading(true)
+    const nextPreview = URL.createObjectURL(file)
+    setPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current)
+      return nextPreview
+    })
+    try {
+      await onImageUpload(file)
+    } catch {
+      URL.revokeObjectURL(nextPreview)
+      setPreviewUrl(null)
+      setError("The image could not be uploaded. Please try again.")
+    } finally {
+      setIsUploading(false)
+      event.target.value = ""
+    }
+  }
 
   const removePreview = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
-    setError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+    setError(null)
+  }
 
-  React.useEffect(() => {
-    console.log('ProfilePictureEditor mounted', { currentImageUrl, disabled });
-    return () => {
-      console.log('ProfilePictureEditor unmounting');
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
-
-  const displayImageUrl = previewUrl || currentImageUrl;
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={disabled || isUploading}
-      />
+    <div className="flex flex-col items-center gap-3">
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileSelect} className="sr-only" disabled={disabled || isUploading} />
 
-      {/* Profile picture display */}
       <div className="relative">
-        <div
-          className={`
-            ${sizeClasses[size]} rounded-full overflow-hidden border-4 border-white shadow-lg
-            ${!displayImageUrl ? 'bg-gray-200 flex items-center justify-center' : ''}
-          `}
-        >
-          {displayImageUrl ? (
-            <img
-              src={displayImageUrl}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <Camera className="w-8 h-8 text-gray-400" />
-          )}
-
-          {/* Loading overlay */}
-          {isUploading && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-full">
-              <Loader className="w-6 h-6 text-white animate-spin" />
-            </div>
-          )}
+        <div className={`${sizeClasses[size]} grid place-items-center overflow-hidden rounded-full border border-[var(--peer-line)] bg-[#eeeee9] shadow-[0_0_0_5px_white,0_0_0_6px_var(--peer-line)]`}>
+          {displayImageUrl ? <img src={displayImageUrl} alt="Profile" className="size-full object-cover" /> : <Camera className="size-8 text-[#89979a]" />}
+          {isUploading ? <span className="absolute inset-0 grid place-items-center rounded-full bg-[rgba(6,31,45,.68)]"><Loader2 className="size-6 animate-spin text-white" /></span> : null}
         </div>
 
-        {/* Upload button overlay */}
-        {showUploadButton && !isUploading && (
-          <button
-            type="button"
-            onClick={openFileDialog}
-            disabled={disabled}
-            className={`
-              absolute -bottom-2 -right-2 p-2 bg-blue-500 text-white rounded-full shadow-lg
-              hover:bg-blue-600 transition-colors
-              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-            `}
-            title="Change profile picture"
-          >
-            <Upload className="w-4 h-4" />
+        {showUploadButton && displayImageUrl && !isUploading ? (
+          <button type="button" onClick={openFileDialog} disabled={disabled} className="absolute bottom-0 right-0 grid size-9 place-items-center border-2 border-white bg-[var(--peer-teal)] text-white shadow-sm transition hover:bg-[#17636a] disabled:cursor-not-allowed disabled:opacity-50" title="Change profile picture" aria-label="Change profile picture">
+            <ImagePlus className="size-4" />
           </button>
-        )}
+        ) : null}
 
-        {/* Remove preview button */}
-        {previewUrl && !isUploading && (
-          <button
-            type="button"
-            onClick={removePreview}
-            className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
-            title="Remove preview"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        )}
+        {previewUrl && !isUploading ? (
+          <button type="button" onClick={removePreview} className="absolute -right-2 -top-2 grid size-7 place-items-center border-2 border-white bg-[var(--peer-navy)] text-white" title="Remove preview" aria-label="Remove preview"><X className="size-3.5" /></button>
+        ) : null}
       </div>
 
-      {/* Upload button (alternative to overlay) */}
-      {showUploadButton && !displayImageUrl && !isUploading && (
-        <button
-          type="button"
-          onClick={openFileDialog}
-          disabled={disabled}
-          className={`
-            px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors
-            flex items-center space-x-2
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-          `}
-        >
-          <Upload className="w-4 h-4" />
-          <span>Upload Photo</span>
+      {showUploadButton && !displayImageUrl && !isUploading ? (
+        <button type="button" onClick={openFileDialog} disabled={disabled} className="inline-flex min-h-10 items-center gap-2 border border-[var(--peer-teal)] bg-[var(--peer-teal-soft)] px-4 text-xs font-bold text-[var(--peer-teal)] transition hover:bg-[#d6ece7] disabled:cursor-not-allowed disabled:opacity-50">
+          <ImagePlus className="size-4" /><span>Choose photo</span>
         </button>
-      )}
+      ) : null}
 
-      {/* Error message */}
-      {error && (
-        <div className="text-sm text-red-600 text-center max-w-xs">
-          {error}
-        </div>
-      )}
-
-      {/* Upload status */}
-      {isUploading && (
-        <div className="text-sm text-blue-600 text-center">
-          Uploading...
-        </div>
-      )}
-
-      {/* File requirements */}
-      {showUploadButton && (
-        <div className="text-xs text-gray-500 text-center max-w-xs">
-          JPEG, PNG, or WebP • Max 5MB
-        </div>
-      )}
+      {isUploading ? <p className="text-xs font-semibold text-[var(--peer-teal)]">Uploading photo…</p> : null}
+      {error ? <p className="max-w-48 text-center text-xs leading-5 text-[var(--peer-danger)]">{error}</p> : null}
+      {showUploadButton ? <p className="max-w-44 text-center text-[11px] leading-4 text-[var(--peer-muted)]">JPEG, PNG, or WebP · Maximum 5 MB</p> : null}
     </div>
-  );
-});
+  )
+})
 
-ProfilePictureEditor.displayName = 'ProfilePictureEditor';
+ProfilePictureEditor.displayName = "ProfilePictureEditor"

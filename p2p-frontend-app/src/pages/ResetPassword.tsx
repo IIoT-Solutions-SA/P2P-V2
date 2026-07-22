@@ -1,226 +1,124 @@
-import React, { useState, useEffect } from 'react'
+import { type FormEvent, useEffect, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, ShieldCheck, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Lock,
-  Eye,
-  EyeOff,
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  ArrowRight
-} from "lucide-react"
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { buildApiUrl } from '@/config/environment'
+import { authApi } from "@/lib/api/auth"
+import { AuthAlert, AuthCard, AuthHeading, AuthScaffold, PasswordRequirements } from "@/components/auth/AuthScaffold"
 
 export default function ResetPassword() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const token = searchParams.get('token')
-  // @ts-ignore - tenantId preserved for potential future multi-tenant support
-  const tenantId = searchParams.get('tenantId') || 'public'
-
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const token = searchParams.get("token") || ""
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    if (!token) {
-      setError('Invalid or missing reset token. Please request a new password reset link.')
-    }
+    if (!token) setError("Invalid or missing reset token. Please request a new password reset link.")
   }, [token])
 
-  const validatePassword = (): boolean => {
-    if (newPassword.length < 8 || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      setError('Password must be at least 8 characters with at least one lowercase letter and one number')
-      return false
-    }
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match')
-      return false
-    }
-    return true
+  const validatePassword = () => {
+    if (newPassword.length < 8 || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) return "Password must be at least 8 characters with a lowercase letter and a number."
+    if (newPassword !== confirmPassword) return "Passwords do not match."
+    return ""
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    if (!validatePassword()) {
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    const issue = validatePassword()
+    if (issue) {
+      setError(issue)
       return
     }
 
+    setError("")
     setIsLoading(true)
 
     try {
-      const response = await fetch(buildApiUrl('/api/v1/auth/reset-password'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          token,
-          newPassword
-        })
-      })
-
-      const result = await response.json()
-
-      if (result.status === 'OK') {
+      const result = await authApi.resetPassword(token, newPassword)
+      if (result.status === "OK") {
         setSuccess(true)
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate('/login', {
-            state: { message: 'Password reset successful! Please log in with your new password.' }
-          })
-        }, 3000)
-      } else if (result.status === 'FIELD_ERROR' && result.formFields) {
-        // Handle password policy violations
-        const passwordError = result.formFields.find((f: { id: string; error: string }) => f.id === 'password')
-        setError(passwordError?.error || result.message || 'Password does not meet requirements')
+        window.setTimeout(() => {
+          navigate("/login", { state: { message: "Password reset successful. Please sign in with your new password." } })
+        }, 2500)
+      } else if (result.status === "FIELD_ERROR" && result.formFields) {
+        const passwordError = result.formFields.find((field) => field.id === "password")
+        setError(passwordError?.error || result.message || "Password does not meet requirements.")
       } else {
-        setError(result.message || 'Failed to reset password')
+        setError(result.message || "Failed to reset password.")
       }
-    } catch (error) {
-      setError('An unexpected error occurred. Please try again.')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="flex items-center justify-center min-h-screen p-6">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden p-8">
-
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">Reset Password</h1>
-              <p className="text-slate-600">
-                {success
-                  ? "Your password has been reset successfully"
-                  : "Create a new password for your account"
-                }
-              </p>
-            </div>
-
-            {success ? (
-              <div className="space-y-6">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="text-green-700 font-medium">Password Reset Complete!</p>
-                    <p className="text-green-600 text-sm">
-                      Redirecting you to login...
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => navigate('/login')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Go to Login
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+    <AuthScaffold
+      eyebrow="Password recovery"
+      title="Create a new password from a secure link."
+      copy="Reset tokens are handled by the existing SuperTokens-backed endpoint."
+      contextTitle="Password reset"
+      contextItems={[
+        { icon: ShieldCheck, title: "Verified reset link", body: "The backend validates the token before changing credentials.", tone: "teal" },
+        { icon: LockKeyhole, title: "Password policy", body: "Frontend guidance mirrors the backend password reset contract.", tone: "blue" },
+        { icon: CheckCircle2, title: "Sign in again", body: "After reset, you return to the normal login and MFA flow.", tone: "success" },
+      ]}
+    >
+      <AuthCard>
+        {success ? (
+          <div className="text-center">
+            <CheckCircle2 className="mx-auto mb-5 size-16 text-[var(--peer-success)]" />
+            <AuthHeading title="Password reset complete" subtitle="Redirecting you to sign in with the new password." />
+            <Button onClick={() => navigate("/login")} className="h-12 rounded-[5px] bg-[var(--peer-blue)] text-white hover:bg-[#0f5ccc]">
+              Go to sign in<ArrowRight className="size-4" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <AuthHeading title="Reset password" subtitle="Create a new password for your PeerLink account." />
+            {error ? <AuthAlert tone={token ? "error" : "warning"}>{error}</AuthAlert> : null}
+            {!token ? (
+              <div className="text-center">
+                <XCircle className="mx-auto mb-5 size-12 text-[var(--peer-danger)]" />
+                <Button onClick={() => navigate("/forgot-password")} className="h-12 rounded-[5px] bg-[var(--peer-blue)] text-white hover:bg-[#0f5ccc]">Request a new link</Button>
               </div>
             ) : (
-              <>
-                {error && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                    <span className="text-red-700">{error}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      New Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                      <Input
-                        type={showNewPassword ? "text" : "password"}
-                        placeholder="Enter new password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="pl-10 pr-10"
-                        required
-                        disabled={!token}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                      >
-                        {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      At least 8 characters, one lowercase letter, and one number
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Confirm New Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                      <Input
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm new password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-10 pr-10"
-                        required
-                        disabled={!token}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !token}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Resetting Password...
-                      </>
-                    ) : (
-                      'Reset Password'
-                    )}
-                  </Button>
-                </form>
-
-                <div className="mt-6 text-center">
-                  <p className="text-slate-600 text-sm">
-                    Remember your password?{' '}
-                    <button
-                      onClick={() => navigate('/login')}
-                      className="text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      Sign in
-                    </button>
-                  </p>
-                </div>
-              </>
+              <form onSubmit={handleSubmit} className="grid gap-4">
+                <PasswordField label="New password" value={newPassword} onChange={setNewPassword} show={showNewPassword} onToggle={() => setShowNewPassword((value) => !value)} />
+                <PasswordRequirements password={newPassword} />
+                <PasswordField label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} show={showConfirmPassword} onToggle={() => setShowConfirmPassword((value) => !value)} />
+                <Button type="submit" disabled={isLoading} className="h-12 rounded-[5px] bg-[var(--peer-blue)] text-white hover:bg-[#0f5ccc]">
+                  {isLoading ? <><Loader2 className="size-4 animate-spin" />Resetting password...</> : "Reset password"}
+                </Button>
+              </form>
             )}
-          </div>
-        </div>
+            <p className="mt-6 text-center text-sm text-[var(--peer-muted)]">
+              Remember your password? <Link className="font-bold text-[var(--peer-blue)]" to="/login">Sign in</Link>
+            </p>
+          </>
+        )}
+      </AuthCard>
+    </AuthScaffold>
+  )
+}
+
+function PasswordField({ label, value, onChange, show, onToggle }: { label: string; value: string; onChange: (value: string) => void; show: boolean; onToggle: () => void }) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-bold text-[#07161d]">{label}</label>
+      <div className="relative">
+        <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[var(--peer-muted)]" />
+        <Input type={show ? "text" : "password"} value={value} onChange={(event) => onChange(event.target.value)} placeholder={label} className="h-12 rounded-[5px] bg-white/70 pl-11 pr-11" required />
+        <button type="button" onClick={onToggle} aria-label={show ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center text-[var(--peer-muted)]">
+          {show ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+        </button>
       </div>
     </div>
   )

@@ -1,719 +1,295 @@
-import { useState, useEffect, useCallback } from 'react'
-import { X, Save, Loader2, Plus, Mail, Lock, Eye, EyeOff } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/contexts/AuthContext'
-import { buildApiUrl } from '@/config/environment'
-import type { UpdateProfileData } from '@/types/auth'
-import { ProfilePictureEditor } from '@/components/ui/ProfilePictureEditor'
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react"
+import {
+  AlertCircle,
+  BriefcaseBusiness,
+  Building2,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  Mail,
+  MapPin,
+  Plus,
+  Save,
+  ShieldCheck,
+  UserRound,
+  X,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/AuthContext"
+import { buildApiUrl } from "@/config/environment"
+import type { UpdateProfileData } from "@/types/auth"
+import { ProfilePictureEditor } from "@/components/ui/ProfilePictureEditor"
 
 interface EditProfilePanelProps {
   isOpen: boolean
   onClose: () => void
   onSave: () => void
-  initialTab?: 'profile' | 'account'
+  initialTab?: "profile" | "account"
 }
 
-export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = 'profile' }: EditProfilePanelProps) {
+const fieldClass = "mt-2 h-11 w-full border border-[var(--peer-line)] bg-white px-3 text-sm outline-none transition focus:border-[var(--peer-blue)] focus:ring-4 focus:ring-[rgba(23,105,223,.1)]"
+const disabledFieldClass = `${fieldClass} cursor-not-allowed bg-[#f0efe9] text-[var(--peer-muted)] focus:ring-0`
+
+function SectionCard({ icon, eyebrow, title, description, children }: { icon: ReactNode; eyebrow: string; title: string; description: string; children: ReactNode }) {
+  return (
+    <section className="border border-[var(--peer-line)] bg-white">
+      <header className="flex items-start gap-4 border-b border-[var(--peer-line)] bg-[#f6f5f0] p-5">
+        <span className="grid size-10 shrink-0 place-items-center border border-[#bad5cf] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)]">{icon}</span>
+        <div>
+          <p className="peer-eyebrow">{eyebrow}</p>
+          <h3 className="mt-1 font-display text-xl font-semibold text-[var(--peer-navy)]">{title}</h3>
+          <p className="mt-1 text-xs leading-5 text-[var(--peer-muted)]">{description}</p>
+        </div>
+      </header>
+      <div className="p-5">{children}</div>
+    </section>
+  )
+}
+
+function PasswordInput({ label, value, show, onChange, onToggle, placeholder }: { label: string; value: string; show: boolean; onChange: (value: string) => void; onToggle: () => void; placeholder: string }) {
+  return (
+    <label className="block text-xs font-bold text-[var(--peer-ink)]">
+      {label}
+      <span className="relative mt-2 block">
+        <input type={show ? "text" : "password"} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className={`${fieldClass} mt-0 pr-11`} required />
+        <button type="button" onClick={onToggle} className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center text-[var(--peer-muted)] hover:text-[var(--peer-blue)]" aria-label={show ? `Hide ${label}` : `Show ${label}`}>
+          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </span>
+    </label>
+  )
+}
+
+export function EditProfilePanel({ isOpen, onClose, onSave, initialTab = "profile" }: EditProfilePanelProps) {
   const { user, refreshProfile } = useAuth()
+  const [activeTab, setActiveTab] = useState<"profile" | "account">(initialTab)
   const [profileLoading, setProfileLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [tagInput, setTagInput] = useState('')
+  const [tagInput, setTagInput] = useState("")
   const [tagError, setTagError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'profile' | 'account'>(initialTab)
-  
-  // Profile form data
-  const [formData, setFormData] = useState<UpdateProfileData>({
-    firstName: '',
-    lastName: '',
-    title: '',
-    location: '',
-    expertiseTags: []
-  })
-  
-  // Email change form
-  const [emailForm, setEmailForm] = useState({
-    newEmail: '',
-    password: ''
-  })
-  
-  // Password change form
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  })
-  
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  })
+  const [formData, setFormData] = useState<UpdateProfileData>({ firstName: "", lastName: "", title: "", location: "", expertiseTags: [] })
+  const [emailForm, setEmailForm] = useState({ newEmail: "", password: "" })
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false })
 
   useEffect(() => {
-    console.log('EditProfilePanel useEffect triggered', { hasUser: !!user, isOpen })
-    if (user && isOpen) {
-      console.log('Resetting form data')
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        title: user.title || '',
-        location: user.location || '',
-        expertiseTags: user.expertiseTags || []
-      })
-      setEmailForm({ newEmail: '', password: '' })
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-      setError(null)
-      setFieldErrors({})
-      setTagError(null)
-      setSuccessMessage(null)
-      setActiveTab(initialTab)
-    }
-  }, [user, isOpen, initialTab])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setProfileLoading(true)
+    if (!user || !isOpen) return
+    setFormData({
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      title: user.title || "",
+      location: user.location || "",
+      expertiseTags: user.expertiseTags || [],
+    })
+    setEmailForm({ newEmail: "", password: "" })
+    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
     setError(null)
+    setFieldErrors({})
+    setTagError(null)
+    setSuccessMessage(null)
+    setActiveTab(initialTab)
+  }, [initialTab, isOpen, user])
 
+  const clearMessages = () => { setError(null); setSuccessMessage(null) }
+
+  const handleProfileSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    clearMessages()
+    setProfileLoading(true)
     try {
-      const response = await fetch(buildApiUrl('/api/v1/auth/profile'), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData)
+      const response = await fetch(buildApiUrl("/api/v1/auth/profile"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formData),
       })
-
+      const data = await response.json().catch(() => ({}))
       if (!response.ok) {
-        const data = await response.json()
         if (response.status === 422 && Array.isArray(data.detail)) {
-          const newErrors: Record<string, string> = {}
-          data.detail.forEach((e: any) => {
-             const field = e.loc[e.loc.length - 1]
-             newErrors[field] = e.msg?.replace('Value error, ', '') || 'Invalid value'
+          const nextErrors: Record<string, string> = {}
+          data.detail.forEach((item: { loc?: string[]; msg?: string }) => {
+            const field = item.loc?.[item.loc.length - 1]
+            if (field) nextErrors[field] = item.msg?.replace("Value error, ", "") || "Invalid value"
           })
-          setFieldErrors(newErrors)
-          throw new Error('Please fix the errors below')
+          setFieldErrors(nextErrors)
         }
-        throw new Error(data.detail || 'Failed to update profile')
+        throw new Error(typeof data.detail === "string" ? data.detail : "Please review the highlighted profile fields.")
       }
-
       await refreshProfile()
       onSave()
-      onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update profile')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Failed to update profile.")
     } finally {
       setProfileLoading(false)
     }
   }
 
   const handleAddTag = () => {
-    const trimmed = tagInput.trim()
-    if (!trimmed) return
-
-    if (trimmed.length < 2 || trimmed.length > 30) {
-      setTagError('Each tag must be between 2 and 30 characters')
-      return
-    }
-
-    if (!/^[\w\s\-\u0600-\u06FF]+$/.test(trimmed)) {
-      setTagError('Tags can only contain letters, numbers, spaces, and hyphens')
-      return
-    }
-
-    if (formData.expertiseTags?.includes(trimmed)) {
-      setTagError('Tag already exists')
-      return
-    }
-
+    const tag = tagInput.trim()
+    if (!tag) return
+    if (tag.length < 2 || tag.length > 30) { setTagError("Use 2–30 characters per expertise tag."); return }
+    if (!/^[\w\s\-\u0600-\u06FF]+$/.test(tag)) { setTagError("Use letters, numbers, spaces, or hyphens only."); return }
+    if (formData.expertiseTags?.includes(tag)) { setTagError("This expertise tag is already listed."); return }
+    setFormData((current) => ({ ...current, expertiseTags: [...(current.expertiseTags || []), tag] }))
+    setTagInput("")
     setTagError(null)
-    setFormData(prev => ({
-      ...prev,
-      expertiseTags: [...(prev.expertiseTags || []), trimmed]
-    }))
-    setTagInput('')
   }
 
-  const handleRemoveTag = (tag: string) => {
-    setFormData(prev => ({
-      ...prev,
-      expertiseTags: prev.expertiseTags?.filter(t => t !== tag) || []
-    }))
-  }
+  const getEmailDomain = (email: string) => email.includes("@") ? email.split("@").pop()?.trim().toLowerCase() || "" : ""
+  const blockedDomains = new Set(["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "protonmail.com", "icloud.com", "live.com", "msn.com"])
+  const currentDomain = getEmailDomain(user?.email || "")
+  const newDomain = getEmailDomain(emailForm.newEmail)
+  const emailDomainInvalid = Boolean(emailForm.newEmail && (blockedDomains.has(newDomain) || (currentDomain && newDomain && currentDomain !== newDomain)))
 
-  // Blocked personal email domains (mirrors backend list)
-  const BLOCKED_EMAIL_DOMAINS = [
-    'gmail.com',
-    'yahoo.com',
-    'hotmail.com',
-    'outlook.com',
-    'protonmail.com',
-    'icloud.com',
-    'live.com',
-    'msn.com'
-  ]
-
-  const getEmailDomain = (email: string) => {
-    if (!email || !email.includes('@')) return ''
-    return email.split('@').pop()?.trim().toLowerCase() || ''
-  }
-
-  const isBlockedDomain = (email: string) => {
-    const domain = getEmailDomain(email)
-    return BLOCKED_EMAIL_DOMAINS.includes(domain)
-  }
-
-  const handleEmailUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleEmailUpdate = async (event: FormEvent) => {
+    event.preventDefault()
+    clearMessages()
+    if (emailDomainInvalid) { setError(`Use an approved organization email${currentDomain ? ` ending in @${currentDomain}` : ""}.`); return }
     setEmailLoading(true)
-    setError(null)
-    setSuccessMessage(null)
-
-    // Client-side validation: block personal email domains
-    if (isBlockedDomain(emailForm.newEmail)) {
-      setError('Personal email addresses are not allowed. Please use your company email.')
-      setEmailLoading(false)
-      return
-    }
-
-    // Client-side validation: check domain matches current org domain
-    const currentDomain = getEmailDomain(user?.email || '')
-    const newDomain = getEmailDomain(emailForm.newEmail)
-    if (currentDomain && newDomain && currentDomain !== newDomain) {
-      setError(`New email must match your organization domain (@${currentDomain}).`)
-      setEmailLoading(false)
-      return
-    }
-
     try {
-      const response = await fetch(buildApiUrl('/api/v1/auth/email'), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(emailForm)
+      const response = await fetch(buildApiUrl("/api/v1/auth/email"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(emailForm),
       })
-
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to update email')
-      }
-
-      setSuccessMessage('Email updated successfully!')
-      setEmailForm({ newEmail: '', password: '' })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.detail || "Failed to update email.")
+      setEmailForm({ newEmail: "", password: "" })
+      setSuccessMessage("Email address updated successfully.")
       await refreshProfile()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update email')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Failed to update email.")
     } finally {
       setEmailLoading(false)
     }
   }
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError('New passwords do not match')
-      return
-    }
-    
+  const handlePasswordUpdate = async (event: FormEvent) => {
+    event.preventDefault()
+    clearMessages()
+    if (passwordForm.newPassword.length < 8 || !/[a-z]/.test(passwordForm.newPassword) || !/[0-9]/.test(passwordForm.newPassword)) { setError("Use at least 8 characters with a lowercase letter and a number."); return }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) { setError("New passwords do not match."); return }
     setPasswordLoading(true)
-    setError(null)
-    setSuccessMessage(null)
-
     try {
-      const response = await fetch(buildApiUrl('/api/v1/auth/password'), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword
-        })
+      const response = await fetch(buildApiUrl("/api/v1/auth/password"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword }),
       })
-
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to update password')
-      }
-
-      setSuccessMessage('Password updated successfully!')
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update password')
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.detail || "Failed to update password.")
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      setSuccessMessage("Password updated successfully.")
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Failed to update password.")
     } finally {
       setPasswordLoading(false)
     }
   }
 
   const handleProfilePictureUpload = useCallback(async (file: File) => {
-    console.log('handleProfilePictureUpload called with file:', file.name)
+    clearMessages()
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      console.log('Sending POST request to /api/v1/media/profile-picture')
-      const response = await fetch(buildApiUrl('/api/v1/media/profile-picture'), {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      })
-
-      console.log('Upload response:', response.status, response.ok)
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.detail || await response.text() || 'Failed to upload profile picture';
-        console.error('Upload failed:', errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
-      console.log('Upload successful:', result);
-
-      await refreshProfile();
-      setSuccessMessage('Profile picture updated successfully!');
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to upload profile picture');
+      const body = new FormData()
+      body.append("file", file)
+      const response = await fetch(buildApiUrl("/api/v1/media/profile-picture"), { method: "POST", body, credentials: "include" })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.detail || "Failed to upload profile picture.")
+      await refreshProfile()
+      setSuccessMessage("Profile picture updated successfully.")
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Failed to upload profile picture.")
     }
   }, [refreshProfile])
 
   if (!isOpen) return null
+  const busy = profileLoading || emailLoading || passwordLoading
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white border-l border-blue-100 shadow-2xl flex flex-col">
-        <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
-          <h3 className="text-xl font-bold">Edit Profile</h3>
-          <button 
-            onClick={onClose} 
-            className="text-white/80 hover:text-white transition-colors"
-            disabled={profileLoading || emailLoading || passwordLoading}
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200">
-          <button
-            type="button"
-            onClick={() => setActiveTab('profile')}
-            className={`px-6 py-3 text-sm font-medium ${
-              activeTab === 'profile'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Profile Information
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('account')}
-            className={`px-6 py-3 text-sm font-medium ${
-              activeTab === 'account'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Account Settings
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-          
-          {successMessage && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-              {successMessage}
-            </div>
-          )}
-
-          {/* Profile Tab */}
-          {activeTab === 'profile' && (
-            <>
-              {/* Profile Picture Section - OUTSIDE form to prevent conflicts */}
-              <div className="text-center py-6 border-b border-gray-200 mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-4">
-                  Profile Picture
-                </label>
-                <ProfilePictureEditor
-                  currentImageUrl={user?.profilePictureUrl || undefined}
-                  onImageUpload={handleProfilePictureUpload}
-                  size="lg"
-                  disabled={profileLoading}
-                />
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, firstName: e.target.value }))
-                    setFieldErrors(prev => ({ ...prev, firstName: '' }))
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.firstName ? 'border-red-300' : 'border-gray-300'}`}
-                  required
-                />
-                {fieldErrors.firstName && <p className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, lastName: e.target.value }))
-                    setFieldErrors(prev => ({ ...prev, lastName: '' }))
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.lastName ? 'border-red-300' : 'border-gray-300'}`}
-                  required
-                />
-                {fieldErrors.lastName && <p className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</p>}
-              </div>
-            </div>
-
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={activeTab === "profile" ? "Edit profile" : "Password and security"}>
+      <button type="button" aria-label="Close settings" className="absolute inset-0 cursor-default bg-[#061f2d]/55 backdrop-blur-[2px]" onClick={onClose} />
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[700px] flex-col border-l border-[var(--peer-line)] bg-[var(--peer-paper)] shadow-[-24px_0_70px_rgba(5,28,40,.22)]">
+        <header className="border-b border-white/15 bg-[var(--peer-navy)] px-5 py-5 text-white sm:px-7">
+          <div className="flex items-start justify-between gap-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Title
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, title: e.target.value }))
-                  setFieldErrors(prev => ({ ...prev, title: '' }))
-                }}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.title ? 'border-red-300' : 'border-gray-300'}`}
-                placeholder="e.g., Manufacturing Engineer"
-              />
-              {fieldErrors.title && <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>}
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7fc9c0]">Account workspace</p>
+              <h2 className="mt-2 font-display text-2xl font-semibold">Profile and security</h2>
+              <p className="mt-1 max-w-lg text-xs leading-5 text-[#b8cbca]">Keep your contributor details accurate and manage access to your PeerLink account.</p>
             </div>
+            <button type="button" onClick={onClose} disabled={busy} className="grid size-10 shrink-0 place-items-center border border-white/20 text-white hover:bg-white/10" aria-label="Close profile settings"><X className="size-5" /></button>
+          </div>
+        </header>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Company
-              </label>
-              <input
-                type="text"
-                value={user?.company || ''}
-                disabled
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-                placeholder="Set by organization"
-              />
-            </div>
+        <nav className="grid grid-cols-2 border-b border-[var(--peer-line)] bg-white" aria-label="Profile settings sections">
+          <button type="button" onClick={() => { setActiveTab("profile"); clearMessages() }} className={`flex min-h-14 items-center justify-center gap-2 border-b-2 px-4 text-sm font-bold ${activeTab === "profile" ? "border-[var(--peer-teal)] bg-[var(--peer-teal-soft)] text-[var(--peer-navy)]" : "border-transparent text-[var(--peer-muted)] hover:bg-[#f6f5f0]"}`}><UserRound className="size-4" />Edit profile</button>
+          <button type="button" onClick={() => { setActiveTab("account"); clearMessages() }} className={`flex min-h-14 items-center justify-center gap-2 border-b-2 px-4 text-sm font-bold ${activeTab === "account" ? "border-[var(--peer-teal)] bg-[var(--peer-teal-soft)] text-[var(--peer-navy)]" : "border-transparent text-[var(--peer-muted)] hover:bg-[#f6f5f0]"}`}><ShieldCheck className="size-4" />Password & security</button>
+        </nav>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Industry Sector
-              </label>
-              <input
-                type="text"
-                value={user?.industrySector || ''}
-                disabled
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-                placeholder="Set by organization"
-              />
-            </div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-7">
+          {error ? <div className="mb-5 flex items-start gap-3 border-l-4 border-[var(--peer-danger)] bg-[#fff0ed] p-4 text-sm text-[#8e2f27]"><AlertCircle className="mt-0.5 size-4 shrink-0" />{error}</div> : null}
+          {successMessage ? <div className="mb-5 flex items-start gap-3 border-l-4 border-[var(--peer-success)] bg-[#edf8f2] p-4 text-sm text-[#16634f]"><CheckCircle2 className="mt-0.5 size-4 shrink-0" />{successMessage}</div> : null}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, location: e.target.value }))
-                  setFieldErrors(prev => ({ ...prev, location: '' }))
-                }}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldErrors.location ? 'border-red-300' : 'border-gray-300'}`}
-                placeholder="City, Country"
-              />
-              {fieldErrors.location && <p className="mt-1 text-xs text-red-600">{fieldErrors.location}</p>}
-            </div>
+          {activeTab === "profile" ? (
+            <form onSubmit={handleProfileSubmit} className="grid gap-5">
+              <SectionCard icon={<UserRound className="size-5" />} eyebrow="Public identity" title="Contributor profile" description="These details appear beside your discussions and submitted implementation stories.">
+                <div className="grid gap-6 sm:grid-cols-[150px_1fr] sm:items-center">
+                  <div className="border-r-0 border-[var(--peer-line)] sm:border-r sm:pr-6"><ProfilePictureEditor currentImageUrl={user?.profilePictureUrl || undefined} onImageUpload={handleProfilePictureUpload} size="lg" disabled={profileLoading} /></div>
+                  <div><strong className="font-display text-lg text-[var(--peer-navy)]">{[formData.firstName, formData.lastName].filter(Boolean).join(" ") || "PeerLink member"}</strong><p className="mt-1 text-xs text-[var(--peer-muted)]">Upload a clear square image. Your profile photo is visible to members of the manufacturing network.</p></div>
+                </div>
+              </SectionCard>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Expertise Tags
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => {
-                    setTagInput(e.target.value)
-                    setTagError(null)
-                  }}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${tagError ? 'border-red-300' : 'border-gray-300'}`}
-                  placeholder="Add expertise tag"
-                />
-                <Button
-                  type="button"
-                  onClick={handleAddTag}
-                  variant="outline"
-                  size="sm"
-                  className="px-3"
-                >
-                  <Plus size={16} />
-                </Button>
-              </div>
-              {tagError && <p className="mb-2 text-xs text-red-600">{tagError}</p>}
-              <div className="flex flex-wrap gap-2">
-                {formData.expertiseTags?.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-2 text-blue-600 hover:text-blue-800"
-                    >
-                      <X size={14} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              {fieldErrors.expertiseTags && <p className="mt-1 text-xs text-red-600">{fieldErrors.expertiseTags}</p>}
-            </div>
+              <section className="border border-[var(--peer-line)] bg-white p-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="text-xs font-bold">First name *<input value={formData.firstName} onChange={(event) => { setFormData((current) => ({ ...current, firstName: event.target.value })); setFieldErrors((current) => ({ ...current, firstName: "" })) }} className={fieldClass} required />{fieldErrors.firstName ? <small className="mt-1 block text-[var(--peer-danger)]">{fieldErrors.firstName}</small> : null}</label>
+                  <label className="text-xs font-bold">Last name *<input value={formData.lastName} onChange={(event) => { setFormData((current) => ({ ...current, lastName: event.target.value })); setFieldErrors((current) => ({ ...current, lastName: "" })) }} className={fieldClass} required />{fieldErrors.lastName ? <small className="mt-1 block text-[var(--peer-danger)]">{fieldErrors.lastName}</small> : null}</label>
+                  <label className="text-xs font-bold"><span className="inline-flex items-center gap-2"><BriefcaseBusiness className="size-4 text-[var(--peer-teal)]" />Job title</span><input value={formData.title} onChange={(event) => setFormData((current) => ({ ...current, title: event.target.value }))} placeholder="Manufacturing Engineer" className={fieldClass} /></label>
+                  <label className="text-xs font-bold"><span className="inline-flex items-center gap-2"><MapPin className="size-4 text-[var(--peer-teal)]" />Location</span><input value={formData.location} onChange={(event) => setFormData((current) => ({ ...current, location: event.target.value }))} placeholder="Riyadh, Saudi Arabia" className={fieldClass} /></label>
+                  <label className="text-xs font-bold"><span className="inline-flex items-center gap-2"><Building2 className="size-4 text-[var(--peer-teal)]" />Organization</span><input value={user?.company || ""} disabled className={disabledFieldClass} /></label>
+                  <label className="text-xs font-bold">Industry sector<input value={user?.industrySector || ""} disabled className={disabledFieldClass} /></label>
+                </div>
+              </section>
 
-            <div className="mt-8 flex gap-3">
-              <Button
-                type="submit"
-                disabled={profileLoading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {profileLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Profile
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                onClick={onClose}
-                disabled={profileLoading}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-            </>
-          )}
+              <SectionCard icon={<Plus className="size-5" />} eyebrow="Discoverability" title="Expertise tags" description="Add practical topics that help peers find the right person for a discussion.">
+                <div className="flex gap-2"><input value={tagInput} onChange={(event) => { setTagInput(event.target.value); setTagError(null) }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); handleAddTag() } }} placeholder="For example, Industrial IoT" className={`${fieldClass} mt-0`} /><Button type="button" variant="outline" onClick={handleAddTag} className="h-11 rounded-none border-[var(--peer-line)]"><Plus className="size-4" />Add</Button></div>
+                {tagError ? <p className="mt-2 text-xs text-[var(--peer-danger)]">{tagError}</p> : null}
+                <div className="mt-4 flex flex-wrap gap-2">{formData.expertiseTags?.length ? formData.expertiseTags.map((tag) => <span key={tag} className="inline-flex items-center gap-2 border border-[#bad5cf] bg-[var(--peer-teal-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--peer-teal)]">{tag}<button type="button" onClick={() => setFormData((current) => ({ ...current, expertiseTags: current.expertiseTags?.filter((item) => item !== tag) || [] }))} aria-label={`Remove ${tag}`}><X className="size-3.5" /></button></span>) : <p className="text-xs text-[var(--peer-muted)]">No expertise tags added yet.</p>}</div>
+              </SectionCard>
 
-          {/* Account Tab */}
-          {activeTab === 'account' && (
-            <div className="space-y-6">
-              {/* Email Change Section */}
-              <div className="border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Mail className="mr-2 h-5 w-5" />
-                  Change Email
-                </h3>
-                <form onSubmit={handleEmailUpdate} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Current Email
-                    </label>
-                    <input
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      New Email
-                    </label>
-                    <input
-                      type="email"
-                      value={emailForm.newEmail}
-                      onChange={(e) => setEmailForm(prev => ({ ...prev, newEmail: e.target.value }))}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
-                        emailForm.newEmail && (isBlockedDomain(emailForm.newEmail) || (getEmailDomain(emailForm.newEmail) && getEmailDomain(user?.email || '') && getEmailDomain(emailForm.newEmail) !== getEmailDomain(user?.email || '')))
-                          ? 'border-red-300 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-blue-500'
-                      }`}
-                      placeholder={`Enter new email (must be @${getEmailDomain(user?.email || '') || 'your-company.com'})`}
-                      required
-                    />
-                    {emailForm.newEmail && isBlockedDomain(emailForm.newEmail) && (
-                      <p className="mt-1 text-xs text-red-600">
-                        Personal email addresses (Gmail, Yahoo, etc.) are not allowed.
-                      </p>
-                    )}
-                    {emailForm.newEmail && !isBlockedDomain(emailForm.newEmail) && getEmailDomain(emailForm.newEmail) && getEmailDomain(user?.email || '') && getEmailDomain(emailForm.newEmail) !== getEmailDomain(user?.email || '') && (
-                      <p className="mt-1 text-xs text-red-600">
-                        Email must match your organization domain (@{getEmailDomain(user?.email || '')}).
-                      </p>
-                    )}
-                    {!emailForm.newEmail && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        New email must use your organization domain (@{getEmailDomain(user?.email || '')}).
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Current Password (for verification)
-                    </label>
-                    <input
-                      type="password"
-                      value={emailForm.password}
-                      onChange={(e) => setEmailForm(prev => ({ ...prev, password: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter your password"
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={emailLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {emailLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating Email...
-                      </>
-                    ) : (
-                      'Update Email'
-                    )}
-                  </Button>
+              <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 border border-[var(--peer-line)] bg-[rgba(255,255,255,.96)] p-4 backdrop-blur"><Button type="button" variant="outline" onClick={onClose} className="rounded-none border-[var(--peer-line)]">Cancel</Button><Button type="submit" disabled={profileLoading} className="rounded-none bg-[var(--peer-teal)] text-white hover:bg-[#17636a]">{profileLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{profileLoading ? "Saving profile..." : "Save profile"}</Button></div>
+            </form>
+          ) : (
+            <div className="grid gap-5">
+              <div className="border-l-4 border-[var(--peer-blue)] bg-[#edf4ff] p-4 text-sm text-[var(--peer-navy)]"><strong className="block">Security settings</strong><span className="mt-1 block text-xs leading-5 text-[var(--peer-muted)]">Changes require your current password. Your active session remains protected by PeerLink device verification.</span></div>
+
+              <SectionCard icon={<Mail className="size-5" />} eyebrow="Account identity" title="Change email address" description={`PeerLink accepts approved work email addresses${currentDomain ? ` from @${currentDomain}` : ""}.`}>
+                <form onSubmit={handleEmailUpdate} className="grid gap-4">
+                  <label className="text-xs font-bold">Current email<input type="email" value={user?.email || ""} disabled className={disabledFieldClass} /></label>
+                  <label className="text-xs font-bold">New work email<input type="email" value={emailForm.newEmail} onChange={(event) => setEmailForm((current) => ({ ...current, newEmail: event.target.value }))} placeholder={currentDomain ? `name@${currentDomain}` : "name@company.com"} className={`${fieldClass} ${emailDomainInvalid ? "border-[var(--peer-danger)]" : ""}`} required />{emailDomainInvalid ? <small className="mt-1 block text-[var(--peer-danger)]">Use your approved organization email domain.</small> : <small className="mt-1 block font-normal text-[var(--peer-muted)]">Personal email services are not accepted.</small>}</label>
+                  <PasswordInput label="Current password" value={emailForm.password} show={showPasswords.current} onChange={(value) => setEmailForm((current) => ({ ...current, password: value }))} onToggle={() => setShowPasswords((current) => ({ ...current, current: !current.current }))} placeholder="Confirm your identity" />
+                  <Button type="submit" disabled={emailLoading || emailDomainInvalid} className="justify-self-end rounded-none bg-[var(--peer-navy)] text-white">{emailLoading ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}{emailLoading ? "Updating email..." : "Update email"}</Button>
                 </form>
-              </div>
+              </SectionCard>
 
-              {/* Password Change Section */}
-              <div className="border border-gray-200 rounded-lg p-6" data-section="security">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Lock className="mr-2 h-5 w-5" />
-                  Change Password
-                </h3>
-                <form onSubmit={handlePasswordUpdate} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Current Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPasswords.current ? 'text' : 'password'}
-                        value={passwordForm.currentPassword}
-                        onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter current password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                        className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
-                      >
-                        {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      New Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPasswords.new ? 'text' : 'password'}
-                        value={passwordForm.newPassword}
-                        onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter new password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                        className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
-                      >
-                        {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirm New Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPasswords.confirm ? 'text' : 'password'}
-                        value={passwordForm.confirmPassword}
-                        onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Confirm new password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                        className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
-                      >
-                        {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={passwordLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {passwordLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating Password...
-                      </>
-                    ) : (
-                      'Update Password'
-                    )}
-                  </Button>
+              <SectionCard icon={<KeyRound className="size-5" />} eyebrow="Access protection" title="Change password" description="Use a password that is unique to PeerLink and difficult to guess.">
+                <form onSubmit={handlePasswordUpdate} className="grid gap-4">
+                  <PasswordInput label="Current password" value={passwordForm.currentPassword} show={showPasswords.current} onChange={(value) => setPasswordForm((current) => ({ ...current, currentPassword: value }))} onToggle={() => setShowPasswords((current) => ({ ...current, current: !current.current }))} placeholder="Enter current password" />
+                  <div className="grid gap-4 sm:grid-cols-2"><PasswordInput label="New password" value={passwordForm.newPassword} show={showPasswords.new} onChange={(value) => setPasswordForm((current) => ({ ...current, newPassword: value }))} onToggle={() => setShowPasswords((current) => ({ ...current, new: !current.new }))} placeholder="Create new password" /><PasswordInput label="Confirm password" value={passwordForm.confirmPassword} show={showPasswords.confirm} onChange={(value) => setPasswordForm((current) => ({ ...current, confirmPassword: value }))} onToggle={() => setShowPasswords((current) => ({ ...current, confirm: !current.confirm }))} placeholder="Repeat new password" /></div>
+                  <div className="grid gap-2 border border-[var(--peer-line)] bg-[#f6f5f0] p-4 text-xs text-[var(--peer-muted)]"><span className="inline-flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--peer-teal)]" />At least 8 characters</span><span className="inline-flex items-center gap-2"><ShieldCheck className="size-4 text-[var(--peer-teal)]" />Include a lowercase letter and a number</span></div>
+                  <Button type="submit" disabled={passwordLoading} className="justify-self-end rounded-none bg-[var(--peer-teal)] text-white hover:bg-[#17636a]">{passwordLoading ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}{passwordLoading ? "Updating password..." : "Update password"}</Button>
                 </form>
-              </div>
+              </SectionCard>
             </div>
           )}
         </div>
-      </div>
+      </aside>
     </div>
   )
 }

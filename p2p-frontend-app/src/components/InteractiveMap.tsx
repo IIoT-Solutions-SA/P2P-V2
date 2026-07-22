@@ -37,6 +37,18 @@ type BackendUseCase = {
   benefits_list?: string[]
 }
 
+const publicPreviewUseCases: BackendUseCase[] = [
+  { id: 'public-riyadh-1', title: 'AI Quality Inspection Reduces Defects by 85%', company: 'Advanced Manufacturing Co.', category: 'Factory Automation', description: 'Computer vision inspection increased throughput and reduced manual rework.', region: 'Riyadh', latitude: 24.7136, longitude: 46.6753, benefits_list: ['85% defect reduction', 'SAR 2.3M annual savings'] },
+  { id: 'public-riyadh-2', title: 'Comprehensive Energy Optimization Platform', company: 'KACST Industry 4.0 Capability Center', category: 'Energy Efficiency', description: 'Intelligent energy monitoring reduced consumption and peak demand.', region: 'Riyadh', latitude: 24.7350, longitude: 46.7050, benefits_list: ['32% lower energy use', '250% 2-year ROI'] },
+  { id: 'public-riyadh-3', title: 'Intelligent Safety Monitoring & Compliance', company: 'KACST Industry 4.0 Capability Center', category: 'Safety & Compliance', description: 'AI monitoring strengthened PPE compliance and reduced safety incidents.', region: 'Riyadh', latitude: 24.6800, longitude: 46.7200, benefits_list: ['100% PPE monitoring', '85% fewer incidents'] },
+  { id: 'public-riyadh-4', title: 'AI-Powered Quality Assurance Revolution', company: 'KACST Industry 4.0 Capability Center', category: 'Quality Control', description: 'Automated inspection improved defect detection and audit speed.', region: 'Riyadh', latitude: 24.7550, longitude: 46.6400, benefits_list: ['99.2% detection accuracy', '75% faster inspection'] },
+  { id: 'public-jeddah-1', title: 'Digital Traceability Improves Compliance', company: 'Arabian Food Processing', category: 'Quality Control', description: 'Batch-level tracking unified production history and quality checks.', region: 'Jeddah', latitude: 21.5433, longitude: 39.1728, benefits_list: ['40% faster audits', 'Live batch traceability'] },
+  { id: 'public-jeddah-2', title: 'Smart Cold Chain Monitoring', company: 'Saudi Retail Distribution Co.', category: 'Supply Chain', description: 'Connected sensors protected temperature-sensitive inventory in transit.', region: 'Jeddah', latitude: 21.5850, longitude: 39.2050, benefits_list: ['Fewer spoilage events', 'Real-time alerts'] },
+  { id: 'public-dammam-1', title: 'IoT Sensors Cut Downtime by 60%', company: 'Gulf Plastics Industries', category: 'Predictive Maintenance', description: 'Condition monitoring helped maintenance teams act before failures.', region: 'Dammam', latitude: 26.4207, longitude: 50.0888, benefits_list: ['60% downtime reduction', 'Predictive alerts'] },
+  { id: 'public-dammam-2', title: 'Connected Production Performance', company: 'Eastern Province Manufacturing', category: 'Industrial IoT', description: 'Live production visibility improved throughput and response time.', region: 'Dammam', latitude: 26.4450, longitude: 50.1200, benefits_list: ['45% efficiency gain', 'Live OEE visibility'] },
+  { id: 'public-dammam-3', title: 'Smart Inventory for Small Factories', company: 'Red Sea Logistics', category: 'Supply Chain', description: 'Digital inventory controls improved material availability and planning.', region: 'Dammam', latitude: 26.3900, longitude: 50.0500, benefits_list: ['Faster replenishment', 'Lower stock variance'] },
+]
+
 export default function InteractiveMap({ 
   height = "500px", 
   showTitle = true, 
@@ -53,15 +65,15 @@ export default function InteractiveMap({
     // Fetch use-cases from backend for map markers
     const fetchUseCases = async () => {
       try {
-        const res = await fetch(buildApiUrl('/api/v1/use-cases?limit=200'), { credentials: 'include' })
+        const res = await fetch(buildApiUrl('/api/v1/use-cases?limit=100'), { credentials: 'include' })
         if (!res.ok) throw new Error('Failed to load use cases')
         const data = await res.json()
         // Handle both array and paginated response formats
         const useCases = Array.isArray(data) ? data : (data.items || data.use_cases || [])
         setBackendUseCases(useCases)
       } catch (err) {
-        console.error('Failed to fetch use cases for map', err)
-        setBackendUseCases([])
+        console.info('Using curated public map previews because the authenticated use-case feed is unavailable', err)
+        setBackendUseCases(publicPreviewUseCases)
       }
     }
     fetchUseCases()

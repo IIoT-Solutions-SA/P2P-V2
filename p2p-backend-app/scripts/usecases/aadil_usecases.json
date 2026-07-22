@@ -241,7 +241,12 @@
         "solution": "Instead of relying on native APIs, each printer was connected to a smart plug monitored by the Raspberry Pi. The Node-RED workflow monitors the power consumption of each printer; a significant drop in power indicates a finished print, triggering the robot.",
         "outcome": "A universal and reliable method for detecting print completion across a heterogeneous fleet of printers."
       }
-    ]
+    ],
+    "problem": "Significant printer idle time waiting for a human operator to unload a completed print job. Manual handling of freshly printed parts occasionally led to cosmetic damage or contamination. Lack of a consistent, paced flow of parts from the printer farm to the quality control station. Inability to run the printer farm at full capacity overnight or during weekends.",
+    "technology": "6-axis collaborative robotic arm: Central robot for unloading and transferring parts\nCustom pneumatic gripper: Soft-jaw design to handle delicate 3D printed parts\nFlat-belt conveyor system: Integrated system for part transportation\nRaspberry Pi with Node-RED: Orchestrating the workflow between the printers and the robot",
+    "budget": "SAR 400,000",
+    "outcomes": "Enabled true 'lights-out' manufacturing, allowing the printer farm to run 24/7 without supervision\nCreated a continuous, predictable flow of parts to the quality control station\nImproved part consistency and quality by eliminating damage from manual handling\nPrinter Utilization Rate: 58% increase in productive uptime (from 60% to 95%).\nThroughput: 275% increase in daily output (from 40 arms/day to 150 arms/day).\nManual Labor (Printer Tending): 87.5% reduction in manual labor (from 8 hours/day to 1 hour/day).\nEstimated annual savings: SAR 400,000.",
+    "challenges": "Universal Gripper Design. Designing a single robotic gripper that could reliably pick finished parts from different models of 3D printers and place them accurately on the conveyor without causing damage. Response: A custom, 3D-printed soft-jaw gripper with integrated pressure sensors was developed. The soft jaws prevent cosmetic damage, while the sensors confirm a successful grip before the robot moves. Outcome: A single, universal gripper now services the entire farm, providing reliable, damage-free part handling.\n\nPrinter Status Integration. Getting reliable 'print complete' signals from a mix of different 3D printer brands and models was challenging. Response: Instead of relying on native APIs, each printer was connected to a smart plug monitored by the Raspberry Pi. The Node-RED workflow monitors the power consumption of each printer; a significant drop in power indicates a finished print, triggering the robot. Outcome: A universal and reliable method for detecting print completion across a heterogeneous fleet of printers."
   },
   {
     "title": "Digital Simulation for Drone Production Line Optimization",
@@ -488,7 +493,12 @@
         "solution": "A strict gating process was established by the Project Lead. All change requests had to be submitted with a clear business justification and were evaluated based on their impact on the project's primary objectives.",
         "outcome": "The project remained focused on the most critical path, allowing it to be completed on time and within budget."
       }
-    ]
+    ],
+    "problem": "High risk of undiscovered bottlenecks in the complex production flow. Inability to accurately predict throughput and cycle times under variable conditions. Excessive costs and project delays associated with physical layout changes after commissioning. Uncertainty in determining optimal resource allocation.",
+    "technology": "Process and layout builder: Library of pre-built manufacturing assets (conveyors, AMRs, etc.)\nKPI analysis engine: Calculating and reporting on cycle time, station utilization, and WIP levels\nScenario management module: A/B testing different layouts, machine counts, and staffing models\nHigh-fidelity 2D/3D animation engine: Visualizing material flow, queues, and robot paths",
+    "budget": "SAR 250,000",
+    "outcomes": "Improved alignment and decision-making between engineering, operations, and management teams\nDramatically reduced project risk by validating all process changes virtually\nIncreased institutional knowledge by creating a dynamic, reusable model\nCommissioning Time: 40% reduction (from 20 weeks (Estimate) to 12 weeks (Actual)).\nProduction Throughput: 23% increase (from 65 units/hour to 80 units/hour).\nCapital Expenditure (AMRs): 25% reduction in AMR fleet cost (from 8 AMRs to 6 AMRs).\nEstimated annual savings: SAR 1.2M in value from increased throughput.",
+    "challenges": "Inaccurate Initial Data. Gathering accurate cycle time and failure rate data from all equipment vendors proved difficult, as initial estimates were often overly optimistic. Response: We conducted workshops with each vendor to establish realistic performance ranges and used industry benchmark data as a starting point. The model was designed to easily update these parameters as real-world data became available. Outcome: The final model had a high degree of fidelity, predicting actual throughput within 5% of the real-world results.\n\nScope Creep. Stakeholders continuously requested adding more detail and secondary processes to the model, which threatened the project timeline. Response: A strict gating process was established by the Project Lead. All change requests had to be submitted with a clear business justification and were evaluated based on their impact on the project's primary objectives. Outcome: The project remained focused on the most critical path, allowing it to be completed on time and within budget."
   },
   {
     "title": "Smart Locker for Raw Material Tracking",
@@ -718,6 +728,11 @@
         "solution": "Developed detailed business case with phased implementation showing incremental benefits",
         "outcome": "Achieved projected ROI within first year, exceeding initial estimates by 20%"
       }
-    ]
+    ],
+    "problem": "No real-time tracking of raw material withdrawals. High dependency on manual logging by operators. Frequent material shortages disrupting production.",
+    "technology": "Smart locker compartments: IoT-enabled weight scales in each compartment\nEdge gateway: Local data processing and validation\nCloud dashboard: Inventory management with notifications\nMobile app integration: Real-time alerts for supervisors",
+    "budget": "SAR 280,000",
+    "outcomes": "Improved trust in inventory accuracy\nStronger coordination between production and supply chain\nReduced operator workload\nMaterial Availability: 19% improvement (from 80% to 99%).\nInventory Accuracy: 40% increase (from 70% to 98%).\nReplenishment Response Time: 83% faster (from 24 hrs to 4 hrs).\nEstimated annual savings: SAR 280,000.",
+    "challenges": "Change Management. Getting buy-in from operators and management for new technology implementation. Response: Conducted comprehensive training programs and demonstrated quick wins through pilot implementation. Outcome: Full adoption achieved with positive feedback from all stakeholders.\n\nROI Justification. Demonstrating clear return on investment to secure project funding and support. Response: Developed detailed business case with phased implementation showing incremental benefits. Outcome: Achieved projected ROI within first year, exceeding initial estimates by 20%."
   }
 ]

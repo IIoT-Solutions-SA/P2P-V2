@@ -6,6 +6,7 @@ const PRODUCTION_HOSTS = new Set([
   '145.241.154.18',
 ])
 const isProductionServer = PRODUCTION_HOSTS.has(window.location.hostname)
+const isRemoteAccess = !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname)
 const currentOrigin = window.location.origin
 const isForcedProduction = import.meta.env.VITE_NODE_ENV === 'production'
 export const IS_DEV_ENV = !isForcedProduction && (
@@ -15,10 +16,10 @@ export const IS_DEV_ENV = !isForcedProduction && (
 )
 // Use environment variables if set, otherwise use current origin for deployed environments.
 // nginx proxies /api and /auth on the same host, so same-origin is the safest production default.
+const localApiOrigin = `${window.location.protocol}//${window.location.hostname}:8000`
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  (isProductionServer ? currentOrigin : 'http://localhost:8000')
-export const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL ||
-  (isProductionServer ? currentOrigin : 'http://localhost:5173')
+  (isProductionServer || isRemoteAccess ? currentOrigin : localApiOrigin)
+export const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL || currentOrigin
 // Helper function to build API URLs
 export const buildApiUrl = (path: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`

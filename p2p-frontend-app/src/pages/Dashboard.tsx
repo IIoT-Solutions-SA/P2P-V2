@@ -190,6 +190,24 @@ export default function Dashboard() {
           </section>
         ) : null}
 
+
+        <section className="peer-panel overflow-hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(245px,0.5fr)]" aria-labelledby="featured-title">
+          <div className="relative min-h-[254px] overflow-hidden bg-[var(--peer-navy)] px-6 py-8 text-white md:px-9">
+            <div className="absolute -bottom-28 -right-9 h-[270px] w-[310px] -rotate-[18deg] border border-[#75c3ba40]" />
+            <p className="peer-eyebrow relative z-10 !text-[#76c5bd]">Featured implementation</p>
+            <h2 id="featured-title" className="font-display relative z-10 my-4 max-w-[680px] text-[clamp(23px,2.6vw,33px)] font-semibold leading-[1.22] tracking-[-0.035em]">{featured?.title || "Manufacturing knowledge moves further when teams share what worked"}</h2>
+            <p className="relative z-10 mb-6 max-w-[650px] text-[13px] text-[#b8cdca]">{featured?.description || "Explore a field-tested implementation from the PeerLink network, including practical methods, measured outcomes and lessons for reuse."}</p>
+            {featured ? <Link to={`/usecases/${featured.company_slug}/${featured.title_slug}`} className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)] hover:bg-[#e6efed]">Read implementation <ArrowUpRight className="size-4" /></Link> : <Link to="/usecases" className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)]">Explore use cases <ArrowUpRight className="size-4" /></Link>}
+          </div>
+          <div className="grid content-center bg-[#e1e7e2] p-7">
+            <dl>
+              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Organization</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.company || "PeerLink network"}</dd></div>
+              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Category</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.category || "Manufacturing"}</dd></div>
+              <div className="grid grid-cols-[1fr_auto] gap-3 py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Measured impact</dt><dd className="font-display max-w-[150px] text-right text-sm font-bold text-[var(--peer-teal)]">{facts[0] || featured?.timeframe || "Field-tested"}</dd></div>
+            </dl>
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--peer-muted)]"><Eye className="size-3.5" />{featured?.views || 0} network views <Factory className="ml-2 size-3.5" />Verified story</div>
+          </div>
+        </section>
         </div>
         <div className="flex min-w-0 flex-col gap-[22px]">
         <aside className="peer-panel lg:col-start-2 lg:row-start-1" aria-labelledby="workspace-pulse-title">
@@ -256,23 +274,7 @@ export default function Dashboard() {
 
         </div>
       </div>
-        <section className="peer-panel mt-[22px] overflow-hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(245px,0.5fr)]" aria-labelledby="featured-title">
-          <div className="relative min-h-[254px] overflow-hidden bg-[var(--peer-navy)] px-6 py-8 text-white md:px-9">
-            <div className="absolute -bottom-28 -right-9 h-[270px] w-[310px] -rotate-[18deg] border border-[#75c3ba40]" />
-            <p className="peer-eyebrow relative z-10 !text-[#76c5bd]">Featured implementation</p>
-            <h2 id="featured-title" className="font-display relative z-10 my-4 max-w-[680px] text-[clamp(23px,2.6vw,33px)] font-semibold leading-[1.22] tracking-[-0.035em]">{featured?.title || "Manufacturing knowledge moves further when teams share what worked"}</h2>
-            <p className="relative z-10 mb-6 max-w-[650px] text-[13px] text-[#b8cdca]">{featured?.description || "Explore a field-tested implementation from the PeerLink network, including practical methods, measured outcomes and lessons for reuse."}</p>
-            {featured ? <Link to={`/usecases/${featured.company_slug}/${featured.title_slug}`} className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)] hover:bg-[#e6efed]">Read implementation <ArrowUpRight className="size-4" /></Link> : <Link to="/usecases" className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)]">Explore use cases <ArrowUpRight className="size-4" /></Link>}
-          </div>
-          <div className="grid content-center bg-[#e1e7e2] p-7">
-            <dl>
-              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Organization</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.company || "PeerLink network"}</dd></div>
-              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Category</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.category || "Manufacturing"}</dd></div>
-              <div className="grid grid-cols-[1fr_auto] gap-3 py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Measured impact</dt><dd className="font-display max-w-[150px] text-right text-sm font-bold text-[var(--peer-teal)]">{facts[0] || featured?.timeframe || "Field-tested"}</dd></div>
-            </dl>
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--peer-muted)]"><Eye className="size-3.5" />{featured?.views || 0} network views <Factory className="ml-2 size-3.5" />Verified story</div>
-          </div>
-        </section>
+
       </div>
     </div>
   )

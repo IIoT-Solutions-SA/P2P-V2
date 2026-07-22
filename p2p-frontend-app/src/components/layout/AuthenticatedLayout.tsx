@@ -30,7 +30,7 @@ function SidebarLink({ item, compact = false, onClick }: { item: AppNavItem; com
   return (
     <Link
       to={item.path}
-      reloadDocument={item.path === "/organization"}
+      reloadDocument={item.path === "/organization" || item.path === "/usecases"}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
@@ -179,7 +179,7 @@ function WorkspaceTopbar({ onMobileMenu }: { onMobileMenu: () => void }) {
               <label className="flex items-center gap-2 border border-[var(--peer-line)] bg-[#f7f6f1] px-3"><Search className="size-4 text-[var(--peer-muted)]" /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a workspace area" className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
             </div>
             <div className="max-h-80 overflow-y-auto p-2">
-              {visibleSearchItems.map((item) => <button key={item.path} type="button" onClick={() => { if (item.path === "/organization") window.location.assign(item.path); else navigate(item.path); setSearchOpen(false); setQuery("") }} className="flex w-full items-center justify-between border-b border-[var(--peer-line)] px-3 py-3 text-left text-sm font-semibold last:border-b-0 hover:bg-[#f2f5f1]"><span>{item.label}</span><ChevronRight className="size-4 text-[var(--peer-muted)]" /></button>)}
+              {visibleSearchItems.map((item) => <button key={item.path} type="button" onClick={() => { if (item.path === "/organization" || item.path === "/usecases") window.location.assign(item.path); else navigate(item.path); setSearchOpen(false); setQuery("") }} className="flex w-full items-center justify-between border-b border-[var(--peer-line)] px-3 py-3 text-left text-sm font-semibold last:border-b-0 hover:bg-[#f2f5f1]"><span>{item.label}</span><ChevronRight className="size-4 text-[var(--peer-muted)]" /></button>)}
               {visibleSearchItems.length === 0 ? <p className="px-3 py-8 text-center text-sm text-[var(--peer-muted)]">No workspace area matches “{query}”.</p> : null}
             </div>
           </section>

@@ -184,7 +184,7 @@ export default function Dashboard() {
               <Link
                 key={title}
                 to={href}
-                reloadDocument={href === "/organization"}
+                reloadDocument={href === "/organization" || href === "/usecases"}
                 className={cn(
                   "group grid min-h-[116px] grid-cols-[39px_1fr_20px] items-start gap-3 border-[var(--peer-line)] p-[22px] transition hover:bg-[#f2f5f1]",
                   index % 2 === 0 && "sm:border-r",
@@ -235,13 +235,14 @@ export default function Dashboard() {
                 <p className="peer-eyebrow mb-1">From the network</p>
                 <h2 id="keep-exploring-title" className="font-display text-[18px] font-semibold tracking-[-0.025em]">Keep exploring</h2>
               </div>
-              <Link to="/usecases" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">Browse all <ArrowRight className="size-3.5" /></Link>
+              <Link to="/usecases" reloadDocument className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">Browse all <ArrowRight className="size-3.5" /></Link>
             </div>
             <div className="grid sm:grid-cols-2">
               {explorationCases.map((item, index) => (
                 <Link
                   key={item.id}
                   to={`/usecases/${item.company_slug}/${item.title_slug}`}
+                  reloadDocument
                   className={cn("group grid min-w-0 grid-cols-[1fr_auto] gap-3 px-[22px] py-[17px] hover:bg-[#f2f5f1]", index === 0 && "sm:border-r sm:border-[var(--peer-line)]")}
                 >
                   <span className="min-w-0">
@@ -327,7 +328,7 @@ export default function Dashboard() {
             <p className="peer-eyebrow relative z-10 !text-[#76c5bd]">Featured implementation</p>
             <h2 id="featured-title" className="font-display relative z-10 my-4 max-w-[680px] text-[clamp(23px,2.6vw,33px)] font-semibold leading-[1.22] tracking-[-0.035em]">{featured?.title || "Manufacturing knowledge moves further when teams share what worked"}</h2>
             <p className="relative z-10 mb-6 max-w-[650px] text-[13px] text-[#b8cdca]">{featured?.description || "Explore a field-tested implementation from the PeerLink network, including practical methods, measured outcomes and lessons for reuse."}</p>
-            {featured ? <Link to={`/usecases/${featured.company_slug}/${featured.title_slug}`} className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)] hover:bg-[#e6efed]">Read implementation <ArrowUpRight className="size-4" /></Link> : <Link to="/usecases" className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)]">Explore use cases <ArrowUpRight className="size-4" /></Link>}
+            {featured ? <Link to={`/usecases/${featured.company_slug}/${featured.title_slug}`} reloadDocument className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)] hover:bg-[#e6efed]">Read implementation <ArrowUpRight className="size-4" /></Link> : <Link to="/usecases" reloadDocument className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)]">Explore use cases <ArrowUpRight className="size-4" /></Link>}
           </div>
           <div className="grid content-center bg-[#e1e7e2] p-7">
             <dl>

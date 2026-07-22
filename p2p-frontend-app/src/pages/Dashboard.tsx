@@ -184,6 +184,7 @@ export default function Dashboard() {
               <Link
                 key={title}
                 to={href}
+                reloadDocument={href === "/organization"}
                 className={cn(
                   "group grid min-h-[116px] grid-cols-[39px_1fr_20px] items-start gap-3 border-[var(--peer-line)] p-[22px] transition hover:bg-[#f2f5f1]",
                   index % 2 === 0 && "sm:border-r",

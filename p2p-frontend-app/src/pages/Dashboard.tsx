@@ -5,14 +5,17 @@ import {
   ArrowUpRight,
   Eye,
   Factory,
+  Gauge,
   MessageCircleQuestion,
+  MessageSquareReply,
   Network,
   NotebookPen,
+  ScanEye,
   UserSearch,
   UsersRound,
 } from "lucide-react"
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared/AppState"
-import { dashboardApi, type DashboardStats, type ForumDraft } from "@/lib/api/dashboard"
+import { dashboardApi, type DashboardActivity, type DashboardStats, type ForumDraft } from "@/lib/api/dashboard"
 import { useCasesApi, type UseCaseDraftListItem, type UseCaseListItem } from "@/lib/api/usecases"
 import { peopleApi, type OrganizationMember } from "@/lib/api/people"
 import { useAuth } from "@/contexts/AuthContext"
@@ -31,6 +34,8 @@ const defaultStats: DashboardStats = {
   connections_count: 0,
 }
 
+type ActivityFilter = "all" | "discussion" | "usecase"
+
 const memberName = (member: OrganizationMember) =>
   member.name || `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.email
 
@@ -41,6 +46,31 @@ const initials = (value: string) =>
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "PL"
+
+const activityKind = (activity: DashboardActivity): Exclude<ActivityFilter, "all"> => {
+  const value = `${activity.type || ""} ${activity.activity_type || ""} ${activity.action || ""}`.toLowerCase()
+  return value.includes("usecase") || value.includes("use case") || value.includes("publish") ? "usecase" : "discussion"
+}
+
+const activityTitle = (activity: DashboardActivity) =>
+  activity.target_title || activity.content || activity.description || "PeerLink knowledge update"
+
+const activityLead = (activity: DashboardActivity) => {
+  const person = activity.user || "A PeerLink member"
+  const action = activity.action || activity.activity_type || activity.type || "shared an update"
+  return { person, action: action.replaceAll("_", " ") }
+}
+
+const activityTime = (activity: DashboardActivity) => {
+  if (activity.time) return activity.time
+  if (!activity.created_at) return "Recently"
+  const date = new Date(activity.created_at)
+  if (Number.isNaN(date.getTime())) return "Recently"
+  return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+    -Math.max(1, Math.round((Date.now() - date.getTime()) / 3_600_000)),
+    "hour",
+  )
+}
 
 const impactFacts = (item?: UseCaseListItem) => {
   if (!item) return []
@@ -54,10 +84,12 @@ const impactFacts = (item?: UseCaseListItem) => {
 export default function Dashboard() {
   const { user, organization } = useAuth()
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
+  const [activities, setActivities] = useState<DashboardActivity[]>([])
   const [forumDrafts, setForumDrafts] = useState<ForumDraft[]>([])
   const [useCaseDrafts, setUseCaseDrafts] = useState<UseCaseDraftListItem[]>([])
   const [featuredCases, setFeaturedCases] = useState<UseCaseListItem[]>([])
   const [members, setMembers] = useState<OrganizationMember[]>([])
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,14 +97,16 @@ export default function Dashboard() {
     setLoading(true)
     setError(null)
     try {
-      const [statsData, forumDraftData, useCaseDraftData, caseData, peopleData] = await Promise.all([
+      const [statsData, activityData, forumDraftData, useCaseDraftData, caseData, peopleData] = await Promise.all([
         dashboardApi.stats().catch(() => defaultStats),
+        dashboardApi.activities().catch(() => ({ activities: [] })),
         dashboardApi.forumDrafts().catch(() => ({ drafts: [], total: 0 })),
         useCasesApi.drafts().catch(() => []),
         useCasesApi.list({ limit: 4, sortBy: "newest" }).catch(() => ({ items: [], total: 0, limit: 4, skip: 0, has_more: false })),
         peopleApi.organizationMembers().catch(() => ({ users: [] })),
       ])
       setStats(statsData)
+      setActivities(activityData.activities || [])
       setForumDrafts(forumDraftData.drafts || [])
       setUseCaseDrafts(useCaseDraftData || [])
       setFeaturedCases(caseData.items || [])
@@ -101,7 +135,9 @@ export default function Dashboard() {
     ],
     [forumDrafts, useCaseDrafts],
   )
+  const visibleActivities = activities.filter((activity) => activityFilter === "all" || activityKind(activity) === activityFilter).slice(0, 4)
   const featured = featuredCases[0]
+  const explorationCases = featuredCases.length > 1 ? featuredCases.slice(1, 3) : featuredCases.slice(0, 1)
   const facts = impactFacts(featured)
   const connectedMembers = members.filter((member) => member.isActive !== false).slice(0, 4)
   const today = new Intl.DateTimeFormat("en-GB", {
@@ -163,7 +199,35 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {featuredCases.length > 1 ? (
+        <section className="peer-panel lg:col-start-1" aria-labelledby="knowledge-motion-title">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[18px]">
+            <div><p className="peer-eyebrow mb-1">Across PeerLink</p><h2 id="knowledge-motion-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Knowledge in motion</h2></div>
+            <Link to="/forum" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">View all <ArrowRight className="size-3.5" /></Link>
+          </div>
+          <div className="flex gap-1 overflow-x-auto border-b border-[var(--peer-line)] px-[22px] pt-3">
+            {(["all", "discussion", "usecase"] as const).map((filter) => (
+              <button key={filter} type="button" onClick={() => setActivityFilter(filter)} className={cn("border-b-2 border-transparent px-3 py-2 text-xs font-semibold capitalize text-[var(--peer-muted)]", activityFilter === filter && "border-[var(--peer-teal)] text-[var(--peer-ink)]")}>
+                {filter === "all" ? "All activity" : filter === "discussion" ? "Discussions" : "Use cases"}
+              </button>
+            ))}
+          </div>
+          <div>
+            {visibleActivities.length > 0 ? visibleActivities.map((activity, index) => {
+              const kind = activityKind(activity)
+              const lead = activityLead(activity)
+              const Icon = kind === "usecase" ? (index % 2 === 0 ? ScanEye : Gauge) : MessageSquareReply
+              return (
+                <div key={`${activityTitle(activity)}-${index}`} className="grid grid-cols-[38px_minmax(0,1fr)_auto] gap-3 border-b border-[var(--peer-line)] px-[22px] py-[18px] last:border-b-0">
+                  <span className="grid size-[38px] place-items-center rounded-full bg-[#e7e6df] text-[var(--peer-teal)]"><Icon className="size-[17px]" /></span>
+                  <span className="min-w-0"><span className="block text-[13px]"><strong>{lead.person}</strong> {lead.action}</span><span className="block truncate text-xs text-[var(--peer-muted)]">{activityTitle(activity)}</span></span>
+                  <span className="pt-0.5 text-[11px] text-[#858e90]">{activityTime(activity)}</span>
+                </div>
+              )
+            }) : <EmptyState className="m-5 min-h-44 shadow-none" title="No activity in this view" description="New discussions and implementation stories will appear here." />}
+          </div>
+        </section>
+
+        {explorationCases.length > 0 ? (
           <section className="peer-panel" aria-labelledby="keep-exploring-title">
             <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[16px]">
               <div>
@@ -173,7 +237,7 @@ export default function Dashboard() {
               <Link to="/usecases" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">Browse all <ArrowRight className="size-3.5" /></Link>
             </div>
             <div className="grid sm:grid-cols-2">
-              {featuredCases.slice(1, 3).map((item, index) => (
+              {explorationCases.map((item, index) => (
                 <Link
                   key={item.id}
                   to={`/usecases/${item.company_slug}/${item.title_slug}`}
@@ -190,24 +254,6 @@ export default function Dashboard() {
           </section>
         ) : null}
 
-
-        <section className="peer-panel overflow-hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(245px,0.5fr)]" aria-labelledby="featured-title">
-          <div className="relative min-h-[254px] overflow-hidden bg-[var(--peer-navy)] px-6 py-8 text-white md:px-9">
-            <div className="absolute -bottom-28 -right-9 h-[270px] w-[310px] -rotate-[18deg] border border-[#75c3ba40]" />
-            <p className="peer-eyebrow relative z-10 !text-[#76c5bd]">Featured implementation</p>
-            <h2 id="featured-title" className="font-display relative z-10 my-4 max-w-[680px] text-[clamp(23px,2.6vw,33px)] font-semibold leading-[1.22] tracking-[-0.035em]">{featured?.title || "Manufacturing knowledge moves further when teams share what worked"}</h2>
-            <p className="relative z-10 mb-6 max-w-[650px] text-[13px] text-[#b8cdca]">{featured?.description || "Explore a field-tested implementation from the PeerLink network, including practical methods, measured outcomes and lessons for reuse."}</p>
-            {featured ? <Link to={`/usecases/${featured.company_slug}/${featured.title_slug}`} className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)] hover:bg-[#e6efed]">Read implementation <ArrowUpRight className="size-4" /></Link> : <Link to="/usecases" className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)]">Explore use cases <ArrowUpRight className="size-4" /></Link>}
-          </div>
-          <div className="grid content-center bg-[#e1e7e2] p-7">
-            <dl>
-              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Organization</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.company || "PeerLink network"}</dd></div>
-              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Category</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.category || "Manufacturing"}</dd></div>
-              <div className="grid grid-cols-[1fr_auto] gap-3 py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Measured impact</dt><dd className="font-display max-w-[150px] text-right text-sm font-bold text-[var(--peer-teal)]">{facts[0] || featured?.timeframe || "Field-tested"}</dd></div>
-            </dl>
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--peer-muted)]"><Eye className="size-3.5" />{featured?.views || 0} network views <Factory className="ml-2 size-3.5" />Verified story</div>
-          </div>
-        </section>
         </div>
         <div className="flex min-w-0 flex-col gap-[22px]">
         <aside className="peer-panel lg:col-start-2 lg:row-start-1" aria-labelledby="workspace-pulse-title">
@@ -274,7 +320,23 @@ export default function Dashboard() {
 
         </div>
       </div>
-
+        <section className="peer-panel mt-[22px] overflow-hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(245px,0.5fr)]" aria-labelledby="featured-title">
+          <div className="relative min-h-[254px] overflow-hidden bg-[var(--peer-navy)] px-6 py-8 text-white md:px-9">
+            <div className="absolute -bottom-28 -right-9 h-[270px] w-[310px] -rotate-[18deg] border border-[#75c3ba40]" />
+            <p className="peer-eyebrow relative z-10 !text-[#76c5bd]">Featured implementation</p>
+            <h2 id="featured-title" className="font-display relative z-10 my-4 max-w-[680px] text-[clamp(23px,2.6vw,33px)] font-semibold leading-[1.22] tracking-[-0.035em]">{featured?.title || "Manufacturing knowledge moves further when teams share what worked"}</h2>
+            <p className="relative z-10 mb-6 max-w-[650px] text-[13px] text-[#b8cdca]">{featured?.description || "Explore a field-tested implementation from the PeerLink network, including practical methods, measured outcomes and lessons for reuse."}</p>
+            {featured ? <Link to={`/usecases/${featured.company_slug}/${featured.title_slug}`} className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)] hover:bg-[#e6efed]">Read implementation <ArrowUpRight className="size-4" /></Link> : <Link to="/usecases" className="relative z-10 inline-flex min-h-10 items-center gap-2 bg-white px-4 text-xs font-bold text-[var(--peer-navy)]">Explore use cases <ArrowUpRight className="size-4" /></Link>}
+          </div>
+          <div className="grid content-center bg-[#e1e7e2] p-7">
+            <dl>
+              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Organization</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.company || "PeerLink network"}</dd></div>
+              <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[#c4ccc6] py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Category</dt><dd className="font-display text-right text-[13px] font-bold">{featured?.category || "Manufacturing"}</dd></div>
+              <div className="grid grid-cols-[1fr_auto] gap-3 py-3.5"><dt className="text-[11px] text-[var(--peer-muted)]">Measured impact</dt><dd className="font-display max-w-[150px] text-right text-sm font-bold text-[var(--peer-teal)]">{facts[0] || featured?.timeframe || "Field-tested"}</dd></div>
+            </dl>
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--peer-muted)]"><Eye className="size-3.5" />{featured?.views || 0} network views <Factory className="ml-2 size-3.5" />Verified story</div>
+          </div>
+        </section>
       </div>
     </div>
   )

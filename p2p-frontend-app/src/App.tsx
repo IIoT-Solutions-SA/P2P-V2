@@ -17,9 +17,20 @@ import Connect from './pages/Connect'
 import Organization from './pages/Organization'
 import ProtectedRoute from './components/ProtectedRoute'
 import ScrollToTop from './components/ScrollToTop'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout'
 import { AuthLayout, PublicLayout } from './components/layout/PublicLayout'
+import { LoadingState } from './components/shared/AppState'
+
+function HomeRoute() {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[var(--peer-paper)] px-5 py-10"><LoadingState title="Opening PeerLink" description="Checking your workspace session." /></div>
+  }
+
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
+}
 
 function App() {
   return (
@@ -29,7 +40,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route element={<PublicLayout />}>
-            <Route path="/home" element={<LandingPage />} />
+            <Route path="/home" element={<HomeRoute />} />
           </Route>
 
           <Route element={<AuthLayout />}>

@@ -5,17 +5,14 @@ import {
   ArrowUpRight,
   Eye,
   Factory,
-  Gauge,
   MessageCircleQuestion,
-  MessageSquareReply,
   Network,
   NotebookPen,
-  ScanEye,
   UserSearch,
   UsersRound,
 } from "lucide-react"
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared/AppState"
-import { dashboardApi, type DashboardActivity, type DashboardStats, type ForumDraft } from "@/lib/api/dashboard"
+import { dashboardApi, type DashboardStats, type ForumDraft } from "@/lib/api/dashboard"
 import { useCasesApi, type UseCaseDraftListItem, type UseCaseListItem } from "@/lib/api/usecases"
 import { peopleApi, type OrganizationMember } from "@/lib/api/people"
 import { useAuth } from "@/contexts/AuthContext"
@@ -34,8 +31,6 @@ const defaultStats: DashboardStats = {
   connections_count: 0,
 }
 
-type ActivityFilter = "all" | "discussion" | "usecase"
-
 const memberName = (member: OrganizationMember) =>
   member.name || `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.email
 
@@ -46,31 +41,6 @@ const initials = (value: string) =>
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "PL"
-
-const activityKind = (activity: DashboardActivity): Exclude<ActivityFilter, "all"> => {
-  const value = `${activity.type || ""} ${activity.activity_type || ""} ${activity.action || ""}`.toLowerCase()
-  return value.includes("usecase") || value.includes("use case") || value.includes("publish") ? "usecase" : "discussion"
-}
-
-const activityTitle = (activity: DashboardActivity) =>
-  activity.target_title || activity.content || activity.description || "PeerLink knowledge update"
-
-const activityLead = (activity: DashboardActivity) => {
-  const person = activity.user || "A PeerLink member"
-  const action = activity.action || activity.activity_type || activity.type || "shared an update"
-  return { person, action: action.replaceAll("_", " ") }
-}
-
-const activityTime = (activity: DashboardActivity) => {
-  if (activity.time) return activity.time
-  if (!activity.created_at) return "Recently"
-  const date = new Date(activity.created_at)
-  if (Number.isNaN(date.getTime())) return "Recently"
-  return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-    -Math.max(1, Math.round((Date.now() - date.getTime()) / 3_600_000)),
-    "hour",
-  )
-}
 
 const impactFacts = (item?: UseCaseListItem) => {
   if (!item) return []
@@ -84,12 +54,10 @@ const impactFacts = (item?: UseCaseListItem) => {
 export default function Dashboard() {
   const { user, organization } = useAuth()
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
-  const [activities, setActivities] = useState<DashboardActivity[]>([])
   const [forumDrafts, setForumDrafts] = useState<ForumDraft[]>([])
   const [useCaseDrafts, setUseCaseDrafts] = useState<UseCaseDraftListItem[]>([])
   const [featuredCases, setFeaturedCases] = useState<UseCaseListItem[]>([])
   const [members, setMembers] = useState<OrganizationMember[]>([])
-  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -97,16 +65,14 @@ export default function Dashboard() {
     setLoading(true)
     setError(null)
     try {
-      const [statsData, activityData, forumDraftData, useCaseDraftData, caseData, peopleData] = await Promise.all([
+      const [statsData, forumDraftData, useCaseDraftData, caseData, peopleData] = await Promise.all([
         dashboardApi.stats().catch(() => defaultStats),
-        dashboardApi.activities().catch(() => ({ activities: [] })),
         dashboardApi.forumDrafts().catch(() => ({ drafts: [], total: 0 })),
         useCasesApi.drafts().catch(() => []),
         useCasesApi.list({ limit: 4, sortBy: "newest" }).catch(() => ({ items: [], total: 0, limit: 4, skip: 0, has_more: false })),
         peopleApi.organizationMembers().catch(() => ({ users: [] })),
       ])
       setStats(statsData)
-      setActivities(activityData.activities || [])
       setForumDrafts(forumDraftData.drafts || [])
       setUseCaseDrafts(useCaseDraftData || [])
       setFeaturedCases(caseData.items || [])
@@ -135,7 +101,6 @@ export default function Dashboard() {
     ],
     [forumDrafts, useCaseDrafts],
   )
-  const visibleActivities = activities.filter((activity) => activityFilter === "all" || activityKind(activity) === activityFilter).slice(0, 4)
   const featured = featuredCases[0]
   const facts = impactFacts(featured)
   const connectedMembers = members.filter((member) => member.isActive !== false).slice(0, 4)
@@ -178,7 +143,7 @@ export default function Dashboard() {
               { href: "/forum?compose=true", title: "Ask a question", copy: "Bring a manufacturing challenge to the community.", icon: MessageCircleQuestion },
               { href: "/submit", title: "Share a use case", copy: "Document an implementation your peers can reuse.", icon: NotebookPen },
               { href: "/connect", title: "Find collaborators", copy: "Connect with specialists across the network.", icon: UserSearch },
-              { href: "/organization", title: organizationName, copy: "View your organization profile, members and activity.", icon: UsersRound },
+              { href: "/organization", title: organizationName, copy: "View your organization profile and members.", icon: UsersRound },
             ].map(({ href, title, copy, icon: Icon }, index) => (
               <Link
                 key={title}
@@ -195,34 +160,6 @@ export default function Dashboard() {
                 <ArrowUpRight className="mt-2 size-[17px] text-[#899295] transition group-hover:text-[var(--peer-teal)]" />
               </Link>
             ))}
-          </div>
-        </section>
-
-        <section className="peer-panel lg:col-start-1" aria-labelledby="knowledge-motion-title">
-          <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[18px]">
-            <div><p className="peer-eyebrow mb-1">Across PeerLink</p><h2 id="knowledge-motion-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Knowledge in motion</h2></div>
-            <Link to="/forum" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">View all <ArrowRight className="size-3.5" /></Link>
-          </div>
-          <div className="flex gap-1 overflow-x-auto border-b border-[var(--peer-line)] px-[22px] pt-3">
-            {(["all", "discussion", "usecase"] as const).map((filter) => (
-              <button key={filter} type="button" onClick={() => setActivityFilter(filter)} className={cn("border-b-2 border-transparent px-3 py-2 text-xs font-semibold capitalize text-[var(--peer-muted)]", activityFilter === filter && "border-[var(--peer-teal)] text-[var(--peer-ink)]")}>
-                {filter === "all" ? "All activity" : filter === "discussion" ? "Discussions" : "Use cases"}
-              </button>
-            ))}
-          </div>
-          <div>
-            {visibleActivities.length > 0 ? visibleActivities.map((activity, index) => {
-              const kind = activityKind(activity)
-              const lead = activityLead(activity)
-              const Icon = kind === "usecase" ? (index % 2 === 0 ? ScanEye : Gauge) : MessageSquareReply
-              return (
-                <div key={`${activityTitle(activity)}-${index}`} className="grid grid-cols-[38px_minmax(0,1fr)_auto] gap-3 border-b border-[var(--peer-line)] px-[22px] py-[18px] last:border-b-0">
-                  <span className="grid size-[38px] place-items-center rounded-full bg-[#e7e6df] text-[var(--peer-teal)]"><Icon className="size-[17px]" /></span>
-                  <span className="min-w-0"><span className="block text-[13px]"><strong>{lead.person}</strong> {lead.action}</span><span className="block truncate text-xs text-[var(--peer-muted)]">{activityTitle(activity)}</span></span>
-                  <span className="pt-0.5 text-[11px] text-[#858e90]">{activityTime(activity)}</span>
-                </div>
-              )
-            }) : <EmptyState className="m-5 min-h-44 shadow-none" title="No activity in this view" description="New discussions and implementation stories will appear here." />}
           </div>
         </section>
 

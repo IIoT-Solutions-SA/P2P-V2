@@ -198,9 +198,6 @@ export default function Organization() {
     }
   }
 
-  if (loading) return <div className="px-4 py-8 md:px-8 xl:px-14"><LoadingState title="Loading IIoT Solutions" description="Retrieving the organization profile, roster and permitted administration data." /></div>
-  if (error) return <div className="px-4 py-8 md:px-8 xl:px-14"><ErrorState title="Organization unavailable" description={<><span>{error}</span><span className="mt-2 block">No membership or invitation changes were made.</span></>} actionLabel="Retry" onAction={() => void loadOrganization()} /></div>
-
   const adminTabs: Array<{ id: Exclude<Tab, "roster">; label: string }> = [
     { id: "invitations", label: "Invitations" },
     { id: "permissions", label: "Permissions" },
@@ -223,6 +220,21 @@ export default function Organization() {
           </div>
         </header>
 
+        {loading ? (
+          <LoadingState
+            className="min-h-[420px]"
+            title={`Loading ${organizationName}`}
+            description="Retrieving the organization profile, roster and permitted administration data."
+          />
+        ) : error ? (
+          <ErrorState
+            title="Organization unavailable"
+            description={<><span>{error}</span><span className="mt-2 block">No membership or invitation changes were made.</span></>}
+            actionLabel="Retry"
+            onAction={() => void loadOrganization()}
+          />
+        ) : (
+          <>
         <div className="mb-5 flex gap-3 border-l-4 border-[var(--peer-teal)] bg-[var(--peer-teal-soft)] p-4">
           {isAdmin ? <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[var(--peer-teal)]" /> : <Building2 className="mt-0.5 size-5 shrink-0 text-[var(--peer-teal)]" />}
           <div>
@@ -389,6 +401,8 @@ export default function Organization() {
         {tab === "settings" ? (
           isAdmin ? <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]"><section className="peer-panel"><div className="border-b border-[var(--peer-line)] p-5"><p className="peer-eyebrow mb-1">Administrator settings</p><h2 className="font-display text-xl font-semibold">Verified organization information</h2><p className="mt-1 text-xs text-[var(--peer-muted)]">Current live profile fields are displayed without simulated editing.</p></div><dl className="grid sm:grid-cols-2"><DetailRow label="Organization" value={organizationName} /><DetailRow label="Verified domain" value={organization?.domain} /><DetailRow label="Industry" value={organization?.industry || user?.industrySector} /><DetailRow label="Organization size" value={organization?.size} /><DetailRow label="Country" value={organization?.country} /><DetailRow label="City" value={organization?.city || user?.location} /><DetailRow label="Default invitation role" value="Member (current endpoint behavior)" /><DetailRow label="Organization status" value={organization?.isActive === false ? "Inactive" : "Active"} /></dl></section><aside className="peer-panel h-fit p-5"><Building2 className="mb-3 size-5 text-[var(--peer-teal)]" /><p className="font-semibold">Settings are read-only</p><p className="mt-2 text-sm leading-6 text-[var(--peer-muted)]">The backend returns organization profile data but does not expose update endpoints for the profile, default role, domain policy or join notifications.</p><Button disabled variant="outline" className="mt-4 w-full bg-white"><Shield className="size-4" />Save settings unavailable</Button></aside></div> : <AccessDeniedState title="Organization settings are administrator-only" description="Members can view the shared organization profile, but cannot open administrator settings." />
         ) : null}
+          </>
+        )}
       </div>
     </div>
   )

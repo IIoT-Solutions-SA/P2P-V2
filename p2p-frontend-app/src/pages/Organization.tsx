@@ -120,7 +120,7 @@ export default function Organization() {
       setInvitations(invitationData.invitations || [])
       if (useCaseData) {
         const organizationKey = normalized(organizationName)
-        setOrganizationUseCases((useCaseData.items || []).filter((item) => normalized(item.company) === organizationKey).slice(0, 3))
+        setOrganizationUseCases((useCaseData.items || []).filter((item) => normalized(item.organization) === organizationKey).slice(0, 3))
         setUseCasesAvailable(true)
       } else {
         setOrganizationUseCases([])

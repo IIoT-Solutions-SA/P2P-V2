@@ -231,7 +231,11 @@ async def get_use_cases(
             query["category"] = category_map[category]
         
         if escaped_search:
-            query["$or"] = [ {"title": {"$regex": escaped_search, "$options": "i"}}, {"factory_name": {"$regex": escaped_search, "$options": "i"}} ]
+            query["$or"] = [
+                {"title": {"$regex": escaped_search, "$options": "i"}},
+                {"factory_name": {"$regex": escaped_search, "$options": "i"}},
+                {"organization_name": {"$regex": escaped_search, "$options": "i"}},
+            ]
         
         sort_map = { "newest": ("_id", SortDirection.DESCENDING), "most_viewed": ("view_count", SortDirection.DESCENDING), "most_liked": ("like_count", SortDirection.DESCENDING) }
         sort_field, sort_direction = sort_map.get(sort_by, ("_id", SortDirection.DESCENDING))
@@ -302,6 +306,7 @@ async def get_use_cases(
                 "title_slug": case.title_slug,
                 "company_slug": case.company_slug,
                 "company": getattr(case, 'factory_name', "Unknown"),
+                "organization": getattr(case, 'organization_name', None) or (getattr(submitter, 'company', None) if submitter else None),
                 "industry": getattr(submitter, 'industry_sector', "Manufacturing") if submitter else "Manufacturing",
                 "category": getattr(case, 'category', "General"),
                 "description": getattr(case, 'problem_statement', ""),

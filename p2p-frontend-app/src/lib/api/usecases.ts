@@ -6,6 +6,7 @@ export interface UseCaseListItem {
   title_slug: string
   company_slug: string
   company: string
+  organization?: string
   industry?: string
   category: string
   description?: string

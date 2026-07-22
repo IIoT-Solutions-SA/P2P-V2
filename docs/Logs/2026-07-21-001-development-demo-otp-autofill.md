@@ -1,7 +1,7 @@
 # Development demo OTP autofill
 
 **Date:** 2026-07-21  
-**Status:** Implemented and loaded locally; uncommitted and unpushed
+**Status:** Removed on 2026-07-22 before production deployment; retained only as historical implementation context
 
 ## Request
 
@@ -37,7 +37,8 @@ Make PeerLink demonstrations smoother by automatically filling the six-digit sig
 - `p2p-frontend-app/src/lib/api/auth.ts`
 - `p2p-frontend-app/src/pages/OtpVerification.tsx`
 
-## Notes
+## Removal note — 2026-07-22
 
-- This behavior is deliberately unavailable in production.
-- No commit or push was performed.
+Hamza decided not to retain automatic code filling. The fixed OTP configuration, development OTP endpoint, frontend API call, automatic digit population, resend refill, and demo-mode notice were all removed before the redesigned frontend was deployed to OCI production.
+
+Production continues to use normal cryptographically random emailed OTP codes. See `2026-07-22-001-peerlink-oci-production-deployment-and-data-cutover.md` for deployment evidence.

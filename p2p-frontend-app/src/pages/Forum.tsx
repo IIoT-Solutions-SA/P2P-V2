@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent } from "react"
 import { useSearchParams } from "react-router-dom"
 import { ArrowLeft, BadgeCheck, Bookmark, Bot, CheckCircle2, CircleHelp, Clock3, DatabaseZap, Eye, Film, Flame, Gauge, ImageIcon, MessageSquare, Paperclip, Plus, ScanEye, Search, Send, ThumbsUp, Trash2, X } from "lucide-react"
@@ -147,6 +147,7 @@ export default function Forum() {
   const [replyFiles, setReplyFiles] = useState<File[]>([])
   const [mediaError, setMediaError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const closingThreadRef = useRef(false)
   const postParam = searchParams.get("post")
 
   const loadForum = useCallback(async () => {
@@ -190,7 +191,11 @@ export default function Forum() {
   }, [loadForum])
 
   useEffect(() => {
-    if (postParam && selectedPost?.id !== postParam) void openThread(postParam)
+    if (!postParam) {
+      closingThreadRef.current = false
+      return
+    }
+    if (!closingThreadRef.current && selectedPost?.id !== postParam) void openThread(postParam)
   }, [openThread, postParam, selectedPost?.id])
 
   const filteredPosts = useMemo(() => {
@@ -206,12 +211,13 @@ export default function Forum() {
   }, [bookmarks, posts, query, viewFilter])
 
   const closeThread = () => {
+    closingThreadRef.current = true
     setSelectedPost(null)
     setReply("")
     setReplyTo(null)
     setReplyFiles([])
     setMediaError(null)
-    setSearchParams({})
+    setSearchParams({}, { replace: true })
   }
 
   const submitPost = async (event: FormEvent) => {

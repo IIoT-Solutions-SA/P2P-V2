@@ -14,11 +14,12 @@ export const IS_DEV_ENV = !isForcedProduction && (
   import.meta.env.VITE_ENVIRONMENT === 'development' ||
   import.meta.env.VITE_NODE_ENV === 'development'
 )
-// Use environment variables if set, otherwise use current origin for deployed environments.
-// nginx proxies /api and /auth on the same host, so same-origin is the safest production default.
-const localApiOrigin = `${window.location.protocol}//${window.location.hostname}:8000`
+// Vite's source-development server talks directly to the backend on port 8000.
+// Every built/deployed copy (including the Android-emulator PWA tunnel) must stay
+// same-origin so nginx can proxy /api and /auth without exposing a second port.
+const developmentApiOrigin = `${window.location.protocol}//${window.location.hostname}:8000`
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  (isProductionServer || isRemoteAccess ? currentOrigin : localApiOrigin)
+  (import.meta.env.DEV && !isProductionServer && !isRemoteAccess ? developmentApiOrigin : currentOrigin)
 export const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL || currentOrigin
 // Helper function to build API URLs
 export const buildApiUrl = (path: string): string => {

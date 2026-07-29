@@ -2,7 +2,7 @@ param(
     [string]$MiniPcHost = "100.109.94.96",
     [string]$MiniPcUser = "hamza-minipc",
     [string]$AvdName = "Pixel_7",
-    [int]$LocalPort = 5183,
+    [int]$LocalPort = 5173,
     [int]$MiniPcPort = 5173
 )
 

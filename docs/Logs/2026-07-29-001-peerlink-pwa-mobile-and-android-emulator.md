@@ -63,11 +63,13 @@ C:\Users\hamza\Documents\PeerLinkDemo\start_peerlink_android_demo.ps1
 The launcher:
 
 1. verifies the laptop Android SDK and ADB;
-2. starts an SSH tunnel from laptop port `5183` to Mini PC PeerLink port `5173`;
+2. starts an SSH tunnel from laptop port `5173` to Mini PC PeerLink port `5173`;
 3. boots the `Pixel_7` AVD;
 4. waits for Android startup;
-5. applies `adb reverse tcp:5183 tcp:5183`;
-6. opens `http://127.0.0.1:5183` in Android Chrome.
+5. applies `adb reverse tcp:5173 tcp:5173`;
+6. opens `http://127.0.0.1:5173` in Android Chrome.
+
+The emulator origin deliberately uses port `5173`, which is already authorized by PeerLink's local authentication CORS policy. An initial port `5183` launcher caused SuperTokens sign-in to fail with `Failed to fetch` because that origin was not authorized.
 
 Localhost is required because service workers and installable PWAs need a trustworthy origin. Android emulator localhost maps to laptop localhost through ADB, and laptop localhost maps to Mini PC localhost through SSH.
 
@@ -116,7 +118,7 @@ Key BrowserOps screenshots:
 The launcher was executed against Hamza's personal laptop and successfully reported:
 
 ```text
-PeerLink opened in the Android emulator: http://127.0.0.1:5183
+PeerLink opened in the Android emulator: http://127.0.0.1:5173
 ```
 
 Verified:

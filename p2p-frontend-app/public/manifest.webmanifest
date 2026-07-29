@@ -1,0 +1,34 @@
+{
+  "id": "/",
+  "name": "PeerLink Saudi Manufacturing Network",
+  "short_name": "PeerLink",
+  "description": "Connect with Saudi manufacturers, specialists, discussions, and proven industrial use cases.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f3f0e8",
+  "theme_color": "#0b2f39",
+  "categories": ["business", "productivity", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

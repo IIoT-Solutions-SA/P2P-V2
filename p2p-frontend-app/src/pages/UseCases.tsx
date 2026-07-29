@@ -174,9 +174,9 @@ export default function UseCases() {
               {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex">
             {sortOptions.map((option) => (
-              <Button key={option.id} variant="outline" onClick={() => setSortBy(option.id)} className={`h-[42px] rounded-none px-3 text-xs ${sortBy === option.id ? "border-[var(--peer-navy)] bg-[var(--peer-navy)] text-white hover:bg-[#174550] hover:text-white" : "border-[var(--peer-line)] bg-white"}`}>
+              <Button key={option.id} variant="outline" onClick={() => setSortBy(option.id)} className={`h-[42px] w-full rounded-none px-3 text-xs lg:w-auto ${sortBy === option.id ? "border-[var(--peer-navy)] bg-[var(--peer-navy)] text-white hover:bg-[#174550] hover:text-white" : "border-[var(--peer-line)] bg-white"}`}>
                 <ArrowUpDown className="size-3.5" />{option.label}
               </Button>
             ))}

@@ -152,9 +152,9 @@ function WorkspaceTopbar({ onMobileMenu }: { onMobileMenu: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-[var(--peer-topbar-height)] items-center justify-between gap-4 border-b border-[var(--peer-line)] bg-[rgba(243,240,232,0.94)] px-4 backdrop-blur md:px-8 xl:px-14">
+    <header className="sticky top-0 z-20 flex h-[calc(var(--peer-topbar-height)+env(safe-area-inset-top))] items-center justify-between gap-4 border-b border-[var(--peer-line)] bg-[rgba(243,240,232,0.94)] px-4 pt-[env(safe-area-inset-top)] backdrop-blur md:px-8 xl:px-14">
       <div className="flex min-w-0 items-center gap-3">
-        <button type="button" onClick={onMobileMenu} className="grid size-10 place-items-center border border-[var(--peer-line)] bg-transparent text-[var(--peer-ink)] lg:hidden" aria-label="Open navigation menu">
+        <button type="button" onClick={onMobileMenu} className="grid size-11 place-items-center border border-[var(--peer-line)] bg-white text-[var(--peer-ink)] md:hidden" aria-label="Open navigation menu">
           <Menu className="size-5" />
         </button>
         <div className="hidden items-center gap-2 text-sm text-[var(--peer-muted)] sm:flex">
@@ -266,7 +266,7 @@ export function AuthenticatedLayout() {
                 <X className="size-5" />
               </button>
             </div>
-            <div className="flex h-[calc(100%-var(--peer-topbar-height))] flex-col overflow-y-auto px-4 py-6">
+            <div className="flex h-[calc(100%-var(--peer-topbar-height))] flex-col overflow-y-auto px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6">
               <NavGroup label="Workspace" items={workspaceNavItems} onItemClick={() => setMobileOpen(false)} />
               <NavGroup label="Organization" items={visibleOrganizationItems} onItemClick={() => setMobileOpen(false)} />
               <div className="flex-1" />
@@ -276,7 +276,7 @@ export function AuthenticatedLayout() {
         </div>
       ) : null}
 
-      <div className="min-h-screen md:ml-[var(--peer-rail-compact)] lg:ml-[var(--peer-rail-width)]">
+      <div className="min-h-[100dvh] md:ml-[var(--peer-rail-compact)] lg:ml-[var(--peer-rail-width)]">
         <WorkspaceTopbar onMobileMenu={() => setMobileOpen(true)} />
         <main id="workspace-content" className="min-h-[calc(100vh-var(--peer-topbar-height))]">
           <Outlet />

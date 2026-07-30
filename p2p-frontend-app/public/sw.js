@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'peerlink-pwa-v1'
+const CACHE_VERSION = 'peerlink-pwa-v2'
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -7,6 +7,11 @@ const APP_SHELL = [
   '/icons/icon-512.png',
   '/icons/icon-maskable-512.png',
 ]
+
+const offlineResponse = () => new Response('PeerLink is temporarily offline.', {
+  status: 503,
+  headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+})
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)))
@@ -29,27 +34,35 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
 
   if (request.mode === 'navigate') {
+    const networkResponse = fetch(request)
+      .then(async (response) => {
+        if (response.ok) {
+          const cache = await caches.open(CACHE_VERSION)
+          await cache.put('/', response.clone())
+        }
+        return response
+      })
+      .catch(() => null)
+
+    event.waitUntil(networkResponse.then(() => undefined))
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone()
-          caches.open(CACHE_VERSION).then((cache) => cache.put('/', copy))
-          return response
-        })
-        .catch(() => caches.match('/')),
+      caches.match('/').then(async (cachedShell) => cachedShell || (await networkResponse) || offlineResponse()),
     )
     return
   }
 
+  const networkResponse = fetch(request)
+    .then(async (response) => {
+      if (response.ok) {
+        const cache = await caches.open(CACHE_VERSION)
+        await cache.put(request, response.clone())
+      }
+      return response
+    })
+    .catch(() => null)
+
+  event.waitUntil(networkResponse.then(() => undefined))
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok) {
-          const copy = response.clone()
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy))
-        }
-        return response
-      })
-      .catch(() => caches.match(request)),
+    caches.match(request).then(async (cached) => cached || (await networkResponse) || offlineResponse()),
   )
 })

@@ -66,6 +66,7 @@ export default function UseCases() {
   const [liked, setLiked] = useState<Set<string>>(new Set())
   const [category, setCategory] = useState("all")
   const [query, setQuery] = useState("")
+  const [debouncedQuery, setDebouncedQuery] = useState("")
   const [sortBy, setSortBy] = useState("newest")
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
@@ -79,7 +80,7 @@ export default function UseCases() {
     try {
       const [categoryData, listData, statsData, bookmarkData] = await Promise.all([
         useCasesApi.categories(),
-        useCasesApi.list({ category, search: query, sortBy, limit, skip: (page - 1) * limit }),
+        useCasesApi.list({ category, search: debouncedQuery, sortBy, limit, skip: (page - 1) * limit }),
         useCasesApi.stats().catch(() => null),
         useCasesApi.bookmarks().catch(() => []),
       ])
@@ -93,14 +94,16 @@ export default function UseCases() {
     } finally {
       setLoading(false)
     }
-  }, [category, page, query, sortBy])
+  }, [category, debouncedQuery, page, sortBy])
 
   useEffect(() => {
-    const id = window.setTimeout(() => void loadLibrary(), 250)
+    const id = window.setTimeout(() => setDebouncedQuery(query), 250)
     return () => window.clearTimeout(id)
-  }, [loadLibrary])
+  }, [query])
 
-  useEffect(() => setPage(1), [category, query, sortBy])
+  useEffect(() => { void loadLibrary() }, [loadLibrary])
+
+  useEffect(() => setPage(1), [category, debouncedQuery, sortBy])
   useEffect(() => window.scrollTo({ top: 0, behavior: "smooth" }), [page])
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total])

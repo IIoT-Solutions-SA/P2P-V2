@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ElementType } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import {
   Activity,
   ArrowRight,
@@ -58,7 +58,6 @@ const compactSummary = (value?: string, maxLength = 140) => {
 }
 
 export default function UseCases() {
-  const navigate = useNavigate()
   const [categories, setCategories] = useState<Array<{ id: string; name: string; count: number }>>([])
   const [items, setItems] = useState<UseCaseListItem[]>([])
   const [stats, setStats] = useState<{ totalUseCases: number; contributingCompanies: number; successStories: number } | null>(null)
@@ -164,7 +163,7 @@ export default function UseCases() {
       <section className="peer-panel mb-[22px] overflow-hidden" aria-labelledby="library-tools-title">
         <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[18px]">
           <div><p className="peer-eyebrow mb-1">Find implementation evidence</p><h2 id="library-tools-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Search, categories and filters</h2></div>
-          {items[0] ? <Link to={`/usecases/${items[0].company_slug}/${items[0].title_slug}`} className="hidden items-center gap-1 text-xs font-bold text-[var(--peer-blue)] sm:inline-flex">Open selected <ArrowRight className="size-3.5" /></Link> : null}
+          {items[0] ? <Link to={`/usecases/${items[0].company_slug}/${items[0].title_slug}`} reloadDocument className="hidden items-center gap-1 text-xs font-bold text-[var(--peer-blue)] sm:inline-flex">Open selected <ArrowRight className="size-3.5" /></Link> : null}
         </div>
         <div className="grid gap-2.5 border-b border-[var(--peer-line)] bg-[#f7f5ee] px-[22px] py-[18px] lg:grid-cols-[minmax(260px,1fr)_190px_auto]">
           <label className="relative block">
@@ -221,7 +220,7 @@ export default function UseCases() {
                 const itemBenefits = displayMetrics(item.results?.benefits)
                 return (
                   <li key={item.id} className="grid gap-4 border-b border-[var(--peer-line)] px-[22px] py-5 last:border-b-0 hover:bg-[#f2f5f1] md:grid-cols-[104px_minmax(0,1fr)_auto]">
-                    <button type="button" onClick={() => navigate(`/usecases/${item.company_slug}/${item.title_slug}`)} className="grid h-[104px] w-full place-items-center self-start overflow-hidden border border-[#c4d7d1] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)] md:w-[104px]" aria-label={`Open ${item.title}`}>
+                    <button type="button" onClick={() => window.location.assign(`/usecases/${item.company_slug}/${item.title_slug}`)} className="grid h-[104px] w-full place-items-center self-start overflow-hidden border border-[#c4d7d1] bg-[var(--peer-teal-soft)] text-[var(--peer-teal)] md:w-[104px]" aria-label={`Open ${item.title}`}>
                       {item.image ? <img src={item.image} alt="" className="h-full w-full object-cover" /> : <Activity className="size-8" />}
                     </button>
                     <div className="min-w-0">
@@ -229,7 +228,7 @@ export default function UseCases() {
                         <span className="inline-flex min-h-[28px] items-center gap-1.5 border border-[#c8d6d1] bg-[var(--peer-teal-soft)] px-2.5 font-bold text-[var(--peer-teal)]">{item.verified ? <CheckCircle2 className="size-3.5" /> : <Factory className="size-3.5" />}{item.category}</span>
                         {item.industry ? <span>{item.industry}</span> : null}<span>{item.company}</span>
                       </div>
-                      <Link to={`/usecases/${item.company_slug}/${item.title_slug}`} className="font-display text-[17px] font-bold leading-[1.3] tracking-[-0.02em] hover:text-[var(--peer-blue)]">{item.title}</Link>
+                      <Link to={`/usecases/${item.company_slug}/${item.title_slug}`} reloadDocument className="font-display text-[17px] font-bold leading-[1.3] tracking-[-0.02em] hover:text-[var(--peer-blue)]">{item.title}</Link>
                       <p className="mt-1.5 line-clamp-2 text-[13px] leading-5 text-[var(--peer-muted)]">{item.description || "Open this implementation to review its challenge, approach, measured outcomes, and lessons learned."}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-1 text-xs text-[var(--peer-muted)]">
                         <span className="inline-flex items-center gap-1 px-2"><Eye className="size-3.5" />{item.views}</span>
@@ -266,7 +265,7 @@ export default function UseCases() {
               {(featuredItems.length ? featuredItems : items.slice(0, 3)).map((item) => {
                 const metrics = displayMetrics(item.results?.benefits)
                 const summary = metrics.length ? metrics.join(" · ") : compactSummary(item.description)
-                return <li key={item.id} className="border-b border-[var(--peer-line)] px-5 py-3.5 last:border-b-0"><Link to={`/usecases/${item.company_slug}/${item.title_slug}`} className="text-[13px] font-bold hover:text-[var(--peer-blue)]">{item.title}</Link><span className="mt-1 block text-[11px] leading-4 text-[var(--peer-muted)]">{summary}</span></li>
+                return <li key={item.id} className="border-b border-[var(--peer-line)] px-5 py-3.5 last:border-b-0"><Link to={`/usecases/${item.company_slug}/${item.title_slug}`} reloadDocument className="text-[13px] font-bold hover:text-[var(--peer-blue)]">{item.title}</Link><span className="mt-1 block text-[11px] leading-4 text-[var(--peer-muted)]">{summary}</span></li>
               })}
             </ul>
           </section>

@@ -184,7 +184,7 @@ export default function Dashboard() {
               <Link
                 key={title}
                 to={href}
-                reloadDocument={href === "/organization" || href === "/usecases"}
+                reloadDocument
                 className={cn(
                   "group grid min-h-[116px] grid-cols-[39px_1fr_20px] items-start gap-3 border-[var(--peer-line)] p-[22px] transition hover:bg-[#f2f5f1]",
                   index % 2 === 0 && "sm:border-r",
@@ -203,7 +203,7 @@ export default function Dashboard() {
         <section className="peer-panel lg:col-start-1" aria-labelledby="knowledge-motion-title">
           <div className="flex items-start justify-between gap-4 border-b border-[var(--peer-line)] px-[23px] py-[18px]">
             <div><p className="peer-eyebrow mb-1">Across PeerLink</p><h2 id="knowledge-motion-title" className="font-display text-[19px] font-semibold tracking-[-0.025em]">Knowledge in motion</h2></div>
-            <Link to="/forum" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">View all <ArrowRight className="size-3.5" /></Link>
+            <Link to="/forum" reloadDocument className="inline-flex items-center gap-1 text-xs font-bold text-[var(--peer-blue)]">View all <ArrowRight className="size-3.5" /></Link>
           </div>
           <div className="flex gap-1 overflow-x-auto border-b border-[var(--peer-line)] px-[22px] pt-3">
             {(["all", "discussion", "usecase"] as const).map((filter) => (

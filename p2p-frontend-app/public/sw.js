@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'peerlink-pwa-v2'
+const CACHE_VERSION = 'peerlink-pwa-v3'
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -34,20 +34,18 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
 
   if (request.mode === 'navigate') {
-    const networkResponse = fetch(request)
-      .then(async (response) => {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request)
         if (response.ok) {
           const cache = await caches.open(CACHE_VERSION)
           await cache.put('/', response.clone())
         }
         return response
-      })
-      .catch(() => null)
-
-    event.waitUntil(networkResponse.then(() => undefined))
-    event.respondWith(
-      caches.match('/').then(async (cachedShell) => cachedShell || (await networkResponse) || offlineResponse()),
-    )
+      } catch {
+        return (await caches.match('/')) || offlineResponse()
+      }
+    })())
     return
   }
 

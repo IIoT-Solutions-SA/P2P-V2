@@ -73,7 +73,7 @@ export default function LandingPage() {
             <Button onClick={() => navigate("/usecases")} className="h-12 rounded-[5px] bg-[var(--peer-blue)] px-6 text-white hover:bg-[#0f5ccc]">
               Explore success stories<ArrowRight className="size-4" />
             </Button>
-            <Button onClick={() => navigate("/forum")} variant="outline" className="h-12 rounded-[5px] border-white/35 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">
+            <Button onClick={() => window.location.assign("/forum")} variant="outline" className="h-12 rounded-[5px] border-white/35 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">
               Join discussions
             </Button>
           </div>

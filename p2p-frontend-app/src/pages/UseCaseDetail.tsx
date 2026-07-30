@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import {
   ArrowLeft,
   BadgeCheck,
@@ -117,7 +117,6 @@ const isVideoUrl = (url: string) => /\.(mp4|webm)(?:\?|$)/i.test(url)
 
 export default function UseCaseDetail() {
   const { company_slug, title_slug } = useParams<{ company_slug: string; title_slug: string }>()
-  const navigate = useNavigate()
   const { user } = useAuth()
   const [useCase, setUseCase] = useState<DetailedUseCase | null>(null)
   const [loading, setLoading] = useState(true)
@@ -161,7 +160,7 @@ export default function UseCaseDetail() {
     try {
       const response = await fetch(buildApiUrl(`/api/v1/use-cases/${useCase._id}`), { method: "DELETE", credentials: "include" })
       if (!response.ok) throw new Error("The use case could not be deleted.")
-      navigate("/usecases")
+      window.location.assign("/usecases")
     } catch (reason) { setError(reason instanceof Error ? reason.message : "The use case could not be deleted."); setDeleteOpen(false) }
   }
 
@@ -219,7 +218,7 @@ export default function UseCaseDetail() {
   }, [company_slug, useCase])
 
   if (loading) return <div className="px-4 py-8 md:px-8 xl:px-14"><LoadingState title="Loading use case" description="Retrieving the contributor story and supporting evidence." /></div>
-  if (error || !useCase || !derived) return <div className="px-4 py-8 md:px-8 xl:px-14"><ErrorState title="Use case unavailable" description={error || "The requested use case could not be found."} actionLabel="Back to use cases" onAction={() => navigate("/usecases")} /></div>
+  if (error || !useCase || !derived) return <div className="px-4 py-8 md:px-8 xl:px-14"><ErrorState title="Use case unavailable" description={error || "The requested use case could not be found."} actionLabel="Back to use cases" onAction={() => window.location.assign("/usecases")} /></div>
 
   const views = useCase.views ?? useCase.view_count ?? 0
   const published = useCase.last_updated || useCase.created_at
@@ -228,12 +227,12 @@ export default function UseCaseDetail() {
   return (
     <main className="mx-auto w-full max-w-[1430px] px-4 py-7 md:px-8 md:py-10 xl:px-14">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <button type="button" onClick={() => navigate("/usecases")} className="inline-flex min-h-10 items-center gap-2 text-xs font-bold text-[var(--peer-blue)]"><ArrowLeft className="size-4" />Back to use cases</button>
+        <button type="button" onClick={() => window.location.assign("/usecases")} className="inline-flex min-h-10 items-center gap-2 text-xs font-bold text-[var(--peer-blue)]"><ArrowLeft className="size-4" />Back to use cases</button>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => void toggleBookmark()} className={`h-10 rounded-none border-[var(--peer-line)] bg-white text-xs ${bookmarked ? "text-[var(--peer-teal)]" : ""}`}><Bookmark className={`size-4 ${bookmarked ? "fill-current" : ""}`} />Save{bookmarkCount !== null ? ` ${bookmarkCount}` : ""}</Button>
           <Button variant="outline" onClick={() => void share()} className="h-10 rounded-none border-[var(--peer-line)] bg-white text-xs"><Share2 className="size-4" />Share</Button>
           <Button variant="outline" onClick={() => window.print()} className="hidden h-10 rounded-none border-[var(--peer-line)] bg-white text-xs sm:inline-flex"><Download className="size-4" />Download PDF</Button>
-          {isAuthor ? <div className="relative" data-owner-menu><Button variant="outline" size="icon" onClick={() => setOwnerMenu((current) => !current)} className="size-10 rounded-none border-[var(--peer-line)] bg-white" aria-label="Manage use case"><MoreVertical className="size-4" /></Button>{ownerMenu ? <div className="absolute right-0 top-11 z-30 min-w-48 border border-[var(--peer-line)] bg-white shadow-[var(--peer-shadow)]"><button onClick={() => navigate(`/submit?edit=${useCase._id}`)} className="flex w-full items-center gap-3 border-b border-[var(--peer-line)] px-4 py-3 text-left text-sm font-semibold hover:bg-[#f2f5f1]"><Edit className="size-4 text-[var(--peer-blue)]" />Edit use case</button><button onClick={() => { setDeleteOpen(true); setOwnerMenu(false) }} className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[var(--peer-danger)] hover:bg-red-50"><Trash2 className="size-4" />Delete use case</button></div> : null}</div> : null}
+          {isAuthor ? <div className="relative" data-owner-menu><Button variant="outline" size="icon" onClick={() => setOwnerMenu((current) => !current)} className="size-10 rounded-none border-[var(--peer-line)] bg-white" aria-label="Manage use case"><MoreVertical className="size-4" /></Button>{ownerMenu ? <div className="absolute right-0 top-11 z-30 min-w-48 border border-[var(--peer-line)] bg-white shadow-[var(--peer-shadow)]"><button onClick={() => window.location.assign(`/submit?edit=${useCase._id}`)} className="flex w-full items-center gap-3 border-b border-[var(--peer-line)] px-4 py-3 text-left text-sm font-semibold hover:bg-[#f2f5f1]"><Edit className="size-4 text-[var(--peer-blue)]" />Edit use case</button><button onClick={() => { setDeleteOpen(true); setOwnerMenu(false) }} className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[var(--peer-danger)] hover:bg-red-50"><Trash2 className="size-4" />Delete use case</button></div> : null}</div> : null}
         </div>
       </div>
 
@@ -285,7 +284,7 @@ export default function UseCaseDetail() {
         </aside>
       </div>
 
-      {contactOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(7,25,31,.62)] p-4" role="dialog" aria-modal="true" onClick={() => setContactOpen(false)}><section className="w-full max-w-lg border border-[var(--peer-line)] bg-white shadow-[var(--peer-shadow)]" onClick={(event) => event.stopPropagation()}><header className="flex items-start justify-between border-b border-[var(--peer-line)] p-5"><div><p className="peer-eyebrow">Implementation contact</p><h2 className="mt-1 font-display text-2xl font-semibold">{useCase.contact_person}</h2><p className="mt-1 text-sm text-[var(--peer-muted)]">{useCase.contact_title || "Contributor"}</p></div><button onClick={() => setContactOpen(false)} className="grid size-10 place-items-center border border-[var(--peer-line)]" aria-label="Close contact profile">×</button></header><div className="p-5">{contactLoading ? <p className="py-8 text-center text-sm text-[var(--peer-muted)]">Loading network profile…</p> : <div className="grid gap-5"><div className="flex items-center gap-4"><span className="grid size-14 place-items-center rounded-full bg-[var(--peer-teal-soft)] font-display text-lg font-bold text-[var(--peer-teal)]">{initials(useCase.contact_person || "Contact")}</span><span><strong className="block">{contactProfile?.name || `${contactProfile?.firstName || ""} ${contactProfile?.lastName || ""}`.trim() || useCase.contact_person}</strong><span className="text-sm text-[var(--peer-muted)]">{contactProfile?.title || useCase.contact_title || "Contributor"}</span></span></div><dl className="grid gap-3 border-y border-[var(--peer-line)] py-4 text-sm"><div><dt className="peer-eyebrow">Organization</dt><dd className="mt-1 font-semibold">{contactProfile?.company || derived.organization}</dd></div><div><dt className="peer-eyebrow">Location</dt><dd className="mt-1 font-semibold">{contactProfile?.location || useCase.region || "Saudi Arabia"}</dd></div></dl><div className="flex flex-wrap gap-2">{contactProfile?.email || useCase.contact_email ? <Button asChild className="rounded-none bg-[var(--peer-navy)] text-white"><a href={`mailto:${contactProfile?.email || useCase.contact_email}`}><Mail className="size-4" />Email contributor</a></Button> : <Button disabled className="rounded-none">Email unavailable</Button>}<Button variant="outline" onClick={() => navigate("/connect")} className="rounded-none border-[var(--peer-line)] bg-white"><Users className="size-4" />Browse network</Button></div></div>}</div></section></div> : null}
+      {contactOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(7,25,31,.62)] p-4" role="dialog" aria-modal="true" onClick={() => setContactOpen(false)}><section className="w-full max-w-lg border border-[var(--peer-line)] bg-white shadow-[var(--peer-shadow)]" onClick={(event) => event.stopPropagation()}><header className="flex items-start justify-between border-b border-[var(--peer-line)] p-5"><div><p className="peer-eyebrow">Implementation contact</p><h2 className="mt-1 font-display text-2xl font-semibold">{useCase.contact_person}</h2><p className="mt-1 text-sm text-[var(--peer-muted)]">{useCase.contact_title || "Contributor"}</p></div><button onClick={() => setContactOpen(false)} className="grid size-10 place-items-center border border-[var(--peer-line)]" aria-label="Close contact profile">×</button></header><div className="p-5">{contactLoading ? <p className="py-8 text-center text-sm text-[var(--peer-muted)]">Loading network profile…</p> : <div className="grid gap-5"><div className="flex items-center gap-4"><span className="grid size-14 place-items-center rounded-full bg-[var(--peer-teal-soft)] font-display text-lg font-bold text-[var(--peer-teal)]">{initials(useCase.contact_person || "Contact")}</span><span><strong className="block">{contactProfile?.name || `${contactProfile?.firstName || ""} ${contactProfile?.lastName || ""}`.trim() || useCase.contact_person}</strong><span className="text-sm text-[var(--peer-muted)]">{contactProfile?.title || useCase.contact_title || "Contributor"}</span></span></div><dl className="grid gap-3 border-y border-[var(--peer-line)] py-4 text-sm"><div><dt className="peer-eyebrow">Organization</dt><dd className="mt-1 font-semibold">{contactProfile?.company || derived.organization}</dd></div><div><dt className="peer-eyebrow">Location</dt><dd className="mt-1 font-semibold">{contactProfile?.location || useCase.region || "Saudi Arabia"}</dd></div></dl><div className="flex flex-wrap gap-2">{contactProfile?.email || useCase.contact_email ? <Button asChild className="rounded-none bg-[var(--peer-navy)] text-white"><a href={`mailto:${contactProfile?.email || useCase.contact_email}`}><Mail className="size-4" />Email contributor</a></Button> : <Button disabled className="rounded-none">Email unavailable</Button>}<Button variant="outline" onClick={() => window.location.assign("/connect")} className="rounded-none border-[var(--peer-line)] bg-white"><Users className="size-4" />Browse network</Button></div></div>}</div></section></div> : null}
 
       <DeleteConfirmModal isOpen={deleteOpen} onClose={() => setDeleteOpen(false)} onConfirm={removeUseCase} title="Delete Use Case?" message="Are you sure you want to delete this use case? This action cannot be undone." itemName={useCase.title} />
     </main>

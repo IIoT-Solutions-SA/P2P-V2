@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'peerlink-pwa-v3'
+const CACHE_VERSION = 'peerlink-pwa-v4'
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -33,6 +33,16 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
 
+  // Media playback relies on HTTP Range (206) responses. Cache Storage cannot
+  // store partial responses, so let the browser fetch media directly instead
+  // of turning a valid video range response into an offline fallback.
+  if (
+    request.headers.has('range') ||
+    request.destination === 'video' ||
+    request.destination === 'audio' ||
+    /\.(mp4|webm|m4v|mp3|wav|ogg)$/i.test(url.pathname)
+  ) return
+
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
@@ -51,7 +61,7 @@ self.addEventListener('fetch', (event) => {
 
   const networkResponse = fetch(request)
     .then(async (response) => {
-      if (response.ok) {
+      if (response.status === 200) {
         const cache = await caches.open(CACHE_VERSION)
         await cache.put(request, response.clone())
       }

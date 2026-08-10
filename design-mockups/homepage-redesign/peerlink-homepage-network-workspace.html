@@ -1,0 +1,1235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink public homepage mockup using the Network Workspace visual direction" />
+  <title>PeerLink - Homepage Network Workspace Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --paper: #f3f0e8;
+      --paper-deep: #e7e1d5;
+      --surface: #fbfaf6;
+      --ink: #142d34;
+      --muted: #657175;
+      --line: #d5d0c6;
+      --navy: #0b2f39;
+      --teal: #0f5d5b;
+      --teal-soft: #dce9e5;
+      --blue: #1769df;
+      --amber: #a15b1b;
+      --white: #ffffff;
+      --rail: 224px;
+      --shadow: 0 12px 28px rgba(28, 43, 46, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, a { font: inherit; }
+    button { color: inherit; }
+
+    button:focus-visible,
+    a:focus-visible {
+      outline: 3px solid rgba(23, 105, 223, 0.35);
+      outline-offset: 3px;
+    }
+
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 40;
+      width: var(--rail);
+      display: flex;
+      flex-direction: column;
+      background: var(--navy);
+      color: #ecf3f1;
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .brand {
+      height: 86px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 0 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      border: 2px solid #76c5bd;
+      transform: rotate(45deg);
+    }
+
+    .brand-mark::before { width: 20px; height: 20px; }
+    .brand-mark::after { width: 8px; height: 8px; background: #76c5bd; }
+    .brand-name { font: 700 18px/1 "Manrope", sans-serif; }
+    .brand-caption {
+      margin-top: 4px;
+      color: #9cb4b5;
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .nav-block {
+      display: grid;
+      gap: 4px;
+      padding: 24px 14px;
+    }
+
+    .nav-label {
+      margin: 0 10px 8px;
+      color: #78999c;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .nav-link {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 11px;
+      color: #b8cbca;
+      font-size: 14px;
+      font-weight: 500;
+      border-left: 2px solid transparent;
+      transition: color .18s ease, background .18s ease, border-color .18s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: #fff;
+      background: rgba(117, 195, 186, 0.11);
+      border-color: #76c5bd;
+    }
+
+    .nav-link i { width: 18px; height: 18px; stroke-width: 1.7; }
+
+    .rail-note {
+      margin: auto 18px 18px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .rail-note strong {
+      display: block;
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .rail-note span {
+      display: block;
+      color: #9cb4b5;
+      font-size: 12px;
+    }
+
+    .site-shell { margin-left: var(--rail); }
+
+    .mobile-topbar {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 35;
+      min-height: 70px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 18px;
+      background: rgba(11, 47, 57, 0.96);
+      color: #fff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .hero {
+      position: relative;
+      min-height: 92vh;
+      display: grid;
+      align-items: end;
+      overflow: hidden;
+      color: #fff;
+      background: var(--navy);
+    }
+
+    .hero video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: .68;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(11,47,57,.88) 0%, rgba(11,47,57,.58) 43%, rgba(11,47,57,.2) 100%),
+        linear-gradient(180deg, rgba(11,47,57,.14) 0%, rgba(11,47,57,.88) 100%);
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 2;
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 120px 0 54px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+      color: #cde3de;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 32px;
+      height: 1px;
+      background: #76c5bd;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    .hero h1 {
+      max-width: 760px;
+      margin-bottom: 22px;
+      font: 700 clamp(42px, 6.2vw, 82px)/.95 "Manrope", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .hero-copy {
+      max-width: 650px;
+      margin-bottom: 32px;
+      color: rgba(255, 255, 255, 0.84);
+      font-size: clamp(17px, 1.8vw, 21px);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 58px;
+    }
+
+    .button {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 17px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: var(--blue);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease;
+    }
+
+    .button:hover { background: #115dcc; transform: translateY(-1px); }
+    .button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+    .button.secondary:hover { background: rgba(255, 255, 255, 0.16); }
+    .button i { width: 17px; height: 17px; }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid rgba(255, 255, 255, 0.22);
+      border-left: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(11, 47, 57, 0.48);
+      backdrop-filter: blur(12px);
+    }
+
+    .stat {
+      min-height: 116px;
+      padding: 22px;
+      border-right: 1px solid rgba(255, 255, 255, 0.22);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .stat strong {
+      display: block;
+      color: #fff;
+      font: 700 34px/1 "Manrope", sans-serif;
+      margin-bottom: 9px;
+    }
+
+    .stat span {
+      color: #b8cbca;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .section {
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 86px 0;
+    }
+
+    .section.compact { padding-top: 54px; }
+
+    .section-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+      gap: 38px;
+      align-items: end;
+      margin-bottom: 32px;
+    }
+
+    .kicker {
+      margin-bottom: 12px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      color: var(--ink);
+      font: 700 clamp(30px, 4vw, 48px)/1.04 "Manrope", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .section-header p,
+    .lead {
+      color: var(--muted);
+      font-size: 17px;
+      margin-bottom: 0;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card,
+    .case-card,
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: 6px;
+    }
+
+    .feature-card {
+      min-height: 245px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .icon-tile {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 28px;
+      background: var(--teal-soft);
+      color: var(--teal);
+      border-radius: 4px;
+    }
+
+    .icon-tile.blue { background: #e3ebfb; color: var(--blue); }
+    .icon-tile.amber { background: #efe1d2; color: var(--amber); }
+    .icon-tile i { width: 20px; height: 20px; }
+
+    .feature-card h3,
+    .case-card h3,
+    .step h3 {
+      margin-bottom: 10px;
+      color: var(--ink);
+      font: 700 20px/1.2 "Manrope", sans-serif;
+    }
+
+    .feature-card p,
+    .case-card p,
+    .step p {
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    .map-section {
+      width: min(1280px, calc(100% - 48px));
+      padding-bottom: 86px;
+    }
+
+    .map-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .map-panel {
+      min-height: 640px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      border-radius: 6px;
+    }
+
+    #saudiMap {
+      width: 100%;
+      height: 640px;
+      z-index: 1;
+      background: #eef0ea;
+    }
+
+    .map-toolbar {
+      position: absolute;
+      z-index: 5;
+      left: 16px;
+      top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: calc(100% - 32px);
+    }
+
+    .map-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid rgba(20, 45, 52, 0.14);
+      background: rgba(251, 250, 246, 0.93);
+      color: var(--ink);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 8px 18px rgba(20, 45, 52, 0.08);
+    }
+
+    .map-chip i { width: 14px; height: 14px; color: var(--teal); }
+
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--navy);
+      color: #ecf3f1;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .preview-head {
+      padding: 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+    }
+
+    .preview-head h3 {
+      margin-bottom: 6px;
+      color: #fff;
+      font: 700 22px/1.15 "Manrope", sans-serif;
+    }
+
+    .preview-head p {
+      margin-bottom: 0;
+      color: #9cb4b5;
+      font-size: 13px;
+    }
+
+    .preview-body {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .preview-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: rgba(117, 195, 186, 0.13);
+      color: #d8ece8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag.amber { background: rgba(161, 91, 27, 0.22); color: #f2d4b8; }
+
+    .preview-title {
+      margin-bottom: 8px;
+      color: #fff;
+      font: 700 25px/1.12 "Manrope", sans-serif;
+    }
+
+    .preview-copy {
+      color: #b8cbca;
+      margin-bottom: 0;
+      font-size: 14px;
+    }
+
+    .benefit-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .benefit-list li {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 9px;
+      color: #d8ece8;
+      font-size: 13px;
+    }
+
+    .benefit-list i {
+      width: 17px;
+      height: 17px;
+      color: #76c5bd;
+      margin-top: 1px;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .preview-actions .button {
+      min-height: 42px;
+      padding-inline: 13px;
+      font-size: 13px;
+    }
+
+    .city-list {
+      display: grid;
+      gap: 8px;
+      padding: 18px 22px 22px;
+      margin-top: auto;
+      border-top: 1px solid rgba(255, 255, 255, 0.13);
+    }
+
+    .city-button {
+      width: 100%;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 10px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      background: rgba(255, 255, 255, 0.045);
+      color: #d8ece8;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .city-button:hover { background: rgba(255, 255, 255, 0.09); }
+    .city-button span:last-child { color: #91aaac; font-size: 12px; font-weight: 600; }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 6px;
+      box-shadow: 0 18px 40px rgba(20, 45, 52, 0.18);
+    }
+
+    .leaflet-popup-content { margin: 16px; min-width: 245px; }
+
+    .popup-title {
+      margin: 0 0 6px;
+      font: 700 16px/1.2 "Manrope", sans-serif;
+      color: var(--ink);
+    }
+
+    .popup-copy {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .popup-link {
+      display: inline-flex;
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .custom-marker {
+      border: 0;
+      background: transparent;
+    }
+
+    .marker-dot {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: var(--blue);
+      border: 2px solid #fff;
+      box-shadow: 0 8px 18px rgba(20, 45, 52, 0.28);
+    }
+
+    .marker-dot::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .marker-dot.teal { background: var(--teal); }
+    .marker-dot.amber { background: var(--amber); }
+
+    .cases-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .case-card {
+      min-height: 280px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .case-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .case-metric {
+      display: inline-flex;
+      width: fit-content;
+      padding: 8px 10px;
+      background: var(--teal-soft);
+      color: var(--teal);
+      border-radius: 4px;
+      font-weight: 800;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .step {
+      box-shadow: none;
+      border: 0;
+      border-radius: 0;
+      min-height: 230px;
+      padding: 24px;
+    }
+
+    .step-number {
+      display: block;
+      margin-bottom: 34px;
+      color: var(--teal);
+      font: 700 14px/1 "Manrope", sans-serif;
+    }
+
+    .final-cta {
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto 86px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 28px;
+      align-items: center;
+      padding: 34px;
+      background: var(--navy);
+      color: #fff;
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+    }
+
+    .final-cta h2 {
+      color: #fff;
+      font-size: clamp(28px, 3vw, 42px);
+      margin-bottom: 10px;
+    }
+
+    .final-cta p {
+      margin-bottom: 0;
+      color: #b8cbca;
+      max-width: 700px;
+    }
+
+    footer {
+      padding: 34px 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer-inner {
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1120px) {
+      .hero-stats,
+      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .map-workspace { grid-template-columns: 1fr; }
+      .preview-panel { min-height: auto; }
+      .city-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .cases-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .site-shell { margin-left: 0; }
+      .mobile-topbar { display: flex; }
+      .section-header { grid-template-columns: 1fr; gap: 16px; }
+      .workspace-grid { grid-template-columns: 1fr; }
+      .final-cta { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .hero { min-height: 86vh; }
+      .hero-inner,
+      .section,
+      .map-section,
+      .final-cta,
+      .footer-inner { width: min(100% - 32px, 1180px); }
+      .hero h1 { font-size: 42px; }
+      .actions { flex-direction: column; align-items: stretch; }
+      .hero-stats,
+      .steps,
+      .city-list { grid-template-columns: 1fr; }
+      .stat { min-height: 96px; }
+      .map-panel { min-height: 520px; }
+      #saudiMap { height: 520px; }
+      .preview-title { font-size: 21px; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" aria-label="Homepage navigation">
+    <a class="brand" href="#top" aria-label="PeerLink home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>
+        <span class="brand-name">PeerLink</span>
+        <span class="brand-caption">Network Workspace</span>
+      </span>
+    </a>
+    <nav class="nav-block">
+      <p class="nav-label">Explore</p>
+      <a class="nav-link active" href="#top"><i data-lucide="layout-dashboard"></i>Overview</a>
+      <a class="nav-link" href="#network"><i data-lucide="network"></i>Network</a>
+      <a class="nav-link" href="#map"><i data-lucide="map"></i>Saudi Map</a>
+      <a class="nav-link" href="#cases"><i data-lucide="book-open"></i>Use Cases</a>
+      <a class="nav-link" href="#join"><i data-lucide="arrow-right"></i>Join</a>
+    </nav>
+    <div class="rail-note">
+      <strong>Public preview mode</strong>
+      <span>Visitors can inspect city markers and open uploaded use cases before signing in.</span>
+    </div>
+  </aside>
+
+  <div class="site-shell">
+    <header class="mobile-topbar">
+      <a class="brand" href="#top" aria-label="PeerLink home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>
+          <span class="brand-name">PeerLink</span>
+          <span class="brand-caption">Network Workspace</span>
+        </span>
+      </a>
+      <a class="button secondary" href="#map">Map</a>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-label="PeerLink homepage hero">
+        <video autoplay muted loop playsinline>
+          <source src="../../p2p-frontend-app/public/Video_Redo_Realistic_Technology.mp4" type="video/mp4" />
+        </video>
+        <div class="hero-inner">
+          <p class="eyebrow">Saudi manufacturing intelligence network</p>
+          <h1>Accelerate Your Factory's Digital Transformation</h1>
+          <p class="hero-copy">
+            Join Saudi Arabia's premier peer-to-peer platform where manufacturing executives share proven strategies and explore real implementation case studies.
+          </p>
+          <div class="actions" aria-label="Primary homepage actions">
+            <a class="button" href="#map">Explore Success Stories <i data-lucide="arrow-right"></i></a>
+            <a class="button secondary" href="#network">View Network Workspace <i data-lucide="network"></i></a>
+          </div>
+          <div class="hero-stats" aria-label="Current homepage figures">
+            <div class="stat"><strong>1,200+</strong><span>Connected Factories</span></div>
+            <div class="stat"><strong>89</strong><span>Proven Use Cases</span></div>
+            <div class="stat"><strong>SAR 45M+</strong><span>Cost Savings Achieved</span></div>
+            <div class="stat"><strong>67%</strong><span>Avg. Efficiency Gain</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section compact" id="network">
+        <div class="section-header">
+          <div>
+            <p class="kicker">Factory optimization tools</p>
+            <h2>A public front door to a working manufacturer network.</h2>
+          </div>
+          <p>
+            The homepage adopts the Network Workspace dashboard language: operational, calm, and built around scanning real activity instead of reading marketing blocks.
+          </p>
+        </div>
+        <div class="workspace-grid">
+          <article class="feature-card">
+            <div>
+              <span class="icon-tile"><i data-lucide="book-open"></i></span>
+              <h3>Browse Use Cases</h3>
+              <p>Explore real factory implementations with proven results across automation, quality control, energy, and operations.</p>
+            </div>
+          </article>
+          <article class="feature-card">
+            <div>
+              <span class="icon-tile blue"><i data-lucide="users"></i></span>
+              <h3>Factory Network</h3>
+              <p>Discover Saudi manufacturers, cities, sectors, and peer activity before joining the verified member workspace.</p>
+            </div>
+          </article>
+          <article class="feature-card">
+            <div>
+              <span class="icon-tile amber"><i data-lucide="bar-chart-3"></i></span>
+              <h3>Performance Evidence</h3>
+              <p>Preview impact metrics, implementation time, and operational gains so visitors understand what each case achieved.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section map-section" id="map">
+        <div class="section-header">
+          <div>
+            <p class="kicker">Interactive Saudi Arabia map</p>
+            <h2>Discover uploaded use cases by city.</h2>
+          </div>
+          <p>
+            Zoom into Riyadh, Jeddah, Dammam, and nearby industrial hubs. Click any marker to preview a case, then open the public case detail route.
+          </p>
+        </div>
+
+        <div class="map-workspace">
+          <div class="map-panel">
+            <div class="map-toolbar" aria-hidden="true">
+              <span class="map-chip"><i data-lucide="mouse-pointer-click"></i>Click markers</span>
+              <span class="map-chip"><i data-lucide="zoom-in"></i>Scroll or controls to zoom</span>
+              <span class="map-chip"><i data-lucide="lock-open"></i>Public previews</span>
+            </div>
+            <div id="saudiMap" role="application" aria-label="Interactive map of Saudi Arabia use cases"></div>
+          </div>
+
+          <aside class="preview-panel" aria-live="polite">
+            <div class="preview-head">
+              <h3>Use Case Preview</h3>
+              <p>Select a marker on the map or jump to a city.</p>
+            </div>
+            <div class="preview-body">
+              <div class="preview-meta">
+                <span class="tag" id="previewCity">Riyadh</span>
+                <span class="tag amber" id="previewCategory">Factory Automation</span>
+              </div>
+              <div>
+                <h3 class="preview-title" id="previewTitle">AI Quality Inspection Reduces Defects by 85%</h3>
+                <p class="preview-copy" id="previewDescription">
+                  Advanced Manufacturing Co. implemented computer vision for automated quality control, achieving significant defect reduction.
+                </p>
+              </div>
+              <ul class="benefit-list" id="previewBenefits"></ul>
+              <div class="preview-actions">
+                <a class="button" id="previewOpen" href="/usecases/advanced-electronics-co/ai-quality-inspection-system">Open Use Case <i data-lucide="external-link"></i></a>
+                <button class="button secondary" id="previewZoom" type="button">Zoom Here <i data-lucide="zoom-in"></i></button>
+              </div>
+            </div>
+            <div class="city-list" aria-label="Jump to city">
+              <button class="city-button" type="button" data-city="Riyadh"><span>Riyadh</span><span>4 markers</span></button>
+              <button class="city-button" type="button" data-city="Jeddah"><span>Jeddah</span><span>2 markers</span></button>
+              <button class="city-button" type="button" data-city="Dammam"><span>Dammam</span><span>3 markers</span></button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="cases">
+        <div class="section-header">
+          <div>
+            <p class="kicker">Featured factory solutions</p>
+            <h2>Real implementations with measurable outcomes.</h2>
+          </div>
+          <p>These cards mirror the public previews available through the map while staying in the same workspace visual system.</p>
+        </div>
+        <div class="cases-grid">
+          <article class="case-card">
+            <div>
+              <div class="case-meta"><span>Riyadh</span><span>Factory Automation</span></div>
+              <h3>AI Quality Inspection Reduces Defects by 85%</h3>
+              <p>Computer vision inspection increased throughput and reduced manual rework across a high-volume line.</p>
+            </div>
+            <span class="case-metric">85% defect reduction</span>
+          </article>
+          <article class="case-card">
+            <div>
+              <div class="case-meta"><span>Dammam</span><span>Predictive Maintenance</span></div>
+              <h3>IoT Sensors Cut Downtime by 60%</h3>
+              <p>Condition monitoring helped maintenance teams act before critical equipment failures affected production.</p>
+            </div>
+            <span class="case-metric">60% downtime reduction</span>
+          </article>
+          <article class="case-card">
+            <div>
+              <div class="case-meta"><span>Jeddah</span><span>Quality Control</span></div>
+              <h3>Digital Traceability Improves Compliance</h3>
+              <p>Batch-level tracking gave operators a single view of production history, exceptions, and quality checks.</p>
+            </div>
+            <span class="case-metric">40% faster audits</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <div>
+            <p class="kicker">Homepage flow</p>
+            <h2>From public discovery to verified collaboration.</h2>
+          </div>
+          <p>The remaining homepage content is structured as a practical journey: inspect evidence, identify peers, then join to contribute or discuss.</p>
+        </div>
+        <div class="steps">
+          <article class="step">
+            <span class="step-number">01</span>
+            <h3>Scan the network</h3>
+            <p>Visitors see manufacturing activity by city, sector, and impact without needing an account.</p>
+          </article>
+          <article class="step">
+            <span class="step-number">02</span>
+            <h3>Preview proof</h3>
+            <p>Map markers expose concise public summaries, benefits, and factory context.</p>
+          </article>
+          <article class="step">
+            <span class="step-number">03</span>
+            <h3>Open cases</h3>
+            <p>Public links route directly to uploaded use case detail pages for deeper reading.</p>
+          </article>
+          <article class="step">
+            <span class="step-number">04</span>
+            <h3>Join workspace</h3>
+            <p>Verified manufacturers can contribute use cases, join discussions, and build reputation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="final-cta" id="join">
+        <div>
+          <p class="kicker">Join the factory network</p>
+          <h2>Connect with Saudi manufacturers around proven operational outcomes.</h2>
+          <p>Browse use cases publicly, then sign up to submit your own implementation, ask questions, and collaborate with verified peers.</p>
+        </div>
+        <a class="button" href="/signup">Get Started Free <i data-lucide="arrow-right"></i></a>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <span>(c) 2024 PeerLink. Built for Saudi Arabian SMEs.</span>
+        <nav class="footer-links" aria-label="Footer links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Support</a>
+          <a href="#">Contact</a>
+        </nav>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const useCases = [
+      {
+        id: 1,
+        title: "AI Quality Inspection Reduces Defects by 85%",
+        city: "Riyadh",
+        category: "Factory Automation",
+        company: "Advanced Electronics Co.",
+        lat: 24.7136,
+        lng: 46.6753,
+        color: "blue",
+        url: "/usecases/advanced-electronics-co/ai-quality-inspection-system",
+        description: "Computer vision inspection increased throughput and reduced manual rework across a high-volume line.",
+        benefits: ["85% defect reduction", "SAR 2.3M annual savings", "Real-time operator alerts"]
+      },
+      {
+        id: 2,
+        title: "Digital Simulation for Drone Production Line",
+        city: "Riyadh",
+        category: "Digital Twin",
+        company: "KACST Industry 4.0 Capability Center",
+        lat: 24.559903,
+        lng: 46.869228,
+        color: "teal",
+        url: "/usecases/kacst-industry-4-0-capability-center/digital-simulation-for-drone-production-line",
+        description: "A simulation model helped teams validate capacity, bottlenecks, and operator flow before physical changes.",
+        benefits: ["Faster layout decisions", "Reduced commissioning risk", "Capacity scenario planning"]
+      },
+      {
+        id: 3,
+        title: "Machine-Level MES for Production Visibility",
+        city: "Riyadh",
+        category: "MES",
+        company: "Precision Manufacturing Ltd",
+        lat: 24.7506,
+        lng: 46.6444,
+        color: "amber",
+        url: "/usecases/precision-manufacturing-ltd/machine-level-mes",
+        description: "Machine status, stoppages, and work order flow were unified into a live production dashboard.",
+        benefits: ["45% efficiency gain", "Line-level traceability", "Shorter response time"]
+      },
+      {
+        id: 4,
+        title: "Smart Locker for Raw Material Tracking",
+        city: "Riyadh",
+        category: "Inventory",
+        company: "KACST Industry 4.0 Capability Center",
+        lat: 24.6950,
+        lng: 46.7150,
+        color: "teal",
+        url: "/usecases/kacst-industry-4-0-capability-center/smart-locker-for-raw-material-tracking",
+        description: "RFID-enabled storage improved material accountability and reduced time spent searching for components.",
+        benefits: ["Material visibility", "Reduced search time", "Controlled access records"]
+      },
+      {
+        id: 5,
+        title: "IoT Sensors Cut Downtime by 60%",
+        city: "Dammam",
+        category: "Predictive Maintenance",
+        company: "Gulf Plastics Industries",
+        lat: 26.4207,
+        lng: 50.0888,
+        color: "blue",
+        url: "/usecases/gulf-plastics-industries/predictive-maintenance-iot-system",
+        description: "Condition monitoring helped maintenance teams act before critical equipment failures affected production.",
+        benefits: ["60% downtime reduction", "SAR 1.8M annual savings", "Early failure detection"]
+      },
+      {
+        id: 6,
+        title: "Energy Consumption Monitoring",
+        city: "Dammam",
+        category: "Energy Management",
+        company: "Eastern Province Construction Materials",
+        lat: 26.38,
+        lng: 50.128,
+        color: "amber",
+        url: "/usecases/eastern-province-construction-materials/energy-consumption-monitoring",
+        description: "Live metering exposed peak demand patterns and helped operators reduce unnecessary consumption.",
+        benefits: ["30% cost reduction", "Peak demand control", "Sustainability reporting"]
+      },
+      {
+        id: 7,
+        title: "Supply Chain Traceability Platform",
+        city: "Dammam",
+        category: "Traceability",
+        company: "Secure Supply Co.",
+        lat: 26.4607,
+        lng: 50.0488,
+        color: "teal",
+        url: "/usecases/secure-supply-co/supply-chain-traceability-platform",
+        description: "Shipment, batch, and supplier records were connected to support audit readiness and faster issue isolation.",
+        benefits: ["Faster issue isolation", "Supplier visibility", "Audit-ready records"]
+      },
+      {
+        id: 8,
+        title: "Digital Traceability Improves Compliance",
+        city: "Jeddah",
+        category: "Quality Control",
+        company: "Arabian Food Processing",
+        lat: 21.3891,
+        lng: 39.8579,
+        color: "blue",
+        url: "/usecases/arabian-food-processing/digital-traceability-compliance",
+        description: "Batch-level tracking gave operators a single view of production history, exceptions, and quality checks.",
+        benefits: ["40% faster audits", "Batch-level visibility", "Fewer manual records"]
+      },
+      {
+        id: 9,
+        title: "Smart Logistics for Red Sea Distribution",
+        city: "Jeddah",
+        category: "Logistics",
+        company: "Red Sea Logistics",
+        lat: 22.485,
+        lng: 39.09,
+        color: "amber",
+        url: "/usecases/red-sea-logistics/smart-logistics-platform",
+        description: "Route, warehouse, and dispatch data were synchronized to improve order visibility and delivery planning.",
+        benefits: ["Improved dispatch accuracy", "Inventory visibility", "Shorter planning cycles"]
+      }
+    ];
+
+    const cityViews = {
+      Riyadh: [24.7136, 46.6753],
+      Jeddah: [21.5433, 39.1728],
+      Dammam: [26.4207, 50.0888]
+    };
+
+    let selectedUseCase = useCases[0];
+    const map = L.map("saudiMap", {
+      center: [24.2, 45.1],
+      zoom: 5,
+      minZoom: 4,
+      maxZoom: 18,
+      zoomControl: true,
+      scrollWheelZoom: true
+    });
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      subdomains: "abcd",
+      maxZoom: 19
+    }).addTo(map);
+
+    const markerIcon = (color) => L.divIcon({
+      className: "custom-marker",
+      html: `<span class="marker-dot ${color || "blue"}"></span>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -28]
+    });
+
+    const markers = new Map();
+
+    function popupContent(useCase) {
+      return `
+        <h3 class="popup-title">${useCase.title}</h3>
+        <p class="popup-copy">${useCase.company} - ${useCase.city}</p>
+        <a class="popup-link" href="${useCase.url}">Open uploaded use case</a>
+      `;
+    }
+
+    function renderBenefits(useCase) {
+      const list = document.getElementById("previewBenefits");
+      list.innerHTML = useCase.benefits.map((benefit) => `
+        <li><i data-lucide="check-circle"></i><span>${benefit}</span></li>
+      `).join("");
+      lucide.createIcons();
+    }
+
+    function selectUseCase(useCase, options = {}) {
+      selectedUseCase = useCase;
+      document.getElementById("previewCity").textContent = useCase.city;
+      document.getElementById("previewCategory").textContent = useCase.category;
+      document.getElementById("previewTitle").textContent = useCase.title;
+      document.getElementById("previewDescription").textContent = useCase.description;
+      document.getElementById("previewOpen").setAttribute("href", useCase.url);
+      renderBenefits(useCase);
+
+      if (options.flyTo) {
+        map.flyTo([useCase.lat, useCase.lng], options.zoom || 11, { duration: .8 });
+      }
+    }
+
+    useCases.forEach((useCase) => {
+      const marker = L.marker([useCase.lat, useCase.lng], { icon: markerIcon(useCase.color) })
+        .addTo(map)
+        .bindPopup(popupContent(useCase));
+
+      marker.on("click", () => selectUseCase(useCase));
+      markers.set(useCase.id, marker);
+    });
+
+    document.getElementById("previewZoom").addEventListener("click", () => {
+      selectUseCase(selectedUseCase, { flyTo: true, zoom: 13 });
+      const marker = markers.get(selectedUseCase.id);
+      if (marker) marker.openPopup();
+    });
+
+    document.querySelectorAll(".city-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const city = button.dataset.city;
+        const cityUseCase = useCases.find((useCase) => useCase.city === city);
+        if (cityUseCase) selectUseCase(cityUseCase, { flyTo: true, zoom: 10 });
+        if (cityViews[city]) map.flyTo(cityViews[city], 10, { duration: .8 });
+      });
+    });
+
+    selectUseCase(selectedUseCase);
+    lucide.createIcons();
+  </script>
+<script src="../prototype-nav.js"></script></body>
+</html>

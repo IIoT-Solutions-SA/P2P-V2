@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink forum listing mockup in the Network Workspace direction" />
+  <title>PeerLink Forum - Listing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="forum.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to forum</a>
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div class="brand-copy"><div class="brand-name">PeerLink</div><div class="brand-caption">Manufacturing network</div></div></div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false"><i data-lucide="menu" aria-hidden="true"></i></button>
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav aria-label="Workspace navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="../dashboard-redesign/concept-c-network-workspace.html"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a></li>
+          <li><a class="nav-link active" href="index.html" aria-current="page"><i data-lucide="library-big" aria-hidden="true"></i><span>Forum</span></a></li>
+          <li><a class="nav-link" href="#" data-toast="Collaborator directory opened"><i data-lucide="users" aria-hidden="true"></i><span>People</span></a></li>
+          <li><a class="nav-link" href="#" data-toast="Use case library opened"><i data-lucide="factory" aria-hidden="true"></i><span>Use Cases</span></a></li>
+          
+        </ul>
+      </nav>
+      <p class="nav-label">Mockup family</p>
+      <nav aria-label="Forum mockup pages">
+        <ul class="nav-list">
+          <li><a class="nav-link active" href="index.html"><i data-lucide="list-filter" aria-hidden="true"></i><span>Listing</span></a></li>
+          <li><a class="nav-link" href="thread-detail.html"><i data-lucide="messages-square" aria-hidden="true"></i><span>Thread detail</span></a></li>
+          <li><a class="nav-link" href="composer-drafts.html"><i data-lucide="square-pen" aria-hidden="true"></i><span>Composer</span></a></li>
+          <li><a class="nav-link" href="states.html"><i data-lucide="loader-circle" aria-hidden="true"></i><span>States</span></a></li>
+        </ul>
+      </nav>
+      <div class="nav-spacer"></div>
+      <div class="profile-rail"><div class="avatar" aria-hidden="true">AF</div><div><div class="profile-name">Aadil Feroze</div><div class="profile-role">CTO · Administrator</div></div><button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened"><i data-lucide="settings" aria-hidden="true"></i></button></div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>IIoT Solutions</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>Forum</strong></div>
+      <div class="topbar-actions">
+        <div class="network-status"><span class="status-dot" aria-hidden="true"></span>7 colleagues connected</div>
+        <button class="icon-button" type="button" aria-label="Open search" data-toast="Global search opened"><i data-lucide="search" aria-hidden="true"></i></button>
+        <button class="icon-button" type="button" aria-label="Open notifications, 2 unread" data-toast="You have 2 unread notifications"><i data-lucide="bell" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">Peer troubleshooting</p>
+          <h1>Forum built for practical manufacturing questions.</h1>
+          <p class="intro-copy">Search active discussions, browse technical categories, and move unresolved shop-floor problems toward tested answers.</p>
+        </div>
+        <div class="intro-context"><strong>128 discussions</strong><span>34 solved · 12 awaiting expert input</span></div>
+      </header>
+
+      <div class="forum-grid">
+        <section class="section wide-panel" aria-labelledby="forum-tools-title">
+          <header class="section-head">
+            <div><div class="section-kicker">Find a discussion</div><h2 id="forum-tools-title">Search, categories and filters</h2></div>
+            <a class="button primary" href="composer-drafts.html"><i data-lucide="square-pen" aria-hidden="true"></i>Ask a question</a>
+          </header>
+          <div class="tool-panel">
+            <label class="search-field" aria-label="Search forum"><i data-lucide="search" aria-hidden="true"></i><input type="search" value="compressed air leak detection" /></label>
+            <div class="filter-row" data-filter-group>
+              <button class="chip active" type="button" data-filter="recent"><i data-lucide="clock-3" aria-hidden="true"></i>Recent</button>
+              <button class="chip" type="button" data-filter="unanswered"><i data-lucide="circle-help" aria-hidden="true"></i>Unanswered</button>
+              <button class="chip" type="button" data-filter="solved"><i data-lucide="badge-check" aria-hidden="true"></i>Solved</button>
+              <button class="chip" type="button" data-filter="saved"><i data-lucide="bookmark" aria-hidden="true"></i>Saved</button>
+            </div>
+          </div>
+          <div class="category-grid" aria-label="Forum categories">
+            <a class="category-card" href="#" data-toast="Automation category opened"><span class="category-top"><span class="category-icon"><i data-lucide="bot" aria-hidden="true"></i></span><span class="category-count">31</span></span><span><strong>Automation and robotics</strong><span>PLC, cobots, cells, commissioning and controls.</span></span></a>
+            <a class="category-card" href="#" data-toast="Quality category opened"><span class="category-top"><span class="category-icon"><i data-lucide="scan-eye" aria-hidden="true"></i></span><span class="category-count">24</span></span><span><strong>Quality and inspection</strong><span>Vision systems, test stations, defects and traceability.</span></span></a>
+            <a class="category-card" href="#" data-toast="Energy category opened"><span class="category-top"><span class="category-icon"><i data-lucide="gauge" aria-hidden="true"></i></span><span class="category-count">18</span></span><span><strong>Energy and utilities</strong><span>Compressed air, power monitoring and plant efficiency.</span></span></a>
+            <a class="category-card" href="#" data-toast="Data category opened"><span class="category-top"><span class="category-icon"><i data-lucide="database-zap" aria-hidden="true"></i></span><span class="category-count">27</span></span><span><strong>Data and integration</strong><span>MES, OEE, sensors, dashboards and edge devices.</span></span></a>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="threads-title">
+          <header class="section-head">
+            <div><div class="section-kicker">Open questions</div><h2 id="threads-title">Latest discussions</h2></div>
+            <a class="section-link" href="thread-detail.html">Open selected <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </header>
+          <ul class="thread-list">
+            <li class="thread-item">
+              <div class="avatar thread-avatar" aria-hidden="true">FA</div>
+              <div class="thread-main">
+                <div class="thread-meta"><span class="tag hot"><i data-lucide="flame" aria-hidden="true"></i>Active</span><span>Energy and utilities</span><span>18 min ago</span></div>
+                <a class="thread-title" href="thread-detail.html">How are teams finding compressed-air loss without stopping production?</a>
+                <p class="thread-summary">We need a repeatable approach for a three-shift line with limited access around packaging equipment.</p>
+              </div>
+              <div class="thread-stats" aria-label="Discussion statistics"><span class="stat"><strong>12</strong><span>Replies</span></span><span class="stat"><strong>4</strong><span>Peers</span></span><span class="stat"><strong>38</strong><span>Views</span></span></div>
+            </li>
+            <li class="thread-item">
+              <div class="avatar thread-avatar" aria-hidden="true">HF</div>
+              <div class="thread-main">
+                <div class="thread-meta"><span class="tag solved"><i data-lucide="badge-check" aria-hidden="true"></i>Solved</span><span>Quality and inspection</span><span>2 hr ago</span></div>
+                <a class="thread-title" href="thread-detail.html">Best lighting pattern for glossy drone-arm color verification?</a>
+                <p class="thread-summary">Cross-polarized diffuse lighting worked after the team narrowed the pass/fail color range.</p>
+              </div>
+              <div class="thread-stats"><span class="stat"><strong>8</strong><span>Replies</span></span><span class="stat"><strong>1</strong><span>Best</span></span><span class="stat"><strong>64</strong><span>Views</span></span></div>
+            </li>
+            <li class="thread-item">
+              <div class="avatar thread-avatar" aria-hidden="true">AB</div>
+              <div class="thread-main">
+                <div class="thread-meta"><span class="tag">Needs input</span><span>Data and integration</span><span>Yesterday</span></div>
+                <a class="thread-title" href="thread-detail.html">Do we store machine downtime as events or aggregate intervals?</a>
+                <p class="thread-summary">Looking for a schema that supports OEE reporting while keeping raw stoppage signals auditable.</p>
+              </div>
+              <div class="thread-stats"><span class="stat"><strong>3</strong><span>Replies</span></span><span class="stat"><strong>2</strong><span>Peers</span></span><span class="stat"><strong>41</strong><span>Views</span></span></div>
+            </li>
+          </ul>
+        </section>
+
+        <aside class="side-stack">
+          <section class="section" aria-labelledby="draft-title">
+            <header class="section-head"><div><div class="section-kicker">Draft access</div><h2 id="draft-title">Continue writing</h2></div></header>
+            <ul class="mini-list">
+              <li><strong>AMR battery-swap safety checklist</strong><span>Forum draft · saved 24 minutes ago</span></li>
+              <li><strong>Vision station ROI comparison</strong><span>Reply draft · saved yesterday</span></li>
+            </ul>
+            <a class="draft-callout" href="composer-drafts.html"><span><strong>Open all forum drafts</strong><span>Question and reply drafts in one place</span></span><span class="draft-count">2</span></a>
+          </section>
+          <section class="section" aria-labelledby="expert-title">
+            <header class="section-head"><div><div class="section-kicker">Available now</div><h2 id="expert-title">Relevant peers</h2></div></header>
+            <ul class="mini-list">
+              <li><strong>Firas Al-Siddiqi</strong><span>Energy management · 14 accepted answers</span></li>
+              <li><strong>Amro Abouzied</strong><span>Predictive maintenance · CNC vibration</span></li>
+              <li><strong>Hamad Alharthy</strong><span>MES integration · OEE models</span></li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2" aria-hidden="true"></i><span id="toast-message"></span></div>
+  <script src="forum.js"></script>
+<script src="../prototype-nav.js"></script></body>
+</html>

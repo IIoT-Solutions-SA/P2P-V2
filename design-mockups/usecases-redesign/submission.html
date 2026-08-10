@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink simplified three-step use case submission mockup" />
+  <title>PeerLink Use Cases - Simplified Submission</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .submission-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; }
+    .meta-chip { display:inline-flex; align-items:center; gap:6px; min-height:30px; padding:0 10px; border:1px solid var(--line); background:#fff; color:var(--muted); font-size:11px; font-weight:700; }
+    .meta-chip i { width:14px; height:14px; color:var(--teal); }
+    .step { width:100%; border:0; background:transparent; text-align:left; font:inherit; cursor:pointer; }
+    .step.complete .step-num { background:var(--teal-soft); border-color:#bad5cf; color:var(--teal); }
+    .step.complete .step-num::before { content:"✓"; }
+    .step.complete .step-num { font-size:0; }
+    .step.complete .step-num::before { font-size:12px; }
+    .step-panel { display:none; }
+    .step-panel.active { display:block; }
+    .prefill-note { display:flex; align-items:flex-start; gap:10px; margin:18px 0 4px; padding:13px 14px; border-left:3px solid var(--teal); background:var(--teal-soft); color:var(--navy); font-size:12px; line-height:1.55; }
+    .prefill-note i { width:17px; height:17px; flex:0 0 auto; margin-top:1px; color:var(--teal); }
+    .field-badge { display:inline-flex; align-items:center; gap:5px; color:var(--teal); font-size:10px; font-weight:700; letter-spacing:0; text-transform:none; }
+    .field-badge i { width:12px; height:12px; }
+    .question-card { display:grid; gap:9px; padding:18px; border:1px solid var(--line); background:#fff; }
+    .question-card.full { grid-column:1/-1; }
+    .question-number { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .question-number span:first-child { color:var(--teal); font:700 11px/1 "Manrope",sans-serif; letter-spacing:.12em; text-transform:uppercase; }
+    .optional { color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .question-card label { color:var(--ink); font:600 16px/1.35 "Manrope",sans-serif; letter-spacing:-.02em; text-transform:none; }
+    .question-card .help { line-height:1.5; }
+    .question-card textarea { min-height:112px; }
+    .question-card.outcomes textarea { min-height:130px; }
+    .budget-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(150px,.55fr); gap:10px; }
+    .upload-zone { min-height:190px; cursor:pointer; transition:.18s ease; }
+    .upload-zone:hover, .upload-zone.dragover { border-color:var(--teal); background:var(--teal-soft); }
+    .upload-zone strong { display:block; margin-bottom:5px; color:var(--ink); font:600 15px/1.3 "Manrope",sans-serif; }
+    .upload-zone input { position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; }
+    .file-list { display:grid; gap:9px; margin-top:14px; }
+    .file-item { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:11px; padding:10px; border:1px solid var(--line); background:#fff; }
+    .file-icon { width:38px; height:38px; display:grid; place-items:center; background:var(--teal-soft); color:var(--teal); }
+    .file-icon i { width:18px; height:18px; }
+    .file-item strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+    .file-item small { color:var(--muted); font-size:10px; }
+    .file-remove { width:30px; height:30px; display:grid; place-items:center; border:1px solid var(--line); background:#fff; cursor:pointer; }
+    .file-remove i { width:14px; height:14px; }
+    .review-card { padding:20px; border:1px solid var(--line); background:#f5f4ef; }
+    .review-card h3 { margin:0 0 14px; font:600 17px/1.3 "Manrope",sans-serif; }
+    .review-list { display:grid; gap:0; margin:0; }
+    .review-row { display:grid; grid-template-columns:135px minmax(0,1fr); gap:15px; padding:10px 0; border-top:1px solid var(--line); font-size:12px; }
+    .review-row dt { color:var(--muted); font-weight:700; }
+    .review-row dd { margin:0; color:var(--ink); }
+    .confirm-row { display:flex; align-items:flex-start; gap:10px; margin-top:16px; font-size:12px; line-height:1.5; }
+    .confirm-row input { margin-top:3px; accent-color:var(--teal); }
+    .save-state { display:inline-flex; align-items:center; gap:7px; }
+    .save-state i { width:14px; height:14px; }
+    .mobile-step-title { display:none; }
+    @media (max-width:760px) {
+      .budget-grid, .review-row { grid-template-columns:1fr; gap:4px; }
+      .review-row dt { padding-top:2px; }
+      .mobile-step-title { display:block; }
+      .submission-meta { margin-top:12px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to use case submission</a>
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div class="brand-copy"><div class="brand-name">PeerLink</div><div class="brand-caption">Manufacturing network</div></div></div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false"><i data-lucide="menu" aria-hidden="true"></i></button>
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav aria-label="Workspace navigation"><ul class="nav-list">
+        <li><a class="nav-link" href="../dashboard-redesign/concept-c-network-workspace.html"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a></li>
+        <li><a class="nav-link" href="../forum-redesign/index.html"><i data-lucide="library-big" aria-hidden="true"></i><span>Forum</span></a></li>
+        <li><a class="nav-link" href="../people-redesign/index.html"><i data-lucide="users" aria-hidden="true"></i><span>People</span></a></li>
+        <li><a class="nav-link active" href="library.html" aria-current="page"><i data-lucide="factory" aria-hidden="true"></i><span>Use Cases</span></a></li>
+      </ul></nav>
+      <p class="nav-label">Organization</p>
+      <nav aria-label="Organization navigation"><ul class="nav-list"><li><a class="nav-link" href="../manage-team-redesign/index.html"><i data-lucide="building-2" aria-hidden="true"></i><span>IIoT Solutions</span></a></li></ul></nav>
+      <p class="nav-label">Use Cases</p>
+      <nav aria-label="Use Cases mockup pages"><ul class="nav-list">
+        <li><a class="nav-link" href="library.html"><i data-lucide="list-filter" aria-hidden="true"></i><span>Library</span></a></li>
+        <li><a class="nav-link" href="detail.html"><i data-lucide="file-text" aria-hidden="true"></i><span>Detail</span></a></li>
+        <li><a class="nav-link active" href="submission.html"><i data-lucide="square-pen" aria-hidden="true"></i><span>Submission</span></a></li>
+        <li><a class="nav-link" href="states.html"><i data-lucide="loader-circle" aria-hidden="true"></i><span>States</span></a></li>
+      </ul></nav>
+      <div class="nav-spacer"></div>
+      <div class="profile-rail"><div class="avatar" aria-hidden="true">AF</div><div><div class="profile-name">Aadil Feroze</div><div class="profile-role">CTO · Administrator</div></div><button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened"><i data-lucide="settings" aria-hidden="true"></i></button></div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>IIoT Solutions</span><i data-lucide="chevron-right" aria-hidden="true"></i><a href="library.html">Use Cases</a><i data-lucide="chevron-right" aria-hidden="true"></i><strong>New submission</strong></div>
+      <div class="topbar-actions">
+        <div class="network-status save-state" id="save-status"><span class="status-dot" aria-hidden="true"></span><span>Saved just now</span></div>
+        <button class="icon-button" type="button" aria-label="Open search" data-toast="Global search opened"><i data-lucide="search" aria-hidden="true"></i></button>
+        <button class="icon-button" type="button" aria-label="Open notifications, 2 unread" data-toast="You have 2 unread notifications"><i data-lucide="bell" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">Simplified submission</p>
+          <h1>Share a use case in three simple steps.</h1>
+          <p class="intro-copy">Tell peers what was done without completing a technical report. Your progress is saved automatically.</p>
+          <div class="submission-meta">
+            <span class="meta-chip"><i data-lucide="clock-3" aria-hidden="true"></i>About 5–10 minutes</span>
+            <span class="meta-chip"><i data-lucide="cloud-check" aria-hidden="true"></i>Automatic draft saving</span>
+            <span class="meta-chip"><i data-lucide="shield-check" aria-hidden="true"></i>Reviewed before publication</span>
+          </div>
+        </div>
+        <div class="button-row">
+          <a class="button secondary" href="library.html"><i data-lucide="x" aria-hidden="true"></i>Cancel</a>
+          <button class="button primary" id="save-draft-top" type="button"><i data-lucide="save" aria-hidden="true"></i>Save draft</button>
+        </div>
+      </header>
+
+      <section class="panel wizard" aria-labelledby="submission-title">
+        <aside class="steps" aria-label="Submission steps">
+          <button class="step active" type="button" data-step="1"><span class="step-num">1</span><span>Organization<br><small>Confirm your information</small></span></button>
+          <button class="step" type="button" data-step="2"><span class="step-num">2</span><span>Use case<br><small>Five practical questions</small></span></button>
+          <button class="step" type="button" data-step="3"><span class="step-num">3</span><span>Attachments<br><small>Review and submit</small></span></button>
+        </aside>
+
+        <form class="form-area" id="submission-form" novalidate>
+          <section class="step-panel active" data-panel="1" aria-labelledby="submission-title">
+            <div class="eyebrow">Step 1 of 3</div>
+            <h2 id="submission-title">Confirm your organization information</h2>
+            <p class="help">We filled in what PeerLink already knows. Check the details and correct only what has changed.</p>
+            <div class="prefill-note"><i data-lucide="badge-check" aria-hidden="true"></i><span><strong>Verified workspace information</strong><br />These details came from your IIoT Solutions organization profile, so you do not have to enter them again.</span></div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="organization">Organization * <span class="field-badge"><i data-lucide="lock" aria-hidden="true"></i>Verified</span></label>
+                <div class="field"><input id="organization" value="IIoT Solutions" readonly /></div>
+              </div>
+              <div class="form-group">
+                <label for="site">Factory or site name *</label>
+                <div class="field"><input id="site" value="Riyadh Innovation Center" /></div>
+              </div>
+              <div class="form-group">
+                <label for="city">City *</label>
+                <div class="field"><select id="city"><option>Riyadh</option><option>Dammam</option><option>Jeddah</option><option>Jubail</option><option>Yanbu</option><option>Other</option></select></div>
+              </div>
+              <div class="form-group">
+                <label for="submitter">Submitted by * <span class="field-badge"><i data-lucide="user-check" aria-hidden="true"></i>Your profile</span></label>
+                <div class="field"><input id="submitter" value="Aadil Feroze" /></div>
+              </div>
+              <div class="form-group">
+                <label for="job-title">Job title</label>
+                <div class="field"><input id="job-title" value="Chief Technology Officer" /></div>
+              </div>
+              <div class="form-group">
+                <label for="contact-email">Contact email *</label>
+                <div class="field"><input id="contact-email" type="email" value="aadil@iiotsolutions.sa" /></div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <a class="section-link" href="library.html"><i data-lucide="arrow-left" aria-hidden="true"></i>Back to library</a>
+              <div class="button-row"><button class="button secondary save-draft" type="button">Save draft</button><button class="button primary next-step" type="button" data-next="2">Continue to use case <i data-lucide="arrow-right" aria-hidden="true"></i></button></div>
+            </div>
+          </section>
+
+          <section class="step-panel" data-panel="2" aria-labelledby="use-case-step-title">
+            <div class="eyebrow">Step 2 of 3</div>
+            <h2 id="use-case-step-title">Tell us about the use case</h2>
+            <p class="help">Answer in your own words. The prompts are intentionally broad—short, clear answers are enough.</p>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="case-title">Use case title *</label>
+                <div class="field"><input id="case-title" value="Reducing unplanned downtime with edge vibration monitoring" /></div>
+                <p class="help">A short working title is enough. It can be refined during review.</p>
+              </div>
+              <div class="question-card full">
+                <div class="question-number"><span>Question 01</span><span class="optional">Required</span></div>
+                <label for="problem">What problem or opportunity was this use case intended to address?</label>
+                <p class="help">Describe what was happening before the project and why the organization wanted to improve it.</p>
+                <div class="field"><textarea id="problem">Unexpected failures on critical rotating equipment were interrupting production and maintenance teams had limited warning before breakdowns.</textarea></div>
+              </div>
+              <div class="question-card full">
+                <div class="question-number"><span>Question 02</span><span class="optional">Required</span></div>
+                <label for="technology">What technology, equipment, software, or approach was used?</label>
+                <p class="help">List the main technologies in plain language. Detailed architecture is not required.</p>
+                <div class="field"><textarea id="technology">Wireless vibration sensors, an industrial edge gateway, condition-monitoring dashboards, and anomaly detection models.</textarea></div>
+              </div>
+              <div class="question-card full">
+                <div class="question-number"><span>Question 03</span><span class="optional">Optional</span></div>
+                <label for="budget-range">What was the approximate project budget?</label>
+                <p class="help">A range is enough. Choose “Prefer not to disclose” if the information is confidential.</p>
+                <div class="budget-grid">
+                  <div class="field"><select id="budget-range"><option>Select a budget range</option><option>Below SAR 50,000</option><option selected>SAR 50,000–250,000</option><option>SAR 250,000–1 million</option><option>Above SAR 1 million</option><option>Unknown</option><option>Prefer not to disclose</option></select></div>
+                  <div class="field"><input id="budget-detail" placeholder="Optional exact amount" /></div>
+                </div>
+              </div>
+              <div class="question-card full outcomes">
+                <div class="question-number"><span>Question 04</span><span class="optional">Required</span></div>
+                <label for="outcomes">What changed after implementation?</label>
+                <p class="help">Share improvements, savings, operational benefits, or lessons observed. Numbers are useful when available, but they are not mandatory.</p>
+                <div class="field"><textarea id="outcomes">Maintenance teams gained earlier warning of developing faults, reduced emergency interventions, and improved planning for shutdown work.</textarea></div>
+              </div>
+              <div class="question-card full">
+                <div class="question-number"><span>Question 05</span><span class="optional">Optional</span></div>
+                <label for="challenges">What challenges did you experience?</label>
+                <p class="help">You can mention technical, operational, adoption, data, supplier, or implementation challenges.</p>
+                <div class="field"><textarea id="challenges" placeholder="For example: sensor placement, connectivity, data quality, team adoption, or integration with existing systems."></textarea></div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="section-link previous-step" type="button" data-previous="1"><i data-lucide="arrow-left" aria-hidden="true"></i>Organization</button>
+              <div class="button-row"><button class="button secondary save-draft" type="button">Save draft</button><button class="button primary next-step" type="button" data-next="3">Continue to attachments <i data-lucide="arrow-right" aria-hidden="true"></i></button></div>
+            </div>
+          </section>
+
+          <section class="step-panel" data-panel="3" aria-labelledby="attachments-step-title">
+            <div class="eyebrow">Step 3 of 3</div>
+            <h2 id="attachments-step-title">Add supporting files and submit</h2>
+            <p class="help">Attachments are optional. Add anything that helps reviewers understand the implementation.</p>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="attachments">Images, videos and documents</label>
+                <label class="dropzone upload-zone" id="upload-zone" for="attachments">
+                  <span><i data-lucide="upload-cloud" aria-hidden="true"></i><strong>Drop files here or browse your device</strong><span class="help">Images, videos, PDF, Word, PowerPoint, Excel or CSV<br />Up to 10 files · individual file limits apply</span></span>
+                  <input id="attachments" type="file" multiple accept="image/*,video/mp4,video/webm,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv" />
+                </label>
+                <div class="file-list" id="file-list" aria-live="polite"></div>
+              </div>
+              <div class="form-group full">
+                <div class="review-card">
+                  <p class="eyebrow">Submission summary</p>
+                  <h3>Check the essentials before submitting</h3>
+                  <dl class="review-list">
+                    <div class="review-row"><dt>Organization</dt><dd id="review-organization">IIoT Solutions · Riyadh Innovation Center</dd></div>
+                    <div class="review-row"><dt>Use case</dt><dd id="review-title">Reducing unplanned downtime with edge vibration monitoring</dd></div>
+                    <div class="review-row"><dt>Information provided</dt><dd>Problem, technology, budget range and outcomes</dd></div>
+                    <div class="review-row"><dt>Attachments</dt><dd id="review-attachments">No files added</dd></div>
+                    <div class="review-row"><dt>Next step</dt><dd>PeerLink reviewers will check the submission before publication and contact you if clarification is needed.</dd></div>
+                  </dl>
+                  <label class="confirm-row"><input id="confirmation" type="checkbox" checked /><span>I confirm that I am authorized to share this information and understand that it will be reviewed before publication.</span></label>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="section-link previous-step" type="button" data-previous="2"><i data-lucide="arrow-left" aria-hidden="true"></i>Use case details</button>
+              <div class="button-row"><button class="button secondary save-draft" type="button">Save draft</button><button class="button primary" id="submit-use-case" type="button"><i data-lucide="send" aria-hidden="true"></i>Submit use case</button></div>
+            </div>
+          </section>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2" aria-hidden="true"></i><span id="toast-message"></span></div>
+  <script src="usecases.js"></script>
+  <script src="../prototype-nav.js"></script>
+  <script>
+    (() => {
+      const panels = [...document.querySelectorAll("[data-panel]")];
+      const steps = [...document.querySelectorAll(".step[data-step]")];
+      const saveStatus = document.querySelector("#save-status span:last-child");
+      const toast = document.getElementById("toast");
+      const toastMessage = document.getElementById("toast-message");
+      const fileInput = document.getElementById("attachments");
+      const fileList = document.getElementById("file-list");
+      const uploadZone = document.getElementById("upload-zone");
+      let currentStep = 1;
+      let selectedFiles = [];
+      let saveTimer;
+
+      const showToast = message => {
+        toastMessage.textContent = message;
+        toast.classList.add("visible");
+        window.setTimeout(() => toast.classList.remove("visible"), 2400);
+      };
+
+      const goToStep = number => {
+        currentStep = Math.max(1, Math.min(3, Number(number)));
+        panels.forEach(panel => panel.classList.toggle("active", Number(panel.dataset.panel) === currentStep));
+        steps.forEach(step => {
+          const value = Number(step.dataset.step);
+          step.classList.toggle("active", value === currentStep);
+          step.classList.toggle("complete", value < currentStep);
+          if (value === currentStep) step.setAttribute("aria-current", "step"); else step.removeAttribute("aria-current");
+        });
+        if (currentStep === 3) updateReview();
+        document.querySelector(".panel.wizard").scrollIntoView({ behavior:"smooth", block:"start" });
+      };
+
+      const markSaving = () => {
+        saveStatus.textContent = "Saving draft…";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => { saveStatus.textContent = "Saved just now"; }, 700);
+      };
+
+      const saveNow = () => {
+        saveStatus.textContent = "Saved just now";
+        showToast("Draft saved. You can safely return later.");
+      };
+
+      const formatSize = bytes => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      const fileIcon = file => file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "film" : "file-text";
+
+      const renderFiles = () => {
+        fileList.innerHTML = selectedFiles.map((file, index) => `<div class="file-item"><span class="file-icon"><i data-lucide="${fileIcon(file)}" aria-hidden="true"></i></span><span><strong>${file.name.replace(/[<>&"]/g, "")}</strong><small>${formatSize(file.size)}</small></span><button class="file-remove" type="button" data-remove-file="${index}" aria-label="Remove ${file.name.replace(/[<>&"]/g, "")}"><i data-lucide="x" aria-hidden="true"></i></button></div>`).join("");
+        fileList.querySelectorAll("[data-remove-file]").forEach(button => button.addEventListener("click", () => { selectedFiles.splice(Number(button.dataset.removeFile), 1); renderFiles(); markSaving(); }));
+        document.getElementById("review-attachments").textContent = selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} ready to upload` : "No files added";
+        if (window.lucide) window.lucide.createIcons();
+      };
+
+      const addFiles = files => {
+        selectedFiles = [...selectedFiles, ...files].slice(0, 10);
+        renderFiles();
+        markSaving();
+      };
+
+      const updateReview = () => {
+        document.getElementById("review-organization").textContent = `${document.getElementById("organization").value} · ${document.getElementById("site").value}`;
+        document.getElementById("review-title").textContent = document.getElementById("case-title").value || "Untitled use case";
+        document.getElementById("review-attachments").textContent = selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length === 1 ? "" : "s"} ready to upload` : "No files added";
+      };
+
+      steps.forEach(step => step.addEventListener("click", () => goToStep(step.dataset.step)));
+      document.querySelectorAll(".next-step").forEach(button => button.addEventListener("click", () => goToStep(button.dataset.next)));
+      document.querySelectorAll(".previous-step").forEach(button => button.addEventListener("click", () => goToStep(button.dataset.previous)));
+      document.querySelectorAll(".save-draft, #save-draft-top").forEach(button => button.addEventListener("click", saveNow));
+      document.querySelectorAll("input:not([type=file]), textarea, select").forEach(field => field.addEventListener("input", markSaving));
+      fileInput.addEventListener("change", event => addFiles([...event.target.files]));
+      ["dragenter", "dragover"].forEach(name => uploadZone.addEventListener(name, event => { event.preventDefault(); uploadZone.classList.add("dragover"); }));
+      ["dragleave", "drop"].forEach(name => uploadZone.addEventListener(name, event => { event.preventDefault(); uploadZone.classList.remove("dragover"); }));
+      uploadZone.addEventListener("drop", event => addFiles([...event.dataTransfer.files]));
+      document.getElementById("submit-use-case").addEventListener("click", () => {
+        if (!document.getElementById("confirmation").checked) return showToast("Please confirm you are authorized to share this information.");
+        showToast("Use case submitted for review.");
+      });
+      document.getElementById("submission-form").addEventListener("submit", event => event.preventDefault());
+      goToStep(1);
+    })();
+  </script>
+</body>
+</html>

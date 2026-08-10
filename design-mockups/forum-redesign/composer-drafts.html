@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink forum composer and drafts mockup" />
+  <title>PeerLink Forum - Composer and Drafts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="forum.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to composer</a>
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand"><span class="brand-mark"></span><div class="brand-copy"><div class="brand-name">PeerLink</div><div class="brand-caption">Manufacturing network</div></div></div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false"><i data-lucide="menu"></i></button>
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav><ul class="nav-list">
+        <li><a class="nav-link" href="../dashboard-redesign/concept-c-network-workspace.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+        <li><a class="nav-link active" href="index.html"><i data-lucide="library-big"></i><span>Forum</span></a></li>
+        <li><a class="nav-link" href="#" data-toast="People opened"><i data-lucide="users"></i><span>People</span></a></li>
+        <li><a class="nav-link" href="#" data-toast="Use cases opened"><i data-lucide="factory"></i><span>Use Cases</span></a></li>
+        
+      </ul></nav>
+      <p class="nav-label">Mockup family</p>
+      <nav><ul class="nav-list">
+        <li><a class="nav-link" href="index.html"><i data-lucide="list-filter"></i><span>Listing</span></a></li>
+        <li><a class="nav-link" href="thread-detail.html"><i data-lucide="messages-square"></i><span>Thread detail</span></a></li>
+        <li><a class="nav-link active" href="composer-drafts.html"><i data-lucide="square-pen"></i><span>Composer</span></a></li>
+        <li><a class="nav-link" href="states.html"><i data-lucide="loader-circle"></i><span>States</span></a></li>
+      </ul></nav>
+      <div class="nav-spacer"></div>
+      <div class="profile-rail"><div class="avatar">AF</div><div><div class="profile-name">Aadil Feroze</div><div class="profile-role">CTO · Administrator</div></div><button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened"><i data-lucide="settings"></i></button></div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>Forum</span><i data-lucide="chevron-right"></i><strong>Composer</strong></div>
+      <div class="topbar-actions"><div class="network-status"><span class="status-dot"></span>Autosave available</div><button class="icon-button" type="button" aria-label="Preview post" data-toast="Preview opened"><i data-lucide="eye"></i></button><button class="icon-button" type="button" aria-label="Open notifications" data-toast="No new forum alerts"><i data-lucide="bell"></i></button></div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">Question composer</p>
+          <h1>Shape a manufacturing question peers can answer quickly.</h1>
+          <p class="intro-copy">The composer keeps the Network Workspace density while guiding category, context, attachments, draft save and post actions.</p>
+        </div>
+        <div class="intro-context"><strong>2 active drafts</strong><span>Question draft and reply draft</span></div>
+      </header>
+
+      <div class="forum-grid">
+        <section class="section" aria-labelledby="composer-title">
+          <header class="section-head"><div><div class="section-kicker">Create post</div><h2 id="composer-title">Ask the network</h2></div><button class="button secondary" type="button" data-toast="Preview opened"><i data-lucide="eye"></i>Preview</button></header>
+          <form class="composer">
+            <div class="form-grid">
+              <div class="form-row full"><label for="title">Title</label><input class="field" id="title" value="How should we validate AMR battery-swap safety before pilot launch?" /></div>
+              <div class="form-row"><label for="category">Category</label><select class="field" id="category"><option>Automation and robotics</option><option>Quality and inspection</option><option>Energy and utilities</option><option>Data and integration</option></select></div>
+              <div class="form-row"><label for="plant-area">Plant area</label><input class="field" id="plant-area" value="Internal logistics · Assembly line" /></div>
+              <div class="form-row full"><label for="body">Context and question</label><textarea class="textarea" id="body">We are preparing an AMR pilot for battery kits moving between storage and assembly. The safety checklist covers routes and speed zones, but we need a practical validation routine for battery-swap behavior before production operators use it.</textarea></div>
+              <div class="form-row"><label for="tags">Tags</label><input class="field" id="tags" value="AMR, safety, pilot validation" /></div>
+              <div class="form-row"><label for="attachment">Attachment</label><input class="field" id="attachment" value="AMR_route_risk_matrix.pdf" /></div>
+            </div>
+            <div class="composer-toolbar" aria-label="Formatting controls">
+              <button class="icon-button" type="button" aria-label="Bold" data-toast="Bold formatting applied"><i data-lucide="bold"></i></button>
+              <button class="icon-button" type="button" aria-label="Italic" data-toast="Italic formatting applied"><i data-lucide="italic"></i></button>
+              <button class="icon-button" type="button" aria-label="Bulleted list" data-toast="List inserted"><i data-lucide="list"></i></button>
+              <button class="icon-button" type="button" aria-label="Attach file" data-toast="Attachment picker opened"><i data-lucide="paperclip"></i></button>
+              <button class="icon-button" type="button" aria-label="Mention peer" data-toast="Mention picker opened"><i data-lucide="at-sign"></i></button>
+            </div>
+            <div class="composer-footer"><span class="autosave"><i data-lucide="check-circle-2"></i>Draft autosaved 24 seconds ago</span><span class="filter-row"><button class="button secondary" type="button" data-save-draft>Save draft</button><button class="button primary" type="button" data-toast="Question posted to Automation and robotics">Post question</button></span></div>
+          </form>
+        </section>
+
+        <aside class="side-stack">
+          <section class="section" aria-labelledby="draft-list-title">
+            <header class="section-head"><div><div class="section-kicker">Draft access</div><h2 id="draft-list-title">Saved drafts</h2></div></header>
+            <ul class="mini-list">
+              <li><strong>AMR battery-swap safety checklist</strong><span><span class="tag draft">Question draft</span> Updated 24 seconds ago</span></li>
+              <li><strong>Vision station ROI comparison</strong><span><span class="tag draft">Reply draft</span> Updated yesterday</span></li>
+              <li><strong>Edge gateway naming pattern</strong><span><span class="tag draft">Archived draft</span> Updated last week</span></li>
+            </ul>
+          </section>
+          <section class="section" aria-labelledby="guidance-title">
+            <header class="section-head"><div><div class="section-kicker">Quality prompt</div><h2 id="guidance-title">Before posting</h2></div></header>
+            <ul class="mini-list">
+              <li><strong>Include constraints</strong><span>Shift pattern, access limits, available signals.</span></li>
+              <li><strong>Describe desired output</strong><span>Checklist, design review, equipment advice or data model.</span></li>
+              <li><strong>Add useful files</strong><span>Diagrams, tables and anonymized trend screenshots.</span></li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2"></i><span id="toast-message"></span></div>
+  <script src="forum.js"></script>
+<script src="../prototype-nav.js"></script></body>
+</html>

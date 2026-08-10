@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink Use Cases state mockups in the Network Workspace direction" />
+  <title>PeerLink Use Cases - States</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to use case states</a>
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div class="brand-copy"><div class="brand-name">PeerLink</div><div class="brand-caption">Manufacturing network</div></div></div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false"><i data-lucide="menu" aria-hidden="true"></i></button>
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav aria-label="Workspace navigation"><ul class="nav-list">
+        <li><a class="nav-link" href="../dashboard-redesign/concept-c-network-workspace.html"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a></li>
+        <li><a class="nav-link" href="../forum-redesign/index.html"><i data-lucide="library-big" aria-hidden="true"></i><span>Forum</span></a></li>
+        <li><a class="nav-link" href="../people-redesign/index.html"><i data-lucide="users" aria-hidden="true"></i><span>People</span></a></li>
+        <li><a class="nav-link active" href="library.html" aria-current="page"><i data-lucide="factory" aria-hidden="true"></i><span>Use Cases</span></a></li>
+      </ul></nav>
+      <p class="nav-label">Organization</p>
+      <nav aria-label="Organization navigation"><ul class="nav-list"><li><a class="nav-link" href="../manage-team-redesign/index.html"><i data-lucide="building-2" aria-hidden="true"></i><span>IIoT Solutions</span></a></li></ul></nav>
+      <p class="nav-label">Use Cases</p>
+      <nav aria-label="Use Cases mockup pages"><ul class="nav-list">
+        <li><a class="nav-link" href="library.html"><i data-lucide="list-filter" aria-hidden="true"></i><span>Library</span></a></li>
+        <li><a class="nav-link" href="detail.html"><i data-lucide="file-text" aria-hidden="true"></i><span>Detail</span></a></li>
+        <li><a class="nav-link" href="submission.html"><i data-lucide="square-pen" aria-hidden="true"></i><span>Submission</span></a></li>
+        <li><a class="nav-link active" href="states.html"><i data-lucide="loader-circle" aria-hidden="true"></i><span>States</span></a></li>
+      </ul></nav>
+      <div class="nav-spacer"></div>
+      <div class="profile-rail"><div class="avatar" aria-hidden="true">AF</div><div><div class="profile-name">Aadil Feroze</div><div class="profile-role">CTO · Administrator</div></div><button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened"><i data-lucide="settings" aria-hidden="true"></i></button></div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>IIoT Solutions</span><i data-lucide="chevron-right" aria-hidden="true"></i><a href="library.html">Use Cases</a><i data-lucide="chevron-right" aria-hidden="true"></i><strong>States</strong></div>
+      <div class="topbar-actions">
+        <div class="network-status"><span class="status-dot" aria-hidden="true"></span>Prototype states</div>
+        <button class="icon-button" type="button" aria-label="Open search" data-toast="Global search opened"><i data-lucide="search" aria-hidden="true"></i></button>
+        <button class="icon-button" type="button" aria-label="Open notifications, 2 unread" data-toast="You have 2 unread notifications"><i data-lucide="bell" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">Network Workspace states</p>
+          <h1>Use Case library states.</h1>
+          <p class="intro-copy">Loading, empty, and error states use the same panel, icon, typography, and button treatment as the authenticated workspace.</p>
+        </div>
+        <a class="button secondary" href="library.html"><i data-lucide="arrow-left" aria-hidden="true"></i>Back to library</a>
+      </header>
+
+      <section class="panel" aria-labelledby="states-title">
+        <header class="panel-head">
+          <div><div class="panel-kicker">State previews</div><h2 id="states-title">Use case state handling</h2><p class="panel-copy">Switch between static prototype states.</p></div>
+        </header>
+        <div class="state-nav" aria-label="State examples">
+          <button class="state-button active" type="button" data-state-target="loading">Loading</button>
+          <button class="state-button" type="button" data-state-target="empty">No results</button>
+          <button class="state-button" type="button" data-state-target="error">Could not load</button>
+        </div>
+        <div class="state-stage">
+          <section class="state active" data-state="loading">
+            <div class="state-illustration"><i data-lucide="loader-circle" aria-hidden="true"></i></div>
+            <h2>Loading use cases</h2>
+            <p>Retrieving use cases, filters, metrics, and saved library context.</p>
+            <div class="skeleton" aria-hidden="true"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+          </section>
+          <section class="state" data-state="empty">
+            <div class="state-illustration"><i data-lucide="search-x" aria-hidden="true"></i></div>
+            <h2>No use cases match these filters</h2>
+            <p>Broaden the technology category, region, or industry filters to find more implementation examples.</p>
+            <button class="button primary" type="button" data-toast="Filters cleared"><i data-lucide="x" aria-hidden="true"></i>Clear filters</button>
+          </section>
+          <section class="state error" data-state="error">
+            <div class="state-illustration"><i data-lucide="triangle-alert" aria-hidden="true"></i></div>
+            <h2>Could not load the library</h2>
+            <p>The library is temporarily unavailable. Your filters are preserved and you can retry without losing context.</p>
+            <button class="button primary" type="button" data-toast="Retrying library request"><i data-lucide="refresh-cw" aria-hidden="true"></i>Try again</button>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2" aria-hidden="true"></i><span id="toast-message"></span></div>
+  <script src="usecases.js"></script>
+  <script src="../prototype-nav.js"></script>
+</body>
+</html>

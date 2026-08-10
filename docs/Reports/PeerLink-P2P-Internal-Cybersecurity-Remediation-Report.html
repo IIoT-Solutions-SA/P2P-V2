@@ -1,0 +1,177 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PeerLink / P2P Internal Cybersecurity Remediation Report</title><style>
+@page{size:A4;margin:20mm 18mm 18mm 18mm}*{box-sizing:border-box}body{margin:0;background:#eef2f7;color:#111827;font-family:Arial,Helvetica,sans-serif;line-height:1.55}.page{max-width:980px;margin:0 auto;padding:32px 18px 60px}.report{background:white;border:1px solid #d9e1ec;box-shadow:0 12px 34px rgba(15,23,42,.08)}.topbar{padding:18px 34px;border-bottom:1px solid #d9e1ec;display:flex;justify-content:space-between;gap:18px;font-size:13px;color:#475569}.hero{padding:42px;background:linear-gradient(135deg,#0f2a56,#1d4ed8);color:white}.hero h1{margin:0 0 12px;font-size:31px;line-height:1.2}.hero p{margin:0;color:#dbeafe;font-size:15px}.content{padding:36px 42px 42px}h2{font-size:22px;margin:30px 0 14px;padding-top:18px;border-top:1px solid #e5e7eb;color:#0f172a}.content h2:first-child{margin-top:0;padding-top:0;border-top:0}h3{font-size:16px;margin:18px 0 6px;color:#1e3a8a;page-break-after:avoid}p{margin:8px 0 13px}ol,ul{padding-left:22px;margin-top:8px}li{margin:7px 0}code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:1px 4px}@media print{body{background:white}.page{max-width:none;padding:0}.report{border:0;box-shadow:none}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}h2,h3{break-after:avoid}}</style></head><body><main class="page"><article class="report"><header class="topbar"><div><strong>PeerLink / P2P</strong></div><div>Internal Cybersecurity Remediation Report</div></header><section class="hero"><h1>PeerLink / P2P Internal Cybersecurity Remediation Report</h1><p>Comprehensive internal remediation notes for the 11 KACST cybersecurity findings and related application follow-up.</p></section><section class="content"><h2>Purpose</h2>
+<p>This internal report documents the 11 KACST cybersecurity findings for PeerLink / P2P, the reason each item mattered, what was required to resolve it, what was changed, and how the fixes were verified.</p>
+<p>This report is intended for internal engineering and operations tracking. It is more detailed than the external/team-facing summary report.</p>
+<h2>Overall Status</h2>
+<p>All 11 reported findings have been addressed. The remediation covered infrastructure hardening, HTTPS enforcement, upload validation, dependency cleanup, security headers, MFA/OTP behavior, input validation, HTTP/2 enablement, and corporate email-change restrictions.</p>
+<p>For internal tracking, the fixes were split between items I handled directly and items handled by Umair through application changes. I handled the infrastructure/security-header/deployment items and review/merge follow-up. Umair handled the main authentication, email-domain, input-validation, and draft-related application fixes.</p>
+<h2>1. Outdated NGINX 1.24.0 with Critical/High Vulnerabilities</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — infrastructure hardening on OCI.</p>
+<h3>Finding</h3>
+<p>The public web server exposed <code>nginx/1.24.0 (Ubuntu)</code>, which triggered the scanner finding that the NGINX version was outdated and affected by critical/high vulnerabilities.</p>
+<h3>Why It Mattered</h3>
+<p>Even if Ubuntu has backported security patches, exposing the exact upstream version creates a scanner target and allows attackers to fingerprint the stack easily.</p>
+<h3>What Was Needed</h3>
+<ul><li>Confirm the actual installed NGINX package on the OCI host.</li><li>Confirm whether Ubuntu security repositories had a newer patched package.</li><li>Avoid risky production package-source changes unless necessary.</li><li>Hide the public NGINX version banner.</li><li>Reload NGINX safely and verify headers externally.</li></ul>
+<h3>Remediation Performed</h3>
+<p>The host package was checked on the OCI instance. The installed version was the latest patched Ubuntu Noble package available from the configured repositories. The NGINX public version banner was then hidden using <code>server_tokens off;</code>.</p>
+<h3>Verification</h3>
+<p>Public response headers no longer show the exact NGINX/Ubuntu version. The server now returns only a generic NGINX server header.</p>
+<h3>Notes</h3>
+<p>This finding was closely related to issue 6, web server version disclosure. The same hardening addressed both the scanner trigger and the exposed-version concern.</p>
+<h2>2. Login Exposed Over Plain HTTP</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — HTTPS and NGINX production configuration.</p>
+<h3>Finding</h3>
+<p>Login and authentication pages were reachable over plain HTTP.</p>
+<h3>Why It Mattered</h3>
+<p>Plain HTTP can expose credentials, session-related traffic, and authentication flows to interception or downgrade risks.</p>
+<h3>What Was Needed</h3>
+<ul><li>Enable HTTPS for <code>p2p.iiotsolutions.sa</code>.</li><li>Issue and install a valid TLS certificate.</li><li>Configure NGINX to listen on HTTPS.</li><li>Redirect HTTP traffic to HTTPS.</li><li>Ensure application domain settings used HTTPS.</li><li>Verify login and application pages still worked after the change.</li></ul>
+<h3>Remediation Performed</h3>
+<p>Let&#x27;s Encrypt HTTPS was enabled on the OCI NGINX reverse proxy. HTTP traffic was redirected to HTTPS. Application domain configuration was aligned to use the HTTPS public domain.</p>
+<h3>Verification</h3>
+<p>The site loads over HTTPS, HTTP routes redirect to HTTPS, and the authenticated application flow was smoke-tested successfully.</p>
+<h3>Notes</h3>
+<p>This fix also prepared the environment for HSTS and HTTP/2.</p>
+<h2>3. Unrestricted File Upload Vulnerability</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — upload validation hardening and deployment verification.</p>
+<h3>Finding</h3>
+<p>Upload flows did not have enough protection against unsafe, spoofed, or unauthorized uploads.</p>
+<h3>Why It Mattered</h3>
+<p>Unrestricted upload handling can allow malicious files, content-type spoofing, oversized payloads, extension mismatches, and uploads to objects a user does not own.</p>
+<h3>What Was Needed</h3>
+<ul><li>Review all user-facing media upload paths.</li><li>Enforce allowed file types.</li><li>Validate file content rather than trusting browser-provided content type.</li><li>Block extension/content mismatches.</li><li>Apply size checks.</li><li>Ensure uploaded files use safe extensions.</li><li>Enforce ownership checks before allowing uploads.</li><li>Test invalid and valid upload cases.</li></ul>
+<h3>Remediation Performed</h3>
+<p>Upload validation was hardened. The implementation validates file type, file content, extension consistency, file size, and ownership before accepting uploads. Unsafe renamed files and unauthorized uploads are blocked.</p>
+<h3>Verification</h3>
+<p>Test cases confirmed fake image uploads, mismatched extensions, mismatched MIME declarations, and unauthorized media uploads are rejected.</p>
+<h3>Notes</h3>
+<p>Future optional hardening could include antivirus scanning and stricter object-storage serving headers if required by policy.</p>
+<h2>4. Login Implemented Without 2FA/MFA</h2>
+<p><strong>Owner:</strong> Umair — OTP/MFA application changes; Hamza/Nemo reviewed, merged, and verified.</p>
+<h3>Finding</h3>
+<p>The login flow did not enforce a second factor.</p>
+<h3>Why It Mattered</h3>
+<p>Password-only login increases risk if credentials are leaked, reused, guessed, or phished.</p>
+<h3>What Was Needed</h3>
+<ul><li>Add OTP-based verification behavior for login.</li><li>Support OTP challenge handling and resend behavior.</li><li>Ensure successful verification creates the correct session state.</li><li>Avoid confusing success messages when session creation fails.</li><li>Test login and verification flows in production.</li></ul>
+<h3>Remediation Performed</h3>
+<p>OTP-based verification/MFA behavior was added to the authentication flow. Challenge handling, resend behavior, session creation handling, and post-verification routing were also corrected.</p>
+<h3>Verification</h3>
+<p>A live production login smoke test confirmed the OTP flow works and the application can be accessed after verification.</p>
+<h3>Notes</h3>
+<p>Trusted-device behavior is present so the experience can remain usable while still improving login security.</p>
+<h2>5. Outdated and Vulnerable Frontend Libraries</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — dependency audit/update and deployment verification.</p>
+<h3>Finding</h3>
+<p>The frontend dependency tree contained vulnerable packages.</p>
+<h3>Why It Mattered</h3>
+<p>Frontend dependency vulnerabilities can expose the application to known client-side or build-chain security issues.</p>
+<h3>What Was Needed</h3>
+<ul><li>Run frontend dependency audit.</li><li>Update patched package versions through the lockfile.</li><li>Rebuild the frontend.</li><li>Confirm audit results after the update.</li><li>Deploy and verify the live frontend still loads correctly.</li></ul>
+<h3>Remediation Performed</h3>
+<p>The frontend dependency lockfile was updated, the build was tested, and the updated frontend was deployed.</p>
+<h3>Verification</h3>
+<p>The audit result was reduced to 0 vulnerabilities, and the live frontend loaded successfully after deployment.</p>
+<h3>Notes</h3>
+<p>This should be repeated periodically because frontend dependency findings can reappear as packages age.</p>
+<h2>6. Web Server Version Disclosure via HTTP Response Headers</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — NGINX header hardening.</p>
+<h3>Finding</h3>
+<p>The web server exposed its exact NGINX and Ubuntu version in HTTP response headers.</p>
+<h3>Why It Mattered</h3>
+<p>Version disclosure helps attackers and scanners identify the exact stack and map it to known vulnerabilities.</p>
+<h3>What Was Needed</h3>
+<ul><li>Remove exact version disclosure from public headers.</li><li>Keep the production reverse proxy stable.</li><li>Verify the public header no longer contains version details.</li></ul>
+<h3>Remediation Performed</h3>
+<p>NGINX <code>server_tokens off;</code> was enabled on the host reverse proxy.</p>
+<h3>Verification</h3>
+<p>Public headers no longer expose <code>nginx/1.24.0 (Ubuntu)</code>.</p>
+<h3>Notes</h3>
+<p>This was handled together with issue 1.</p>
+<h2>7. Missing HTTP Strict Transport Security / HSTS Header</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — NGINX security header configuration.</p>
+<h3>Finding</h3>
+<p>The application did not return an HSTS header.</p>
+<h3>Why It Mattered</h3>
+<p>Without HSTS, browsers may still attempt insecure HTTP connections, especially on first access or after user/browser behavior that downgrades requests.</p>
+<h3>What Was Needed</h3>
+<ul><li>First ensure HTTPS is stable.</li><li>Add HSTS to HTTPS responses.</li><li>Verify the header appears on public responses.</li></ul>
+<h3>Remediation Performed</h3>
+<p>HSTS was added after HTTPS was enabled and verified.</p>
+<h3>Verification</h3>
+<p>HTTPS responses include <code>Strict-Transport-Security</code>.</p>
+<h3>Notes</h3>
+<p>HSTS should only be enabled after HTTPS is confirmed stable, which was done.</p>
+<h2>8. Missing Content Security Policy / CSP Header</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — NGINX CSP configuration and browser verification.</p>
+<h3>Finding</h3>
+<p>The application did not return a Content Security Policy header.</p>
+<h3>Why It Mattered</h3>
+<p>CSP reduces the impact of browser-side injection attacks by limiting where scripts, styles, images, and other resources can load from.</p>
+<h3>What Was Needed</h3>
+<ul><li>Inspect what the frontend needs to load.</li><li>Add a CSP that improves security without breaking the app.</li><li>Allow required trusted sources only.</li><li>Test core pages after the header is applied.</li></ul>
+<h3>Remediation Performed</h3>
+<p>A safe CSP header was added at the NGINX layer. It was designed to reduce injection risk while still allowing required frontend resources.</p>
+<h3>Verification</h3>
+<p>The CSP header appears on public responses, and BrowserOps checks confirmed the application still loads after the header was applied.</p>
+<h3>Notes</h3>
+<p>CSP can be tightened further over time if the frontend removes inline styles or reduces third-party resource needs.</p>
+<h2>9. Lack of Input Validation Across Application Fields</h2>
+<p><strong>Owner:</strong> Umair — backend/application validation changes; Hamza/Nemo reviewed, merged, and verified.</p>
+<h3>Finding</h3>
+<p>Application forms accepted suspicious input, invalid values, and scanner-style payloads.</p>
+<h3>Why It Mattered</h3>
+<p>Weak input validation can allow stored junk data, injection attempts, XSS payloads, malformed business data, and scanner payloads to persist in the system.</p>
+<h3>What Was Needed</h3>
+<ul><li>Identify exposed forms and user-input fields.</li><li>Add server-side validation, not only frontend validation.</li><li>Reject common dangerous patterns.</li><li>Enforce length limits and valid field ranges.</li><li>Validate list sizes, tags, categories, and nested form data.</li><li>Test valid and invalid submissions.</li></ul>
+<h3>Remediation Performed</h3>
+<p>Input validation was added for major user-submitted application fields. The application now rejects suspicious payloads, invalid values, excessive lengths, invalid categories, unsafe tags, and common scanner strings.</p>
+<h3>Verification</h3>
+<p>Validation tests were run and passed. Manual checks confirmed invalid payloads are rejected while valid data remains accepted.</p>
+<h3>Notes</h3>
+<p>This should remain an ongoing area of review as new forms and fields are added.</p>
+<h2>10. Application Implemented Using HTTP/1.1</h2>
+<p><strong>Owner:</strong> Hamza/Nemo — HTTP/2 enablement on production HTTPS endpoint.</p>
+<h3>Finding</h3>
+<p>The public endpoint was reported as using HTTP/1.1.</p>
+<h3>Why It Mattered</h3>
+<p>HTTP/2 is the expected modern protocol for secure web delivery and is commonly flagged when missing.</p>
+<h3>What Was Needed</h3>
+<ul><li>Enable HTTP/2 on the HTTPS listener.</li><li>Verify HTTPS still works correctly.</li><li>Confirm the public endpoint responds over HTTP/2.</li></ul>
+<h3>Remediation Performed</h3>
+<p>HTTP/2 was enabled on the secure public NGINX endpoint.</p>
+<h3>Verification</h3>
+<p>The public HTTPS endpoint responds successfully using HTTP/2.</p>
+<h3>Notes</h3>
+<p>HTTP/2 enablement depended on the HTTPS work in issue 2.</p>
+<h2>11. Unauthorized Change of Corporate Email to Personal Email After Login</h2>
+<p><strong>Owner:</strong> Umair — email-domain restriction changes; Hamza/Nemo reviewed, merged, and verified.</p>
+<h3>Finding</h3>
+<p>A user could change their account email from a corporate email to a personal email after login.</p>
+<h3>Why It Mattered</h3>
+<p>Corporate-domain enforcement is important for identity, access control, accountability, and organization-based user trust.</p>
+<h3>What Was Needed</h3>
+<ul><li>Block personal email domains during email-change operations.</li><li>Enforce organization-domain matching.</li><li>Validate before applying account updates.</li><li>Add user-facing validation so invalid email changes are rejected clearly.</li><li>Verify that invalid password/email-change cases do not trigger broken session behavior.</li></ul>
+<h3>Remediation Performed</h3>
+<p>Email-change rules were strengthened. Users can no longer switch from an approved corporate email to a personal email, and organization-domain matching is enforced.</p>
+<h3>Verification</h3>
+<p>Personal-domain email changes and mismatched organization-domain changes are blocked.</p>
+<h3>Notes</h3>
+<p>The allowed-domain logic should be reviewed if the business later supports multiple corporate domains or partner organizations.</p>
+<h2>Additional Issue: Use Case Draft Save Failure</h2>
+<p><strong>Owner:</strong> Umair — draft-save/application fix; Hamza/Nemo reviewed, merged, and applied follow-up verification.</p>
+<h3>Finding</h3>
+<p>After the main cybersecurity fixes, there was an additional application issue where use-case drafts could fail to save correctly, especially when partial draft data did not satisfy the stricter final-submit validation rules.</p>
+<h3>Why It Mattered</h3>
+<p>Drafts are supposed to allow incomplete work to be saved. If draft saves use the same strict validation as final submission, users can lose progress or be blocked while still preparing a use case.</p>
+<h3>What Was Needed</h3>
+<ul><li>Separate draft-save behavior from final-submit behavior.</li><li>Allow partial draft data where appropriate.</li><li>Keep strict validation for final submission.</li><li>Verify that draft saves no longer fail unexpectedly.</li></ul>
+<h3>Remediation Performed</h3>
+<p>The draft-save flow was corrected so partial draft data can be saved while final submission remains stricter. Follow-up validation confirmed the draft behavior works without weakening final submission requirements.</p>
+<h3>Verification</h3>
+<p>The draft-save issue was reviewed after the fix, merged, deployed, and verified through follow-up testing.</p>
+<h2>Final Internal Summary</h2>
+<p>The remediation work addressed all 11 KACST findings, plus the additional use-case draft-save issue. The most important changes were HTTPS enforcement, server header hardening, upload restrictions, dependency updates, CSP/HSTS headers, MFA/OTP behavior, input validation, HTTP/2, corporate email-change restrictions, and corrected draft-save behavior.</p>
+<h2>Recommended Follow-Up</h2>
+<ol><li>1. Re-run a security scan after the next production deployment.</li><li>2. Keep frontend dependency audits in the release checklist.</li><li>3. Add upload validation tests and input validation tests to CI if not already enforced.</li><li>4. Periodically review CSP and tighten it where possible.</li><li>5. Review new forms for validation before release.</li><li>6. Keep production environment variables explicit and avoid development-style logging in production.</li><li>7. Keep this report updated if KACST asks for evidence or retesting notes.</li></ol></section></article></main></body></html>

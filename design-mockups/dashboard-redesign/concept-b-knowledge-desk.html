@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PeerLink dashboard concept — Knowledge Desk">
+  <title>PeerLink — Knowledge Desk</title>
+  <style>
+    :root {
+      --paper: #f6f3ec;
+      --paper-deep: #ebe6dc;
+      --surface: #fffdf8;
+      --ink: #17243a;
+      --muted: #67707d;
+      --faint: #969b9f;
+      --line: #d8d3c9;
+      --blue: #2457d6;
+      --blue-dark: #193f9f;
+      --blue-wash: #e8eefc;
+      --green: #34705a;
+      --amber: #a45b22;
+      --shadow: 0 18px 45px rgba(22, 36, 58, .08);
+      --serif: Georgia, "Times New Roman", Times, serif;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 3px solid rgba(36, 87, 214, .38); outline-offset: 3px; }
+    .skip-link {
+      position: fixed; left: 16px; top: -80px; z-index: 100;
+      padding: 10px 14px; color: white; background: var(--blue);
+    }
+    .skip-link:focus { top: 16px; }
+
+    .site-header {
+      position: sticky; top: 0; z-index: 30;
+      height: 74px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(246, 243, 236, .96);
+      backdrop-filter: blur(14px);
+    }
+    .nav-shell {
+      max-width: 1280px; height: 100%; margin: 0 auto; padding: 0 32px;
+      display: grid; grid-template-columns: 260px 1fr 260px; align-items: center;
+    }
+    .brand { display: inline-flex; align-items: center; gap: 11px; width: max-content; }
+    .brand-mark {
+      width: 31px; height: 31px; display: grid; place-items: center;
+      color: #fff; background: var(--blue); font-weight: 800; letter-spacing: -.04em;
+      border-radius: 2px;
+    }
+    .brand-name { font-weight: 760; font-size: 18px; letter-spacing: -.02em; }
+    .brand-note { display: block; margin-top: -2px; color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .primary-nav { display: flex; justify-content: center; gap: 30px; }
+    .primary-nav a {
+      position: relative; padding: 26px 0 23px; color: #526071;
+      font-size: 13px; font-weight: 650;
+    }
+    .primary-nav a:hover { color: var(--ink); }
+    .primary-nav a[aria-current="page"] { color: var(--ink); }
+    .primary-nav a[aria-current="page"]::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: var(--blue);
+    }
+    .nav-tools { display: flex; justify-content: flex-end; align-items: center; gap: 9px; }
+    .icon-button {
+      width: 38px; height: 38px; border: 0; display: grid; place-items: center;
+      color: var(--ink); background: transparent; cursor: pointer;
+    }
+    .icon-button:hover { background: var(--paper-deep); }
+    .search-glyph { width: 16px; height: 16px; border: 1.8px solid currentColor; border-radius: 50%; position: relative; }
+    .search-glyph::after { content: ""; position: absolute; width: 7px; height: 2px; right: -5px; bottom: -3px; background: currentColor; transform: rotate(45deg); }
+    .bell-glyph { width: 14px; height: 16px; border: 1.7px solid currentColor; border-radius: 8px 8px 3px 3px; position: relative; }
+    .bell-glyph::after { content: ""; position: absolute; width: 4px; height: 2px; border-radius: 50%; background: currentColor; bottom: -4px; left: 4px; }
+    .unread { position: absolute; width: 7px; height: 7px; margin: -17px 0 0 12px; border: 2px solid var(--paper); border-radius: 50%; background: var(--blue); }
+    .account {
+      margin-left: 7px; display: flex; align-items: center; gap: 10px; border: 0;
+      padding: 5px 0 5px 6px; color: var(--ink); background: transparent; cursor: pointer; text-align: left;
+    }
+    .avatar { width: 34px; height: 34px; display: grid; place-items: center; color: #fff; background: var(--ink); border-radius: 50%; font-size: 11px; font-weight: 750; }
+    .account strong { display: block; font-size: 12px; line-height: 1.2; }
+    .account small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .mobile-toggle { display: none; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 68px 32px 88px; }
+    .masthead {
+      display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 72px;
+      align-items: end; padding-bottom: 47px; border-bottom: 1px solid var(--ink);
+    }
+    .kicker { margin: 0 0 18px; color: var(--blue); font-size: 11px; font-weight: 780; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 760px; font: 400 clamp(42px, 5.3vw, 72px)/.98 var(--serif); letter-spacing: -.045em; }
+    .masthead-copy { margin: 0 0 5px; color: var(--muted); font-size: 14px; line-height: 1.72; }
+    .masthead-copy strong { color: var(--ink); font-weight: 700; }
+
+    .desk-actions { padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .desk-actions-inner { display: flex; align-items: center; }
+    .desk-actions-label { flex: 0 0 132px; color: var(--muted); font-size: 10px; font-weight: 780; letter-spacing: .12em; text-transform: uppercase; }
+    .action-link {
+      display: inline-flex; align-items: center; gap: 9px; min-height: 42px;
+      padding: 0 24px; border: 0; border-left: 1px solid var(--line);
+      color: var(--ink); background: transparent; font-size: 13px; font-weight: 690; cursor: pointer;
+    }
+    .action-link:hover { color: var(--blue); }
+    .action-link span { color: var(--blue); font-size: 18px; font-weight: 400; transform: translateY(-1px); }
+    .admin-tag { color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+
+    .dashboard-grid {
+      display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(285px, .8fr); gap: 72px;
+      padding-top: 52px;
+    }
+    .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 18px; margin-bottom: 22px; }
+    .section-title { margin: 0; font: 400 27px/1.15 var(--serif); letter-spacing: -.025em; }
+    .section-link { border-bottom: 1px solid currentColor; color: var(--blue); font-size: 11px; font-weight: 720; letter-spacing: .06em; text-transform: uppercase; }
+
+    .feature {
+      display: grid; grid-template-columns: minmax(0, 1fr) 180px; min-height: 330px;
+      border-top: 5px solid var(--blue); background: var(--surface); box-shadow: var(--shadow);
+    }
+    .feature-copy { padding: 34px 37px 31px; }
+    .feature-label { margin-bottom: 28px; color: var(--blue); font-size: 10px; font-weight: 790; letter-spacing: .12em; text-transform: uppercase; }
+    .feature h2 { margin: 0 0 17px; max-width: 520px; font: 400 34px/1.08 var(--serif); letter-spacing: -.03em; }
+    .feature p { max-width: 570px; margin: 0 0 27px; color: var(--muted); line-height: 1.68; }
+    .byline { display: flex; flex-wrap: wrap; gap: 7px 16px; color: var(--muted); font-size: 11px; }
+    .byline strong { color: var(--ink); font-weight: 700; }
+    .feature-result {
+      padding: 35px 27px 27px; color: #fff; background: var(--blue);
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .feature-result small { font-size: 10px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; opacity: .76; }
+    .result-number { font: 400 62px/1 var(--serif); letter-spacing: -.055em; }
+    .result-number span { display: block; margin-top: 9px; font: 600 12px/1.4 var(--sans); letter-spacing: 0; }
+    .read-arrow { align-self: flex-start; display: inline-flex; align-items: center; gap: 9px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.65); font-size: 11px; font-weight: 700; }
+
+    .network { margin-top: 52px; }
+    .activity-list { border-top: 1px solid var(--ink); }
+    .activity-item {
+      display: grid; grid-template-columns: 56px 1fr auto; gap: 20px; align-items: start;
+      padding: 22px 0; border-bottom: 1px solid var(--line);
+    }
+    .activity-date { color: var(--muted); font: 400 13px/1.35 var(--serif); text-align: center; }
+    .activity-date strong { display: block; color: var(--ink); font: 400 24px/1 var(--serif); }
+    .activity-type { margin: 0 0 5px; color: var(--blue); font-size: 9px; font-weight: 780; letter-spacing: .11em; text-transform: uppercase; }
+    .activity-item h3 { margin: 0 0 6px; font: 600 16px/1.35 var(--sans); letter-spacing: -.01em; }
+    .activity-meta { color: var(--muted); font-size: 11px; }
+    .activity-count { padding-top: 18px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .activity-item:hover h3 { color: var(--blue); }
+
+    .right-rail > section { padding: 0 0 36px; margin-bottom: 37px; border-bottom: 1px solid var(--line); }
+    .right-rail > section:last-child { border-bottom: 0; }
+    .rail-kicker { margin: 0 0 19px; color: var(--muted); font-size: 10px; font-weight: 790; letter-spacing: .12em; text-transform: uppercase; }
+    .identity { display: flex; align-items: center; gap: 14px; margin-bottom: 27px; }
+    .identity-avatar { width: 50px; height: 50px; display: grid; place-items: center; flex: 0 0 auto; color: #fff; background: var(--ink); border-radius: 50%; font-size: 13px; font-weight: 750; }
+    .identity h2 { margin: 0; font-size: 15px; line-height: 1.3; }
+    .identity p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .verified { color: var(--green); font-weight: 700; }
+    .metrics { margin: 0; }
+    .metric-row { display: grid; grid-template-columns: 1fr auto; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+    .metric-row dt { color: var(--muted); font-size: 12px; }
+    .metric-row dd { margin: 0; font: 400 25px/1 var(--serif); letter-spacing: -.03em; }
+    .metric-row.emphasis dt, .metric-row.emphasis dd { color: var(--blue); }
+    .activity-line { height: 3px; margin: 10px 0 10px; background: var(--paper-deep); overflow: hidden; }
+    .activity-line span { display: block; width: 15%; height: 100%; background: var(--blue); }
+    .activity-caption { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+
+    .draft {
+      padding-left: 18px; border-left: 3px solid var(--amber);
+    }
+    .draft-label { margin: 0 0 7px; color: var(--amber); font-size: 9px; font-weight: 790; letter-spacing: .11em; text-transform: uppercase; }
+    .draft h3 { margin: 0 0 7px; font: 400 19px/1.28 var(--serif); }
+    .draft p { margin: 0 0 15px; color: var(--muted); font-size: 11px; }
+    .text-button { padding: 0 0 3px; border: 0; border-bottom: 1px solid currentColor; color: var(--blue); background: transparent; font-size: 11px; font-weight: 720; cursor: pointer; }
+
+    .desk-note { color: var(--muted); font-size: 12px; line-height: 1.68; }
+    .desk-note strong { color: var(--ink); }
+    .topic-links { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 17px; }
+    .topic-links a { color: var(--blue); border-bottom: 1px solid rgba(36,87,214,.3); font-size: 11px; }
+
+    .footer {
+      max-width: 1180px; margin: 0 auto; padding: 28px 32px 44px;
+      border-top: 1px solid var(--ink); color: var(--muted); font-size: 10px;
+      display: flex; justify-content: space-between; gap: 20px;
+    }
+    .toast {
+      position: fixed; z-index: 50; right: 26px; bottom: 26px; max-width: 330px;
+      padding: 13px 17px; color: #fff; background: var(--ink); box-shadow: var(--shadow);
+      font-size: 12px; transform: translateY(120px); opacity: 0; transition: .22s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 980px) {
+      .nav-shell { grid-template-columns: 230px 1fr 180px; padding: 0 24px; }
+      .primary-nav { gap: 19px; }
+      .account-copy { display: none; }
+      main { padding-left: 24px; padding-right: 24px; }
+      .masthead { grid-template-columns: 1fr 270px; gap: 42px; }
+      .dashboard-grid { grid-template-columns: minmax(0, 1.5fr) 260px; gap: 42px; }
+      .feature { grid-template-columns: 1fr; }
+      .feature-result { min-height: 150px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: end; }
+      .feature-result small { grid-column: 1 / -1; }
+      .read-arrow { justify-self: end; align-self: end; }
+      .action-link { padding: 0 15px; }
+    }
+
+    @media (max-width: 760px) {
+      .site-header { height: 66px; }
+      .nav-shell { grid-template-columns: 1fr auto; padding: 0 18px; }
+      .brand-note, .nav-tools > .icon-button, .account { display: none; }
+      .nav-tools > .mobile-toggle { display: grid; }
+      .mobile-toggle .menu-lines, .mobile-toggle .menu-lines::before, .mobile-toggle .menu-lines::after {
+        width: 19px; height: 1.5px; display: block; background: currentColor; content: ""; position: relative;
+      }
+      .mobile-toggle .menu-lines::before { position: absolute; top: -6px; }
+      .mobile-toggle .menu-lines::after { position: absolute; top: 6px; }
+      .primary-nav {
+        position: absolute; left: 0; right: 0; top: 66px; display: none;
+        padding: 10px 18px 18px; border-bottom: 1px solid var(--line); background: var(--paper);
+        box-shadow: 0 18px 30px rgba(22,36,58,.08);
+      }
+      .primary-nav.open { display: block; }
+      .primary-nav a { display: block; padding: 13px 2px; border-bottom: 1px solid var(--line); }
+      .primary-nav a[aria-current="page"]::after { display: none; }
+      main { padding: 46px 18px 62px; }
+      .masthead { grid-template-columns: 1fr; gap: 25px; padding-bottom: 34px; }
+      h1 { font-size: clamp(40px, 13vw, 58px); }
+      .masthead-copy { max-width: 430px; }
+      .desk-actions { overflow-x: auto; margin: 0 -18px; padding-left: 18px; scrollbar-width: none; }
+      .desk-actions::-webkit-scrollbar { display: none; }
+      .desk-actions-inner { width: max-content; padding-right: 18px; }
+      .desk-actions-label { flex-basis: 92px; }
+      .action-link { padding: 0 17px; }
+      .dashboard-grid { grid-template-columns: 1fr; gap: 56px; padding-top: 39px; }
+      .right-rail { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+      .right-rail > section { margin: 0; }
+      .right-rail > section:first-child { grid-row: span 2; }
+      .feature-copy { padding: 28px 25px 26px; }
+      .feature h2 { font-size: 29px; }
+      .feature-result { padding: 27px 25px 24px; }
+      .footer { padding-left: 18px; padding-right: 18px; }
+    }
+
+    @media (max-width: 520px) {
+      .brand-name { font-size: 17px; }
+      .kicker { margin-bottom: 14px; }
+      .masthead { padding-bottom: 28px; }
+      h1 { font-size: 44px; line-height: 1.02; }
+      .desk-actions { overflow: visible; margin: 0; padding: 12px 0; }
+      .desk-actions-inner { width: auto; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .desk-actions-label { display: none; }
+      .action-link { min-width: 0; padding: 12px 8px; border-top: 1px solid var(--line); border-left: 0; justify-content: flex-start; text-align: left; }
+      .action-link:nth-of-type(-n+2) { border-top: 0; }
+      .action-link:nth-of-type(even) { border-left: 1px solid var(--line); }
+      .section-title { font-size: 25px; }
+      .feature-copy { padding: 25px 21px; }
+      .feature-label { margin-bottom: 20px; }
+      .feature h2 { font-size: 27px; }
+      .feature-result { min-height: 137px; padding: 22px 21px; }
+      .result-number { font-size: 50px; }
+      .activity-item { grid-template-columns: 46px 1fr; gap: 14px; }
+      .activity-count { display: none; }
+      .right-rail { display: block; }
+      .right-rail > section { margin-bottom: 34px; padding-bottom: 34px; }
+      .right-rail > section:first-child { grid-row: auto; }
+      .network { margin-top: 43px; }
+      .footer { display: block; }
+      .footer span { display: block; margin-top: 5px; }
+      .toast { left: 18px; right: 18px; bottom: 18px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to dashboard</a>
+
+  <header class="site-header">
+    <div class="nav-shell">
+      <a class="brand" href="#" aria-label="PeerLink dashboard">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span><span class="brand-name">PeerLink</span><span class="brand-note">Manufacturing knowledge</span></span>
+      </a>
+
+      <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
+        <a href="#" aria-current="page">Dashboard</a>
+        <a href="#network">Knowledge forum</a>
+        <a href="#featured">Use cases</a>
+        <a href="#collaborators">Network</a>
+      </nav>
+
+      <div class="nav-tools">
+        <button class="icon-button" type="button" aria-label="Search PeerLink" data-toast="Search would open here">
+          <span class="search-glyph" aria-hidden="true"></span>
+        </button>
+        <button class="icon-button" type="button" aria-label="Notifications, one unread" data-toast="You have one unread update">
+          <span class="bell-glyph" aria-hidden="true"></span><span class="unread" aria-hidden="true"></span>
+        </button>
+        <button class="account" type="button" aria-label="Open Aadil Feroze account menu" data-toast="Account menu would open here">
+          <span class="avatar" aria-hidden="true">AF</span>
+          <span class="account-copy"><strong>Aadil Feroze</strong><small>Administrator</small></span>
+        </button>
+        <button class="icon-button mobile-toggle" type="button" aria-label="Open navigation" aria-controls="primary-nav" aria-expanded="false">
+          <span class="menu-lines" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="masthead" aria-labelledby="welcome-title">
+      <div>
+        <p class="kicker">Thursday · Your knowledge desk</p>
+        <h1 id="welcome-title">What are you solving this week?</h1>
+      </div>
+      <p class="masthead-copy"><strong>Good morning, Aadil.</strong> Three new discussions match your work in industrial AI and operations. Your organization has seven active colleagues on PeerLink.</p>
+    </section>
+
+    <nav class="desk-actions" aria-label="Quick actions">
+      <div class="desk-actions-inner">
+        <span class="desk-actions-label">Start here</span>
+        <button class="action-link" type="button" data-toast="Question composer would open here"><span aria-hidden="true">＋</span> Ask a question</button>
+        <button class="action-link" type="button" data-toast="Use case submission would open here"><span aria-hidden="true">＋</span> Share a use case</button>
+        <button class="action-link" type="button" id="collaborators" data-toast="Collaborator directory would open here"><span aria-hidden="true">↗</span> Find collaborators</button>
+        <button class="action-link" type="button" data-toast="IIoT Solutions organization would open here"><span aria-hidden="true">→</span> IIoT Solutions</button>
+      </div>
+    </nav>
+
+    <div class="dashboard-grid">
+      <div class="main-column">
+        <section id="featured" aria-labelledby="featured-title">
+          <div class="section-head">
+            <h2 class="section-title" id="featured-title">Selected for your desk</h2>
+            <a class="section-link" href="#" data-toast="Opening the use case library">View library</a>
+          </div>
+
+          <article class="feature">
+            <div class="feature-copy">
+              <div class="feature-label">Featured use case · Quality control</div>
+              <h2>AI computer vision system reduces PCB defects by 88%</h2>
+              <p>A practical account of how an electronics manufacturer moved inspection to the production line—combining edge cameras, a small training set and operator-led validation.</p>
+              <div class="byline"><strong>IIoT Solutions</strong><span>7 min read</span><span>Computer vision</span></div>
+            </div>
+            <div class="feature-result">
+              <small>Measured outcome</small>
+              <div class="result-number">88%<span>fewer escaped defects</span></div>
+              <a class="read-arrow" href="#" data-toast="Opening the featured use case">Read the case <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+        </section>
+
+        <section class="network" id="network" aria-labelledby="network-title">
+          <div class="section-head">
+            <h2 class="section-title" id="network-title">From the network</h2>
+            <a class="section-link" href="#" data-toast="Opening all network activity">All activity</a>
+          </div>
+
+          <div class="activity-list">
+            <a class="activity-item" href="#" data-toast="Opening discussion">
+              <div class="activity-date"><strong>16</strong>Jul</div>
+              <div>
+                <p class="activity-type">Question · Predictive maintenance</p>
+                <h3>Which vibration features are holding up best for low-speed rotating equipment?</h3>
+                <div class="activity-meta">Asked by Omar Al-Harbi · 42 minutes ago</div>
+              </div>
+              <div class="activity-count">4 answers</div>
+            </a>
+            <a class="activity-item" href="#" data-toast="Opening use case">
+              <div class="activity-date"><strong>15</strong>Jul</div>
+              <div>
+                <p class="activity-type">New use case · Energy efficiency</p>
+                <h3>Compressed-air monitoring uncovers a 19% energy saving across two plants</h3>
+                <div class="activity-meta">Published by Gulf Process Industries · Yesterday</div>
+              </div>
+              <div class="activity-count">12 saves</div>
+            </a>
+            <a class="activity-item" href="#" data-toast="Opening discussion">
+              <div class="activity-date"><strong>14</strong>Jul</div>
+              <div>
+                <p class="activity-type">Discussion · Digital transformation</p>
+                <h3>Building the business case when the first pilot is operational, not financial</h3>
+                <div class="activity-meta">Started by Sara Alqahtani · 2 days ago</div>
+              </div>
+              <div class="activity-count">9 replies</div>
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <aside class="right-rail" aria-label="Your PeerLink summary">
+        <section aria-labelledby="your-contribution">
+          <p class="rail-kicker" id="your-contribution">Your contribution</p>
+          <div class="identity">
+            <div class="identity-avatar" aria-hidden="true">AF</div>
+            <div>
+              <h2>Aadil Feroze</h2>
+              <p>Chief Technology Officer · Admin</p>
+              <p>IIoT Solutions · <span class="verified">Verified</span></p>
+            </div>
+          </div>
+          <dl class="metrics">
+            <div class="metric-row emphasis"><dt>Reputation</dt><dd>30</dd></div>
+            <div class="metric-row"><dt>Use cases shared</dt><dd>3</dd></div>
+            <div class="metric-row"><dt>Questions</dt><dd>0</dd></div>
+            <div class="metric-row"><dt>Answers</dt><dd>0</dd></div>
+            <div class="metric-row"><dt>Saved</dt><dd>0</dd></div>
+          </dl>
+          <div class="activity-line" role="progressbar" aria-label="Activity level" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+          <div class="activity-caption"><span>Activity level</span><strong>15%</strong></div>
+        </section>
+
+        <section aria-labelledby="continue-title">
+          <p class="rail-kicker" id="continue-title">Continue working</p>
+          <div class="draft">
+            <p class="draft-label">Forum draft · 1</p>
+            <h3>Improving OEE without adding reporting overhead</h3>
+            <p>Edited three days ago · 124 words</p>
+            <button class="text-button" type="button" data-toast="Draft editor would open here">Continue draft</button>
+          </div>
+        </section>
+
+        <section aria-labelledby="brief-title">
+          <p class="rail-kicker" id="brief-title">Knowledge brief</p>
+          <div class="desk-note"><strong>Industrial AI is moving from inspection to intervention.</strong> This week, the network is discussing how to keep operators in the decision loop while shortening response time.</div>
+          <div class="topic-links"><a href="#" data-toast="Opening Industrial AI topic">Industrial AI</a><a href="#" data-toast="Opening Quality topic">Quality</a><a href="#" data-toast="Opening Edge topic">Edge systems</a></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer"><strong>PeerLink · Manufacturing knowledge, shared well.</strong><span>Dashboard concept · Knowledge Desk</span></footer>
+  <div class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    const toggle = document.querySelector('.mobile-toggle');
+    const nav = document.querySelector('.primary-nav');
+    const toast = document.querySelector('.toast');
+    let toastTimer;
+
+    toggle.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+    });
+
+    document.querySelectorAll('[data-toast]').forEach((item) => {
+      item.addEventListener('click', (event) => {
+        event.preventDefault();
+        toast.textContent = item.dataset.toast;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 760) {
+        nav.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Open navigation');
+      }
+    });
+  </script>
+</body>
+</html>

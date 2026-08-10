@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink forum loading empty and error state mockups" />
+  <title>PeerLink Forum - States</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="forum.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to states</a>
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand"><span class="brand-mark"></span><div class="brand-copy"><div class="brand-name">PeerLink</div><div class="brand-caption">Manufacturing network</div></div></div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false"><i data-lucide="menu"></i></button>
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav><ul class="nav-list">
+        <li><a class="nav-link" href="../dashboard-redesign/concept-c-network-workspace.html"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
+        <li><a class="nav-link active" href="index.html"><i data-lucide="library-big"></i><span>Forum</span></a></li>
+        <li><a class="nav-link" href="#" data-toast="People opened"><i data-lucide="users"></i><span>People</span></a></li>
+        <li><a class="nav-link" href="#" data-toast="Use cases opened"><i data-lucide="factory"></i><span>Use Cases</span></a></li>
+        
+      </ul></nav>
+      <p class="nav-label">Mockup family</p>
+      <nav><ul class="nav-list">
+        <li><a class="nav-link" href="index.html"><i data-lucide="list-filter"></i><span>Listing</span></a></li>
+        <li><a class="nav-link" href="thread-detail.html"><i data-lucide="messages-square"></i><span>Thread detail</span></a></li>
+        <li><a class="nav-link" href="composer-drafts.html"><i data-lucide="square-pen"></i><span>Composer</span></a></li>
+        <li><a class="nav-link active" href="states.html" aria-current="page"><i data-lucide="loader-circle"></i><span>States</span></a></li>
+      </ul></nav>
+      <div class="nav-spacer"></div>
+      <div class="profile-rail"><div class="avatar">AF</div><div><div class="profile-name">Aadil Feroze</div><div class="profile-role">CTO · Administrator</div></div><button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened"><i data-lucide="settings"></i></button></div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>Forum</span><i data-lucide="chevron-right"></i><strong>States</strong></div>
+      <div class="topbar-actions"><div class="network-status"><span class="status-dot"></span>Representative UI states</div><button class="icon-button" type="button" aria-label="Refresh states" data-toast="States refreshed"><i data-lucide="refresh-cw"></i></button><button class="icon-button" type="button" aria-label="Open notifications" data-toast="No new forum alerts"><i data-lucide="bell"></i></button></div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">System states</p>
+          <h1>Forum loading, empty and error treatments.</h1>
+          <p class="intro-copy">Representative states use the same dense workspace framing as the main forum rather than separate illustration-led screens.</p>
+        </div>
+        <div class="intro-context"><strong>3 state families</strong><span>Listing, search and recovery flows</span></div>
+      </header>
+
+      <section class="state-grid" aria-label="Forum states">
+        <article class="section state-panel" aria-labelledby="loading-title">
+          <span class="state-symbol"><i data-lucide="loader-circle"></i></span>
+          <h2 id="loading-title">Loading discussions</h2>
+          <p>Skeleton rows preserve the expected forum layout while search and filters retrieve current results.</p>
+          <div style="width:100%; max-width:330px;">
+            <div class="skeleton-row"><span class="skeleton-avatar"></span><span class="skeleton-copy"><span class="skeleton-line"></span><span class="skeleton-line short"></span><span class="skeleton-line tiny"></span></span></div>
+            <div class="skeleton-row"><span class="skeleton-avatar"></span><span class="skeleton-copy"><span class="skeleton-line"></span><span class="skeleton-line short"></span><span class="skeleton-line tiny"></span></span></div>
+          </div>
+        </article>
+        <article class="section state-panel" aria-labelledby="empty-title">
+          <span class="state-symbol"><i data-lucide="search-x"></i></span>
+          <h2 id="empty-title">No matching discussions</h2>
+          <p>No posts match "thermal drift PLC alarm" with the current solved-only filter.</p>
+          <div class="filter-row"><a class="button secondary" href="index.html">Clear filters</a><a class="button primary" href="composer-drafts.html">Ask question</a></div>
+        </article>
+        <article class="section state-panel" aria-labelledby="error-title">
+          <span class="state-symbol error"><i data-lucide="triangle-alert"></i></span>
+          <h2 id="error-title">Forum could not load</h2>
+          <p>The request timed out while loading discussions. Keep the user in place and offer a direct retry.</p>
+          <div class="filter-row"><button class="button primary" type="button" data-toast="Retrying forum request">Retry</button><a class="button secondary" href="composer-drafts.html">Open drafts</a></div>
+        </article>
+      </section>
+
+      <section class="section wide-panel" style="margin-top:22px;" aria-labelledby="inline-title">
+        <header class="section-head"><div><div class="section-kicker">Inline variants</div><h2 id="inline-title">How states sit inside the listing surface</h2></div></header>
+        <div class="thread-list">
+          <div class="thread-item">
+            <div class="avatar thread-avatar"><i data-lucide="message-square-off"></i></div>
+            <div class="thread-main">
+              <div class="thread-meta"><span class="tag">Empty category</span><span>Automation and robotics</span></div>
+              <span class="thread-title">No unanswered automation questions</span>
+              <p class="thread-summary">When a scoped category is empty, keep the category context and offer a next action in the same row.</p>
+            </div>
+            <div class="thread-stats"><span class="stat"><strong>0</strong><span>Posts</span></span><span class="stat"><strong>0</strong><span>Peers</span></span><span class="stat"><strong>0</strong><span>Views</span></span></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2"></i><span id="toast-message"></span></div>
+  <script src="forum.js"></script>
+<script src="../prototype-nav.js"></script></body>
+</html>

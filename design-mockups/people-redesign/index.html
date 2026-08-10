@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink People responsive mockup family using the Network Workspace visual direction" />
+  <title>PeerLink - People Network Workspace Mockups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to people directory</a>
+
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-copy">
+        <div class="brand-name">PeerLink</div>
+        <div class="brand-caption">Manufacturing network</div>
+      </div>
+    </div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false">
+      <i data-lucide="menu" aria-hidden="true"></i>
+    </button>
+
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav aria-label="Workspace navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="../dashboard-redesign/concept-c-network-workspace.html"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a></li>
+          <li><a class="nav-link" href="#" data-toast="Forum opened"><i data-lucide="library-big" aria-hidden="true"></i><span>Forum</span></a></li>
+          <li><a class="nav-link active" href="#" aria-current="page"><i data-lucide="users" aria-hidden="true"></i><span>People</span></a></li>
+          <li><a class="nav-link" href="#" data-toast="Use case library opened"><i data-lucide="factory" aria-hidden="true"></i><span>Use Cases</span></a></li>
+          
+        </ul>
+      </nav>
+
+      <p class="nav-label">Organization</p>
+      <nav aria-label="Organization navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="#" data-toast="IIoT Solutions organization opened"><i data-lucide="building-2" aria-hidden="true"></i><span>IIoT Solutions</span></a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-spacer"></div>
+      <div class="profile-rail">
+        <div class="avatar" aria-hidden="true">AF</div>
+        <div>
+          <div class="profile-name">Aadil Feroze</div>
+          <div class="profile-role">CTO · Administrator</div>
+        </div>
+        <button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened">
+          <i data-lucide="settings" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>IIoT Solutions</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>People</strong></div>
+      <div class="topbar-actions">
+        <div class="network-status"><span class="status-dot" aria-hidden="true"></span>42 members visible</div>
+        <button class="icon-button" type="button" aria-label="Open search" data-toast="Search opened"><i data-lucide="search" aria-hidden="true"></i></button>
+        <button class="icon-button" type="button" aria-label="Open notifications, 2 unread" data-toast="You have 2 unread notifications"><i data-lucide="bell" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">People · Available to members and administrators</p>
+          <h1>Find manufacturing peers by expertise, organization, and location.</h1>
+          <p class="intro-copy">A shared collaborator directory for members and admins. Organization membership and administration live under IIoT Solutions.</p>
+        </div>
+        <div class="intro-context" aria-label="Organization context">
+          <strong>IIoT Solutions</strong>
+          <span>Riyadh · Industrial IoT · Admin view</span>
+        </div>
+      </header>
+
+      <div class="people-grid">
+        <section class="section" aria-labelledby="directory-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">Member directory</div>
+              <h2 id="directory-title">Collaborators across PeerLink</h2>
+            </div>
+            <a class="section-link" href="#states">States <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </header>
+
+          <div class="toolbar" aria-label="People filters">
+            <label class="field">
+              <i data-lucide="search" aria-hidden="true"></i>
+              <input id="people-search" type="search" placeholder="Search people, skills, companies" aria-label="Search people, skills, companies" />
+            </label>
+            <label class="field">
+              <i data-lucide="badge-check" aria-hidden="true"></i>
+              <select aria-label="Filter by expertise">
+                <option>All expertise</option>
+                <option>Computer vision</option>
+                <option>Predictive maintenance</option>
+                <option>Energy optimization</option>
+                <option>MES integration</option>
+              </select>
+            </label>
+            <label class="field">
+              <i data-lucide="building-2" aria-hidden="true"></i>
+              <select aria-label="Filter by organization">
+                <option>All organizations</option>
+                <option>IIoT Solutions</option>
+                <option>Saudi Precision Metals</option>
+                <option>Gulf Electronics</option>
+              </select>
+            </label>
+            <label class="field">
+              <i data-lucide="map-pin" aria-hidden="true"></i>
+              <select aria-label="Filter by location">
+                <option>All locations</option>
+                <option>Riyadh</option>
+                <option>Jeddah</option>
+                <option>Dammam</option>
+                <option>Jubail</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="filter-row" aria-label="Active filters">
+            <span class="chip"><i data-lucide="sparkles" aria-hidden="true"></i> Computer vision</span>
+            <span class="chip"><i data-lucide="map-pinned" aria-hidden="true"></i> Riyadh + Eastern Province</span>
+            <button class="chip neutral" type="button" data-toast="Filters cleared"><i data-lucide="x" aria-hidden="true"></i> Clear filters</button>
+          </div>
+
+          <ul class="directory-list" aria-label="People results">
+            <li class="member-card selected" data-member="hamza">
+              <span class="avatar" aria-hidden="true">HF</span>
+              <div class="member-main">
+                <div class="member-title"><strong>Hamza Feroze</strong><span class="role-pill">Member</span></div>
+                <p class="member-line">AI Vision Engineer · IIoT Solutions</p>
+                <div class="meta-grid">
+                  <span><i data-lucide="map-pin" aria-hidden="true"></i>Riyadh</span>
+                  <span><i data-lucide="factory" aria-hidden="true"></i>Electronics</span>
+                  <span><i data-lucide="clock-3" aria-hidden="true"></i>Available this week</span>
+                </div>
+                <div class="skill-list"><span class="skill">Computer vision</span><span class="skill">Quality inspection</span><span class="skill">Edge AI</span></div>
+              </div>
+              <div class="member-actions">
+                <button class="icon-button" type="button" aria-label="Preview Hamza Feroze" data-toast="Profile preview selected"><i data-lucide="panel-right-open" aria-hidden="true"></i></button>
+                <button class="icon-button" type="button" aria-label="Contact Hamza Feroze" data-toast="Contact request prepared"><i data-lucide="send" aria-hidden="true"></i></button>
+              </div>
+            </li>
+
+            <li class="member-card" data-member="firas">
+              <span class="avatar" aria-hidden="true">FA</span>
+              <div class="member-main">
+                <div class="member-title"><strong>Firas Al-Siddiqi</strong><span class="role-pill">Member</span></div>
+                <p class="member-line">Operations Excellence Lead · Saudi Precision Metals</p>
+                <div class="meta-grid">
+                  <span><i data-lucide="map-pin" aria-hidden="true"></i>Dammam</span>
+                  <span><i data-lucide="factory" aria-hidden="true"></i>Metal fabrication</span>
+                  <span><i data-lucide="clock-3" aria-hidden="true"></i>Usually replies in 1 day</span>
+                </div>
+                <div class="skill-list"><span class="skill">Energy loss</span><span class="skill">Compressed air</span><span class="skill">OEE</span></div>
+              </div>
+              <div class="member-actions">
+                <button class="icon-button" type="button" aria-label="Preview Firas Al-Siddiqi" data-toast="Profile preview selected"><i data-lucide="panel-right-open" aria-hidden="true"></i></button>
+                <button class="icon-button" type="button" aria-label="Contact Firas Al-Siddiqi" data-toast="Contact request prepared"><i data-lucide="send" aria-hidden="true"></i></button>
+              </div>
+            </li>
+
+            <li class="member-card" data-member="aadil">
+              <span class="avatar" aria-hidden="true">AF</span>
+              <div class="member-main">
+                <div class="member-title"><strong>Aadil Feroze</strong><span class="role-pill admin">Admin</span></div>
+                <p class="member-line">Chief Technology Officer · IIoT Solutions</p>
+                <div class="meta-grid">
+                  <span><i data-lucide="map-pin" aria-hidden="true"></i>Riyadh</span>
+                  <span><i data-lucide="factory" aria-hidden="true"></i>Industrial IoT</span>
+                  <span><i data-lucide="shield-check" aria-hidden="true"></i>Organization admin</span>
+                </div>
+                <div class="skill-list"><span class="skill">MES integration</span><span class="skill">Data architecture</span><span class="skill">IIoT</span></div>
+              </div>
+              <div class="member-actions">
+                <button class="icon-button" type="button" aria-label="Preview Aadil Feroze" data-toast="Profile preview selected"><i data-lucide="panel-right-open" aria-hidden="true"></i></button>
+                <button class="icon-button" type="button" aria-label="Contact Aadil Feroze" data-toast="Contact request prepared"><i data-lucide="send" aria-hidden="true"></i></button>
+              </div>
+            </li>
+
+            <li class="member-card" data-member="amro">
+              <span class="avatar" aria-hidden="true">AA</span>
+              <div class="member-main">
+                <div class="member-title"><strong>Amro Abouzied</strong><span class="role-pill">Member</span></div>
+                <p class="member-line">Reliability Specialist · Gulf Electronics</p>
+                <div class="meta-grid">
+                  <span><i data-lucide="map-pin" aria-hidden="true"></i>Jeddah</span>
+                  <span><i data-lucide="factory" aria-hidden="true"></i>Electronics</span>
+                  <span><i data-lucide="clock-3" aria-hidden="true"></i>Open to field calls</span>
+                </div>
+                <div class="skill-list"><span class="skill">Predictive maintenance</span><span class="skill">Vibration</span><span class="skill">CNC</span></div>
+              </div>
+              <div class="member-actions">
+                <button class="icon-button" type="button" aria-label="Preview Amro Abouzied" data-toast="Profile preview selected"><i data-lucide="panel-right-open" aria-hidden="true"></i></button>
+                <button class="icon-button" type="button" aria-label="Contact Amro Abouzied" data-toast="Contact request prepared"><i data-lucide="send" aria-hidden="true"></i></button>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <aside class="section preview-panel" aria-labelledby="preview-title">
+          <div class="preview-hero">
+            <div class="preview-identity">
+              <span class="avatar" aria-hidden="true">HF</span>
+              <div>
+                <h2 id="preview-title">Hamza Feroze</h2>
+                <p>AI Vision Engineer · IIoT Solutions</p>
+              </div>
+            </div>
+            <span class="availability">Available for collaborator requests</span>
+            <p class="preview-copy">Works on edge AI inspection systems for electronics and packaging lines, with recent deployments around defect detection and operator review workflows.</p>
+          </div>
+          <div class="preview-actions">
+            <button class="primary-button" type="button" data-toast="Collaborator request opened"><i data-lucide="user-plus" aria-hidden="true"></i> Collaborate</button>
+            <button class="secondary-button" type="button" data-toast="Message composer opened"><i data-lucide="message-square" aria-hidden="true"></i> Contact</button>
+          </div>
+          <dl class="profile-facts">
+            <div class="fact-row"><dt>Organization</dt><dd>IIoT Solutions</dd></div>
+            <div class="fact-row"><dt>Location</dt><dd>Riyadh, Saudi Arabia</dd></div>
+            <div class="fact-row"><dt>Expertise</dt><dd>Computer vision, Edge AI, Quality inspection</dd></div>
+            <div class="fact-row"><dt>Shared work</dt><dd>3 use cases · 8 answers · 92 reputation</dd></div>
+          </dl>
+          <div class="quiet-note"><i data-lucide="info" aria-hidden="true"></i><span>People profiles are visible to both members and administrators. Organization details are available under IIoT Solutions, while invitations, role changes, and removals remain administrator-only.</span></div>
+        </aside>
+
+        <article class="section profile-detail" aria-labelledby="detail-title">
+          <div class="detail-main">
+            <div class="section-kicker">Profile detail mockup</div>
+            <h2 id="detail-title">A complete member profile keeps collaboration focused on work context.</h2>
+            <p>The detail view expands from preview into background, expertise evidence, shared use cases, and contact actions without exposing admin-only team management controls.</p>
+            <div class="skill-list">
+              <span class="skill">Visual inspection architecture</span>
+              <span class="skill">Model deployment</span>
+              <span class="skill">Production line integration</span>
+              <span class="skill">Operator feedback loops</span>
+            </div>
+          </div>
+          <div class="detail-side">
+            <ul class="timeline" aria-label="Member profile highlights">
+              <li><i data-lucide="scan-eye" aria-hidden="true"></i><span><strong>Featured use case</strong><span>PCB inspection reduced false escapes across two lines.</span></span></li>
+              <li><i data-lucide="message-square-reply" aria-hidden="true"></i><span><strong>Recent answer</strong><span>Shared camera calibration checklist for dusty environments.</span></span></li>
+              <li><i data-lucide="calendar-days" aria-hidden="true"></i><span><strong>Preferred contact</strong><span>Async message first, then 30-minute technical call.</span></span></li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <section id="states" class="state-grid" aria-label="Representative People states">
+        <article class="section state-card" aria-labelledby="loading-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">State</div>
+              <h2 id="loading-title">Loading</h2>
+            </div>
+          </header>
+          <div class="state-body">
+            <div class="skeleton-list" aria-hidden="true">
+              <div class="skeleton-row"><span class="skel-avatar"></span><span><span class="skel-line"></span><span class="skel-short"></span></span></div>
+              <div class="skeleton-row"><span class="skel-avatar"></span><span><span class="skel-line"></span><span class="skel-short"></span></span></div>
+              <div class="skeleton-row"><span class="skel-avatar"></span><span><span class="skel-line"></span><span class="skel-short"></span></span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="section state-card" aria-labelledby="empty-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">State</div>
+              <h2 id="empty-title">Empty results</h2>
+            </div>
+          </header>
+          <div class="state-body">
+            <span class="state-icon"><i data-lucide="user-search" aria-hidden="true"></i></span>
+            <h3>No people match those filters</h3>
+            <p>Clear one filter or broaden the location to see more manufacturing peers.</p>
+            <button class="secondary-button" type="button" data-toast="Filters reset">Reset filters</button>
+          </div>
+        </article>
+
+        <article class="section state-card" aria-labelledby="error-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">State</div>
+              <h2 id="error-title">Error</h2>
+            </div>
+          </header>
+          <div class="state-body">
+            <span class="state-icon error"><i data-lucide="triangle-alert" aria-hidden="true"></i></span>
+            <h3>People could not load</h3>
+            <p>The directory request failed. Keep the current filters and try again.</p>
+            <button class="primary-button" type="button" data-toast="Retrying people directory">Retry</button>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2" aria-hidden="true"></i><span id="toast-message"></span></div>
+
+  <script>
+    lucide.createIcons();
+
+    const sidebar = document.getElementById('sidebar');
+    const menuButton = document.getElementById('mobile-menu');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    const memberCards = document.querySelectorAll('.member-card');
+    let toastTimer;
+
+    menuButton.addEventListener('click', () => {
+      const isOpen = sidebar.classList.toggle('open');
+      menuButton.setAttribute('aria-expanded', String(isOpen));
+      menuButton.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+      menuButton.innerHTML = `<i data-lucide="${isOpen ? 'x' : 'menu'}" aria-hidden="true"></i>`;
+      lucide.createIcons();
+    });
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toastMessage.textContent = message;
+      toast.classList.add('visible');
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 2400);
+    }
+
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-toast]');
+      if (!trigger) return;
+      event.preventDefault();
+      showToast(trigger.dataset.toast);
+    });
+
+    memberCards.forEach(card => {
+      card.addEventListener('click', event => {
+        if (event.target.closest('button')) return;
+        memberCards.forEach(item => item.classList.toggle('selected', item === card));
+        showToast('Profile preview selected');
+      });
+    });
+
+    document.getElementById('people-search').addEventListener('input', event => {
+      if (event.target.value.length > 1) showToast('Directory filtered');
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && sidebar.classList.contains('open')) menuButton.click();
+    });
+  </script>
+<script src="../prototype-nav.js"></script></body>
+</html>

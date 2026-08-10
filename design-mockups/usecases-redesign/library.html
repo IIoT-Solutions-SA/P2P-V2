@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink Use Cases library mockup in the Network Workspace direction" />
+  <title>PeerLink Use Cases - Library</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to use case library</a>
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div class="brand-copy"><div class="brand-name">PeerLink</div><div class="brand-caption">Manufacturing network</div></div></div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false"><i data-lucide="menu" aria-hidden="true"></i></button>
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav aria-label="Workspace navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="../dashboard-redesign/concept-c-network-workspace.html"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a></li>
+          <li><a class="nav-link" href="../forum-redesign/index.html"><i data-lucide="library-big" aria-hidden="true"></i><span>Forum</span></a></li>
+          <li><a class="nav-link" href="../people-redesign/index.html"><i data-lucide="users" aria-hidden="true"></i><span>People</span></a></li>
+          <li><a class="nav-link active" href="library.html" aria-current="page"><i data-lucide="factory" aria-hidden="true"></i><span>Use Cases</span></a></li>
+        </ul>
+      </nav>
+      <p class="nav-label">Organization</p>
+      <nav aria-label="Organization navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="../manage-team-redesign/index.html"><i data-lucide="building-2" aria-hidden="true"></i><span>IIoT Solutions</span></a></li>
+        </ul>
+      </nav>
+      <p class="nav-label">Use Cases</p>
+      <nav aria-label="Use Cases mockup pages">
+        <ul class="nav-list">
+          <li><a class="nav-link active" href="library.html"><i data-lucide="list-filter" aria-hidden="true"></i><span>Library</span></a></li>
+          <li><a class="nav-link" href="detail.html"><i data-lucide="file-text" aria-hidden="true"></i><span>Detail</span></a></li>
+          <li><a class="nav-link" href="submission.html"><i data-lucide="square-pen" aria-hidden="true"></i><span>Submission</span></a></li>
+          <li><a class="nav-link" href="states.html"><i data-lucide="loader-circle" aria-hidden="true"></i><span>States</span></a></li>
+        </ul>
+      </nav>
+      <div class="nav-spacer"></div>
+      <div class="profile-rail"><div class="avatar" aria-hidden="true">AF</div><div><div class="profile-name">Aadil Feroze</div><div class="profile-role">CTO · Administrator</div></div><button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened"><i data-lucide="settings" aria-hidden="true"></i></button></div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>IIoT Solutions</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>Use Cases</strong></div>
+      <div class="topbar-actions">
+        <div class="network-status"><span class="status-dot" aria-hidden="true"></span>89 published cases</div>
+        <button class="icon-button" type="button" aria-label="Open search" data-toast="Global search opened"><i data-lucide="search" aria-hidden="true"></i></button>
+        <button class="icon-button" type="button" aria-label="Open notifications, 2 unread" data-toast="You have 2 unread notifications"><i data-lucide="bell" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">Manufacturing knowledge library</p>
+          <h1>Explore proven manufacturing implementations.</h1>
+          <p class="intro-copy">Search practical projects from Saudi manufacturing teams, compare measurable outcomes, and connect with the people behind the work.</p>
+        </div>
+        <div class="button-row">
+          <a class="button secondary" href="states.html"><i data-lucide="gallery-horizontal-end" aria-hidden="true"></i>View states</a>
+          <a class="button primary" href="submission.html"><i data-lucide="plus" aria-hidden="true"></i>Submit use case</a>
+        </div>
+      </header>
+
+      <div class="library-grid">
+        <section class="section wide-panel" aria-labelledby="library-tools-title">
+          <header class="section-head">
+            <div><div class="section-kicker">Find implementation evidence</div><h2 id="library-tools-title">Search, industries and filters</h2></div>
+            <a class="section-link" href="detail.html">Open selected <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </header>
+          <div class="toolbar" aria-label="Use case filters">
+            <label class="field"><i data-lucide="search" aria-hidden="true"></i><input type="search" value="edge vibration monitoring" aria-label="Search technology, challenge, company or city" /></label>
+            <label class="field"><i data-lucide="factory" aria-hidden="true"></i><select aria-label="Filter by industry"><option>All industries</option><option>Food and beverage</option><option>Metals</option><option>Chemicals</option></select></label>
+            <label class="field"><i data-lucide="map-pin" aria-hidden="true"></i><select aria-label="Filter by region"><option>All regions</option><option>Riyadh</option><option>Eastern Province</option><option>Jeddah</option></select></label>
+            <button class="button secondary" type="button" data-toast="Advanced filters opened"><i data-lucide="sliders-horizontal" aria-hidden="true"></i>More filters</button>
+          </div>
+          <div class="filter-row" aria-label="Active filters">
+            <span class="chip"><i data-lucide="activity" aria-hidden="true"></i> Predictive maintenance</span>
+            <span class="chip"><i data-lucide="map-pinned" aria-hidden="true"></i> Riyadh + Eastern Province</span>
+            <button class="chip neutral" type="button" data-toast="Filters cleared"><i data-lucide="x" aria-hidden="true"></i> Clear filters</button>
+          </div>
+          <div class="category-grid" aria-label="Use case categories">
+            <a class="category-card" href="#" data-toast="Automation cases opened"><span class="category-top"><span class="category-icon"><i data-lucide="bot" aria-hidden="true"></i></span><span class="category-count">24</span></span><span><strong>Automation</strong><span>Robotics, PLC upgrades, cells and commissioning.</span></span></a>
+            <a class="category-card" href="#" data-toast="Energy cases opened"><span class="category-top"><span class="category-icon"><i data-lucide="gauge" aria-hidden="true"></i></span><span class="category-count">18</span></span><span><strong>Energy</strong><span>Compressed air, metering, utilities and plant efficiency.</span></span></a>
+            <a class="category-card" href="#" data-toast="Quality cases opened"><span class="category-top"><span class="category-icon"><i data-lucide="scan-eye" aria-hidden="true"></i></span><span class="category-count">16</span></span><span><strong>Quality</strong><span>Vision inspection, test stations and defect reduction.</span></span></a>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="results-title">
+          <header class="section-head">
+            <div><div class="section-kicker">Library results</div><h2 id="results-title">89 use cases</h2></div>
+            <button class="button secondary" type="button" data-toast="Sort menu opened"><i data-lucide="arrow-up-down" aria-hidden="true"></i>Most relevant</button>
+          </header>
+          <ul class="case-list">
+            <li class="case-item">
+              <div class="case-thumb" aria-hidden="true"><i data-lucide="activity"></i></div>
+              <div class="case-main">
+                <div class="case-meta"><span class="tag hot"><i data-lucide="trending-up" aria-hidden="true"></i>Predictive maintenance</span><span>Riyadh</span><span>Metals</span></div>
+                <a class="case-title" href="detail.html">Reducing unplanned downtime with edge vibration monitoring</a>
+                <p class="case-summary">Real-time condition monitoring across critical production assets with escalation rules shaped by maintenance teams.</p>
+              </div>
+              <div class="case-stats"><span class="stat"><strong>31%</strong><span>Downtime</span></span><span class="stat"><strong>8 mo.</strong><span>Payback</span></span></div>
+            </li>
+            <li class="case-item">
+              <div class="case-thumb" aria-hidden="true"><i data-lucide="scan-eye"></i></div>
+              <div class="case-main">
+                <div class="case-meta"><span class="tag"><i data-lucide="badge-check" aria-hidden="true"></i>Computer vision</span><span>Jeddah</span><span>Food</span></div>
+                <a class="case-title" href="detail.html">Vision inspection closes the packaging quality gap</a>
+                <p class="case-summary">Inline defect detection with human review for low-confidence results and traceable quality evidence.</p>
+              </div>
+              <div class="case-stats"><span class="stat"><strong>42%</strong><span>Defects</span></span><span class="stat"><strong>96%</strong><span>Detection</span></span></div>
+            </li>
+            <li class="case-item">
+              <div class="case-thumb" aria-hidden="true"><i data-lucide="gauge"></i></div>
+              <div class="case-main">
+                <div class="case-meta"><span class="tag"><i data-lucide="zap" aria-hidden="true"></i>Energy</span><span>Dammam</span><span>Chemicals</span></div>
+                <a class="case-title" href="detail.html">Plant-wide energy intelligence for compressed air</a>
+                <p class="case-summary">Metering and anomaly detection revealed leaks, avoidable consumption and maintenance opportunities.</p>
+              </div>
+              <div class="case-stats"><span class="stat"><strong>18%</strong><span>Energy</span></span><span class="stat"><strong>11 mo.</strong><span>Payback</span></span></div>
+            </li>
+          </ul>
+        </section>
+
+        <aside class="side-stack">
+          <section class="section" aria-labelledby="featured-title">
+            <header class="section-head"><div><div class="section-kicker">Featured evidence</div><h2 id="featured-title">High-signal cases</h2></div></header>
+            <ul class="mini-list">
+              <li><strong>Edge vibration monitoring</strong><span>31% less downtime · 24 assets covered</span></li>
+              <li><strong>Packaging vision inspection</strong><span>96% defect detection · food operations</span></li>
+              <li><strong>Compressed-air intelligence</strong><span>18% energy savings · chemicals plant</span></li>
+            </ul>
+          </section>
+          <section class="section" aria-labelledby="submit-title">
+            <header class="section-head"><div><div class="section-kicker">Contribute</div><h2 id="submit-title">Share a use case</h2></div></header>
+            <ul class="mini-list">
+              <li><strong>Moderated publication</strong><span>Reviewers can request changes before the case is published.</span></li>
+              <li><strong>Outcome-first format</strong><span>Challenge, solution, implementation and measurable results.</span></li>
+            </ul>
+            <a class="callout-link" href="submission.html"><span><strong>Start submission</strong><span>Seven-step guided form</span></span><span class="callout-count">7</span></a>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2" aria-hidden="true"></i><span id="toast-message"></span></div>
+  <script src="usecases.js"></script>
+  <script src="../prototype-nav.js"></script>
+</body>
+</html>

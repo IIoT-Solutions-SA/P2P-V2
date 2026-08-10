@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="PeerLink Network Workspace dashboard concept" />
+  <title>PeerLink — Network Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --paper: #f3f0e8;
+      --paper-deep: #e7e1d5;
+      --surface: #fbfaf6;
+      --ink: #142d34;
+      --muted: #657175;
+      --line: #d5d0c6;
+      --navy: #0b2f39;
+      --teal: #0f5d5b;
+      --teal-soft: #dce9e5;
+      --blue: #1769df;
+      --amber: #a15b1b;
+      --white: #ffffff;
+      --rail: 232px;
+      --shadow: 0 12px 28px rgba(28, 43, 46, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, a { font: inherit; }
+
+    button { color: inherit; }
+
+    a { color: inherit; text-decoration: none; }
+
+    button:focus-visible,
+    a:focus-visible {
+      outline: 3px solid rgba(23, 105, 223, 0.38);
+      outline-offset: 3px;
+    }
+
+    .skip-link {
+      position: fixed;
+      left: 16px;
+      top: -80px;
+      z-index: 100;
+      padding: 10px 14px;
+      background: var(--white);
+      color: var(--navy);
+      border: 1px solid var(--blue);
+    }
+
+    .skip-link:focus { top: 12px; }
+
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 20;
+      width: var(--rail);
+      display: flex;
+      flex-direction: column;
+      background: var(--navy);
+      color: #ecf3f1;
+      border-right: 1px solid rgba(255,255,255,.12);
+    }
+
+    .brand {
+      height: 86px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 0 22px;
+      border-bottom: 1px solid rgba(255,255,255,.14);
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      border: 2px solid #76c5bd;
+      transform: rotate(45deg);
+    }
+
+    .brand-mark::before { width: 20px; height: 20px; }
+    .brand-mark::after { width: 8px; height: 8px; background: #76c5bd; }
+
+    .brand-name {
+      font: 700 18px/1 "Manrope", sans-serif;
+      letter-spacing: -.02em;
+    }
+
+    .brand-caption {
+      margin-top: 4px;
+      color: #9cb4b5;
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .mobile-menu { display: none; }
+
+    .sidebar-inner {
+      min-height: 0;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 22px 14px 16px;
+    }
+
+    .nav-label {
+      margin: 0 10px 9px;
+      color: #78999c;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 3px;
+      margin: 0 0 23px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav-link {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 11px;
+      color: #b8cbca;
+      font-size: 14px;
+      font-weight: 500;
+      border-left: 2px solid transparent;
+      transition: color .18s ease, background .18s ease, border-color .18s ease;
+    }
+
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,.055); }
+
+    .nav-link.active {
+      color: #fff;
+      background: rgba(117, 195, 186, .11);
+      border-color: #76c5bd;
+    }
+
+    .nav-link i { width: 18px; height: 18px; stroke-width: 1.7; }
+
+    .nav-spacer { flex: 1; }
+
+    .profile-rail {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 10px 4px;
+      border-top: 1px solid rgba(255,255,255,.13);
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      overflow: hidden;
+      border-radius: 50%;
+      background: #cfe0dc;
+      color: var(--navy);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .profile-name {
+      overflow: hidden;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .profile-role { color: #91aaac; font-size: 10px; }
+
+    .icon-button {
+      width: 36px;
+      height: 36px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      transition: background .18s ease, border-color .18s ease;
+    }
+
+    .icon-button:hover { background: var(--white); border-color: #abb0aa; }
+    .icon-button i { width: 17px; height: 17px; }
+    .profile-rail .icon-button { color: #aec1c2; border: 0; }
+    .profile-rail .icon-button:hover { color: #fff; background: rgba(255,255,255,.08); }
+
+    .app-shell {
+      min-height: 100vh;
+      margin-left: var(--rail);
+    }
+
+    .topbar {
+      height: 86px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 clamp(24px, 4vw, 58px);
+      background: rgba(243, 240, 232, .94);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .crumb {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .crumb strong { color: var(--ink); font-weight: 600; }
+    .crumb i { width: 14px; height: 14px; }
+
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+    .network-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #16856d;
+      box-shadow: 0 0 0 3px rgba(22,133,109,.12);
+    }
+
+    .page {
+      width: min(1430px, 100%);
+      margin: 0 auto;
+      padding: 43px clamp(24px, 4vw, 58px) 64px;
+    }
+
+    .page-intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 34px;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 730px;
+      margin-bottom: 7px;
+      font: 600 clamp(30px, 3.3vw, 45px)/1.13 "Manrope", sans-serif;
+      letter-spacing: -.045em;
+    }
+
+    .intro-copy { margin-bottom: 0; color: var(--muted); font-size: 15px; }
+
+    .intro-context {
+      min-width: 215px;
+      padding: 2px 0 3px 18px;
+      border-left: 2px solid var(--teal);
+    }
+
+    .intro-context strong { display: block; font: 600 14px/1.35 "Manrope", sans-serif; }
+    .intro-context span { color: var(--muted); font-size: 12px; }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(290px, .78fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 21px 23px 17px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-kicker {
+      margin-bottom: 4px;
+      color: var(--teal);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .section h2 {
+      margin: 0;
+      font: 600 19px/1.25 "Manrope", sans-serif;
+      letter-spacing: -.025em;
+    }
+
+    .section-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .section-link i { width: 14px; height: 14px; }
+
+    .start-panel { grid-column: 1; }
+
+    .action-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .action-item {
+      min-height: 116px;
+      display: grid;
+      grid-template-columns: 39px 1fr 20px;
+      align-items: start;
+      gap: 13px;
+      padding: 22px;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      transition: background .18s ease;
+    }
+
+    .action-item:nth-child(2n) { border-right: 0; }
+    .action-item:nth-last-child(-n+2) { border-bottom: 0; }
+    .action-item:hover { background: #f2f5f1; }
+
+    .action-symbol {
+      width: 39px;
+      height: 39px;
+      display: grid;
+      place-items: center;
+      color: var(--teal);
+      background: var(--teal-soft);
+      border: 1px solid #c4d7d1;
+    }
+
+    .action-symbol i { width: 19px; height: 19px; stroke-width: 1.8; }
+
+    .action-title { display: block; margin-bottom: 4px; font-weight: 700; font-size: 14px; }
+    .action-copy { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .action-arrow { width: 17px; height: 17px; margin-top: 9px; color: #899295; }
+
+    .pulse-panel { grid-column: 2; grid-row: 1 / span 2; }
+
+    .pulse-main {
+      padding: 24px 23px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .pulse-number {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .pulse-number strong { font: 600 38px/1 "Manrope", sans-serif; letter-spacing: -.05em; }
+    .pulse-number span { color: var(--muted); font-size: 12px; }
+    .pulse-copy { margin: 0 0 17px; color: var(--muted); font-size: 12px; }
+
+    .progress-track { height: 5px; overflow: hidden; background: #deded7; }
+    .progress-fill { width: 15%; height: 100%; background: var(--teal); }
+
+    .metric-table { width: 100%; border-collapse: collapse; }
+
+    .metric-table th,
+    .metric-table td {
+      padding: 15px 22px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .metric-table tr:last-child th,
+    .metric-table tr:last-child td { border-bottom: 0; }
+    .metric-table th { color: var(--muted); font-size: 12px; font-weight: 500; }
+    .metric-table td { width: 45px; font: 600 17px/1 "Manrope", sans-serif; text-align: right; }
+    .metric-table .accent { color: var(--teal); }
+
+    .draft-callout {
+      margin: 0 22px 22px;
+      padding: 16px 0 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .draft-callout a {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .draft-callout strong { display: block; margin-bottom: 3px; font-size: 13px; }
+    .draft-callout span { color: var(--muted); font-size: 11px; }
+    .draft-count { font: 700 22px/1 "Manrope", sans-serif; color: var(--amber) !important; }
+
+    .activity-panel { grid-column: 1; }
+
+    .tabs {
+      display: flex;
+      gap: 3px;
+      padding: 13px 22px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      padding: 8px 11px 9px;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tab[aria-selected="true"] { color: var(--ink); border-color: var(--teal); }
+
+    .feed { margin: 0; padding: 0; list-style: none; }
+
+    .feed-item {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr) auto;
+      gap: 13px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .feed-item:last-child { border-bottom: 0; }
+    .feed-item[hidden] { display: none; }
+    .feed-icon { background: #e7e6df; color: var(--teal); }
+    .feed-text { min-width: 0; }
+    .feed-text p { margin: 0 0 3px; font-size: 13px; }
+    .feed-text strong { font-weight: 700; }
+    .feed-title { display: block; overflow: hidden; font-size: 12px; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+    .feed-time { padding-top: 2px; color: #858e90; font-size: 11px; white-space: nowrap; }
+
+    .network-panel { grid-column: 2; }
+
+    .people-list { margin: 0; padding: 0; list-style: none; }
+
+    .person {
+      display: grid;
+      grid-template-columns: 39px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 11px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .person:last-child { border-bottom: 0; }
+    .person .avatar { width: 39px; height: 39px; color: var(--teal); background: #dfe8e5; }
+    .person-name { display: block; margin-bottom: 1px; overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .person-skill { display: block; overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .person-state { width: 7px; height: 7px; border-radius: 50%; background: #1b8f75; }
+    .person-state.away { background: #ca832f; }
+
+    .network-note {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 15px 20px;
+      color: var(--muted);
+      background: #f1f2ed;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+    }
+
+    .network-note i { width: 15px; height: 15px; color: var(--teal); }
+
+    .featured-panel {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(245px, .5fr);
+      margin-top: 1px;
+      overflow: hidden;
+    }
+
+    .featured-main {
+      position: relative;
+      min-height: 254px;
+      padding: 31px 34px;
+      color: #fff;
+      background: var(--navy);
+      overflow: hidden;
+    }
+
+    .featured-main::after {
+      content: "";
+      position: absolute;
+      right: -35px;
+      bottom: -110px;
+      width: 310px;
+      height: 270px;
+      border: 1px solid rgba(117,195,186,.25);
+      transform: rotate(-18deg);
+    }
+
+    .featured-main .section-kicker { color: #76c5bd; }
+
+    .featured-main h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 670px;
+      margin: 15px 0 12px;
+      font: 600 clamp(23px, 2.6vw, 33px)/1.22 "Manrope", sans-serif;
+      letter-spacing: -.035em;
+    }
+
+    .featured-main p { position: relative; z-index: 1; max-width: 630px; margin-bottom: 24px; color: #b8cdca; font-size: 13px; }
+
+    .primary-button,
+    .secondary-button {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 15px;
+      border: 1px solid transparent;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary-button { position: relative; z-index: 1; background: #fff; color: var(--navy); }
+    .primary-button:hover { background: #e6efed; }
+    .primary-button i { width: 15px; height: 15px; }
+
+    .featured-facts {
+      display: grid;
+      align-content: center;
+      padding: 27px;
+      background: #e1e7e2;
+    }
+
+    .featured-facts dl { margin: 0; }
+
+    .fact {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid #c4ccc6;
+    }
+
+    .fact:last-child { border-bottom: 0; }
+    .fact dt { color: var(--muted); font-size: 11px; }
+    .fact dd { margin: 0; font: 700 13px/1.3 "Manrope", sans-serif; text-align: right; }
+    .fact .impact { color: var(--teal); font-size: 20px; }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 80;
+      max-width: min(370px, calc(100vw - 44px));
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 15px;
+      color: #fff;
+      background: var(--navy);
+      border-left: 3px solid #76c5bd;
+      box-shadow: 0 12px 26px rgba(8, 29, 34, .2);
+      font-size: 12px;
+      transform: translateY(25px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .22s ease, opacity .22s ease;
+    }
+
+    .toast.visible { transform: translateY(0); opacity: 1; }
+    .toast i { width: 16px; height: 16px; color: #76c5bd; }
+
+    @media (max-width: 1050px) {
+      :root { --rail: 78px; }
+      .brand { justify-content: center; padding: 0; }
+      .brand-copy, .nav-link span, .nav-label, .profile-rail > div:not(.avatar), .profile-rail .icon-button { display: none; }
+      .sidebar-inner { padding-inline: 9px; }
+      .nav-link { justify-content: center; padding: 0; border-left: 0; border-bottom: 2px solid transparent; }
+      .nav-link.active { border-bottom-color: #76c5bd; }
+      .profile-rail { display: flex; justify-content: center; padding-inline: 0; }
+      .workspace-grid { grid-template-columns: minmax(0, 1.45fr) minmax(270px, .8fr); }
+      .action-list { grid-template-columns: 1fr; }
+      .action-item, .action-item:nth-child(2n), .action-item:nth-last-child(-n+2) { border-right: 0; border-bottom: 1px solid var(--line); }
+      .action-item:last-child { border-bottom: 0; }
+    }
+
+    @media (max-width: 790px) {
+      :root { --rail: 0px; }
+      .sidebar {
+        width: 100%;
+        height: 66px;
+        right: 0;
+        bottom: auto;
+        display: block;
+      }
+      .brand { height: 66px; justify-content: flex-start; padding: 0 18px; }
+      .brand-copy { display: block; }
+      .brand-caption { display: none; }
+      .mobile-menu {
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        position: absolute;
+        right: 13px;
+        top: 13px;
+        color: #fff;
+        background: transparent;
+        border: 1px solid rgba(255,255,255,.2);
+        cursor: pointer;
+      }
+      .sidebar-inner {
+        display: none;
+        height: calc(100vh - 66px);
+        padding: 18px 14px;
+        background: var(--navy);
+      }
+      .sidebar.open .sidebar-inner { display: flex; }
+      .sidebar.open .nav-link span, .sidebar.open .nav-label, .sidebar.open .profile-rail > div:not(.avatar), .sidebar.open .profile-rail .icon-button { display: block; }
+      .sidebar.open .nav-link { justify-content: flex-start; padding: 0 11px; border-bottom: 0; border-left: 2px solid transparent; }
+      .sidebar.open .nav-link.active { border-left-color: #76c5bd; }
+      .sidebar.open .profile-rail { display: grid; grid-template-columns: 36px 1fr auto; justify-content: initial; padding: 14px 10px 4px; }
+      .app-shell { margin-left: 0; padding-top: 66px; }
+      .topbar { height: 62px; padding: 0 18px; }
+      .crumb span, .network-status { display: none; }
+      .page { padding: 30px 18px 48px; }
+      .page-intro { grid-template-columns: 1fr; gap: 18px; margin-bottom: 25px; }
+      .intro-context { max-width: 300px; }
+      .workspace-grid { grid-template-columns: 1fr; }
+      .start-panel, .pulse-panel, .activity-panel, .network-panel, .featured-panel { grid-column: 1; grid-row: auto; }
+      .action-list { grid-template-columns: 1fr 1fr; }
+      .action-item, .action-item:nth-child(2n), .action-item:nth-last-child(-n+2) { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .action-item:nth-child(2n) { border-right: 0; }
+      .action-item:nth-last-child(-n+2) { border-bottom: 0; }
+      .featured-panel { grid-template-columns: 1fr; }
+      .featured-main { min-height: 0; }
+      .featured-facts dl { display: grid; grid-template-columns: repeat(3, 1fr); }
+      .fact { display: block; padding: 5px 12px; border-right: 1px solid #c4ccc6; border-bottom: 0; }
+      .fact:first-child { padding-left: 0; }
+      .fact:last-child { padding-right: 0; border-right: 0; }
+      .fact dd { margin-top: 4px; text-align: left; }
+    }
+
+    @media (max-width: 520px) {
+      h1 { font-size: 30px; }
+      .action-list { grid-template-columns: 1fr; }
+      .action-item, .action-item:nth-child(2n), .action-item:nth-last-child(-n+2) { min-height: 96px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .action-item:last-child { border-bottom: 0; }
+      .section-head { padding: 18px; }
+      .feed-item { grid-template-columns: 34px minmax(0, 1fr); padding: 16px 18px; }
+      .feed-time { grid-column: 2; padding: 0; }
+      .tabs { padding-inline: 14px; overflow-x: auto; }
+      .featured-main { padding: 27px 22px; }
+      .featured-facts { padding: 22px; }
+      .featured-facts dl { grid-template-columns: 1fr; }
+      .fact { display: grid; padding: 11px 0; border-right: 0; border-bottom: 1px solid #c4ccc6; }
+      .fact:last-child { border-bottom: 0; }
+      .fact dd { margin-top: 0; text-align: right; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to workspace</a>
+
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-copy">
+        <div class="brand-name">PeerLink</div>
+        <div class="brand-caption">Manufacturing network</div>
+      </div>
+    </div>
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-controls="sidebar-nav" aria-expanded="false">
+      <i data-lucide="menu" aria-hidden="true"></i>
+    </button>
+
+    <div class="sidebar-inner" id="sidebar-nav">
+      <p class="nav-label">Workspace</p>
+      <nav aria-label="Workspace navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link active" href="#" aria-current="page"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a></li>
+          <li><a class="nav-link" href="#" data-toast="Forum opened"><i data-lucide="library-big" aria-hidden="true"></i><span>Forum</span></a></li>
+          <li><a class="nav-link" href="#" data-toast="Collaborator directory opened"><i data-lucide="users" aria-hidden="true"></i><span>People</span></a></li>
+          <li><a class="nav-link" href="#" data-toast="Use case library opened"><i data-lucide="factory" aria-hidden="true"></i><span>Use Cases</span></a></li>
+        </ul>
+      </nav>
+
+      <p class="nav-label">Organization</p>
+      <nav aria-label="Organization navigation">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="#" data-toast="IIoT Solutions organization opened"><i data-lucide="building-2" aria-hidden="true"></i><span>IIoT Solutions</span></a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-spacer"></div>
+      <div class="profile-rail">
+        <div class="avatar" aria-hidden="true">AF</div>
+        <div>
+          <div class="profile-name">Aadil Feroze</div>
+          <div class="profile-role">CTO · Administrator</div>
+        </div>
+        <button class="icon-button" type="button" aria-label="Open account settings" data-toast="Account settings opened">
+          <i data-lucide="settings" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="crumb"><span>IIoT Solutions</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>Network workspace</strong></div>
+      <div class="topbar-actions">
+        <div class="network-status"><span class="status-dot" aria-hidden="true"></span>7 colleagues connected</div>
+        <button class="icon-button" type="button" aria-label="Open search" data-toast="Search opened"><i data-lucide="search" aria-hidden="true"></i></button>
+        <button class="icon-button" type="button" aria-label="Open notifications, 2 unread" data-toast="You have 2 unread notifications"><i data-lucide="bell" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <main class="page" id="main-content">
+      <header class="page-intro">
+        <div>
+          <p class="eyebrow">Thursday · 16 July</p>
+          <h1>Good morning, Aadil. What can the network move forward today?</h1>
+          <p class="intro-copy">Your working view of shared knowledge, collaborators and contributions.</p>
+        </div>
+        <div class="intro-context" aria-label="Organization context">
+          <strong>IIoT Solutions</strong>
+          <span>Chief Technology Officer · Admin</span>
+        </div>
+      </header>
+
+      <div class="workspace-grid">
+        <section class="section start-panel" aria-labelledby="start-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">Create or connect</div>
+              <h2 id="start-title">Start something useful</h2>
+            </div>
+          </header>
+          <div class="action-list">
+            <button class="action-item" type="button" data-toast="Question composer opened">
+              <span class="action-symbol"><i data-lucide="message-circle-question" aria-hidden="true"></i></span>
+              <span><span class="action-title">Ask a question</span><span class="action-copy">Bring a manufacturing challenge to the community.</span></span>
+              <i class="action-arrow" data-lucide="arrow-up-right" aria-hidden="true"></i>
+            </button>
+            <button class="action-item" type="button" data-toast="Use case submission opened">
+              <span class="action-symbol"><i data-lucide="notebook-pen" aria-hidden="true"></i></span>
+              <span><span class="action-title">Share a use case</span><span class="action-copy">Document an implementation your peers can reuse.</span></span>
+              <i class="action-arrow" data-lucide="arrow-up-right" aria-hidden="true"></i>
+            </button>
+            <button class="action-item" type="button" data-toast="Collaborator search opened">
+              <span class="action-symbol"><i data-lucide="user-search" aria-hidden="true"></i></span>
+              <span><span class="action-title">Find collaborators</span><span class="action-copy">Connect with specialists across the network.</span></span>
+              <i class="action-arrow" data-lucide="arrow-up-right" aria-hidden="true"></i>
+            </button>
+            <button class="action-item" type="button" data-toast="Team management opened">
+              <span class="action-symbol"><i data-lucide="users-round" aria-hidden="true"></i></span>
+              <span><span class="action-title">IIoT Solutions</span><span class="action-copy">View your organization profile, members and activity.</span></span>
+              <i class="action-arrow" data-lucide="arrow-up-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </section>
+
+        <aside class="section pulse-panel" aria-labelledby="pulse-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">Your contribution</div>
+              <h2 id="pulse-title">Workspace pulse</h2>
+            </div>
+          </header>
+          <div class="pulse-main">
+            <div class="pulse-number"><strong>15%</strong><span>activity level</span></div>
+            <p class="pulse-copy">One useful contribution this week will move your profile forward.</p>
+            <div class="progress-track" role="progressbar" aria-label="Activity level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15"><div class="progress-fill"></div></div>
+          </div>
+          <table class="metric-table" aria-label="Contribution metrics">
+            <tbody>
+              <tr><th scope="row">Questions</th><td>0</td></tr>
+              <tr><th scope="row">Answers</th><td>0</td></tr>
+              <tr><th scope="row">Saved</th><td>0</td></tr>
+              <tr><th scope="row">Use cases</th><td class="accent">3</td></tr>
+              <tr><th scope="row">Reputation</th><td class="accent">30</td></tr>
+            </tbody>
+          </table>
+          <div class="draft-callout">
+            <a href="#" data-toast="Forum draft opened">
+              <span><strong>Continue where you left off</strong><span>Forum draft · updated 2 days ago</span></span>
+              <span class="draft-count" aria-label="1 draft">1</span>
+            </a>
+          </div>
+        </aside>
+
+        <section class="section activity-panel" aria-labelledby="activity-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">Across PeerLink</div>
+              <h2 id="activity-title">Knowledge in motion</h2>
+            </div>
+            <a class="section-link" href="#" data-toast="Full activity feed opened">View all <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </header>
+          <div class="tabs" role="tablist" aria-label="Activity filter">
+            <button class="tab" type="button" role="tab" aria-selected="true" data-filter="all">All activity</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-filter="discussion">Discussions</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-filter="usecase">Use cases</button>
+          </div>
+          <ul class="feed" aria-live="polite">
+            <li class="feed-item" data-type="usecase">
+              <div class="avatar feed-icon"><i data-lucide="scan-eye" aria-hidden="true"></i></div>
+              <div class="feed-text"><p><strong>Hamza Feroze</strong> updated a computer vision implementation</p><span class="feed-title">Vision inspection on PCB assembly lines</span></div>
+              <time class="feed-time" datetime="2026-07-16T09:40">34 min</time>
+            </li>
+            <li class="feed-item" data-type="discussion">
+              <div class="avatar feed-icon"><i data-lucide="message-square-reply" aria-hidden="true"></i></div>
+              <div class="feed-text"><p><strong>Firas Al-Siddiqi</strong> shared a field-tested answer</p><span class="feed-title">How are teams tracking compressed-air loss?</span></div>
+              <time class="feed-time" datetime="2026-07-16T08:15">2 hr</time>
+            </li>
+            <li class="feed-item" data-type="usecase">
+              <div class="avatar feed-icon"><i data-lucide="gauge" aria-hidden="true"></i></div>
+              <div class="feed-text"><p><strong>Amro Abouzied</strong> published a new use case</p><span class="feed-title">Predictive maintenance for CNC spindle vibration</span></div>
+              <time class="feed-time" datetime="2026-07-15T13:00">Yesterday</time>
+            </li>
+          </ul>
+        </section>
+
+        <section class="section network-panel" aria-labelledby="network-title">
+          <header class="section-head">
+            <div>
+              <div class="section-kicker">Available now</div>
+              <h2 id="network-title">Your network</h2>
+            </div>
+            <a class="section-link" href="#" data-toast="Collaborator directory opened" aria-label="Find more collaborators">Find more</a>
+          </header>
+          <ul class="people-list">
+            <li class="person"><span class="avatar" aria-hidden="true">HF</span><span><span class="person-name">Hamza Feroze</span><span class="person-skill">AI vision · Automation</span></span><span class="person-state" aria-label="Available"></span></li>
+            <li class="person"><span class="avatar" aria-hidden="true">FA</span><span><span class="person-name">Firas Al-Siddiqi</span><span class="person-skill">Energy · Operations</span></span><span class="person-state" aria-label="Available"></span></li>
+            <li class="person"><span class="avatar" aria-hidden="true">AB</span><span><span class="person-name">Abdulrahman Bajabir</span><span class="person-skill">Industry 4.0 · Data</span></span><span class="person-state away" aria-label="Away"></span></li>
+          </ul>
+          <div class="network-note"><i data-lucide="network" aria-hidden="true"></i><span>People are visible to every member. Team controls remain admin-only.</span></div>
+        </section>
+
+        <article class="section featured-panel" aria-labelledby="featured-title">
+          <div class="featured-main">
+            <div class="section-kicker">Featured from IIoT Solutions</div>
+            <h2 id="featured-title">AI computer vision system reduces PCB defects by 88%</h2>
+            <p>A practical implementation story covering inspection architecture, deployment constraints and measurable quality gains.</p>
+            <a class="primary-button" href="#" data-toast="Featured use case opened">Read the use case <i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+          </div>
+          <div class="featured-facts" aria-label="Use case facts">
+            <dl>
+              <div class="fact"><dt>Quality impact</dt><dd class="impact">−88%</dd></div>
+              <div class="fact"><dt>Industry</dt><dd>Electronics</dd></div>
+              <div class="fact"><dt>Technology</dt><dd>Computer vision</dd></div>
+            </dl>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="check-circle-2" aria-hidden="true"></i><span id="toast-message"></span></div>
+
+  <script>
+    lucide.createIcons();
+
+    const sidebar = document.getElementById('sidebar');
+    const menuButton = document.getElementById('mobile-menu');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    let toastTimer;
+
+    menuButton.addEventListener('click', () => {
+      const isOpen = sidebar.classList.toggle('open');
+      menuButton.setAttribute('aria-expanded', String(isOpen));
+      menuButton.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+      menuButton.innerHTML = `<i data-lucide="${isOpen ? 'x' : 'menu'}" aria-hidden="true"></i>`;
+      lucide.createIcons();
+    });
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toastMessage.textContent = message;
+      toast.classList.add('visible');
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 2400);
+    }
+
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-toast]');
+      if (!trigger) return;
+      event.preventDefault();
+      showToast(trigger.dataset.toast);
+
+      if (trigger.classList.contains('nav-link')) {
+        document.querySelectorAll('.nav-link').forEach(link => {
+          link.classList.toggle('active', link === trigger);
+          link.removeAttribute('aria-current');
+        });
+        trigger.setAttribute('aria-current', 'page');
+      }
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(item => item.setAttribute('aria-selected', String(item === tab)));
+        const filter = tab.dataset.filter;
+        document.querySelectorAll('.feed-item').forEach(item => {
+          item.hidden = filter !== 'all' && item.dataset.type !== filter;
+        });
+      });
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && sidebar.classList.contains('open')) menuButton.click();
+    });
+  </script>
+<script src="../prototype-nav.js"></script></body>
+</html>

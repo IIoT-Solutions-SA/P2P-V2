@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PeerLink / P2P Cybersecurity Remediation Report</title><style>
+body{margin:0;background:#f4f7fb;color:#111827;font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.55}.page{max-width:1000px;margin:0 auto;padding:32px 18px 60px}.report{background:white;border:1px solid #e5e7eb;border-radius:20px;box-shadow:0 18px 50px rgba(15,23,42,.08);overflow:hidden}.hero{background:linear-gradient(135deg,#0f2a56,#1d4ed8);color:white;padding:34px 42px}.hero h1{margin:0 0 10px;font-size:32px;letter-spacing:-.03em}.hero p{margin:0;color:#dbeafe}.content{padding:34px 42px 46px}.content>h1:first-child{display:none}h2{font-size:23px;margin-top:34px;padding-top:18px;border-top:1px solid #e5e7eb}h3{font-size:18px;margin:20px 0 6px;color:#1e3a8a}p{margin:8px 0 14px}ul{padding-left:24px}li{margin:8px 0}.actions{text-align:right;margin-bottom:14px}button{border:1px solid #d1d5db;background:white;border-radius:999px;padding:9px 14px;font-weight:600;cursor:pointer}@media print{body{background:white}.page{max-width:none;padding:0}.actions{display:none}.report{box-shadow:none;border:0;border-radius:0}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><main class="page"><div class="actions"><button onclick="window.print()">Print / Save PDF</button></div><article class="report"><section class="hero"><h1>PeerLink / P2P Cybersecurity Remediation Report</h1><p>Remediation summary for the 11 KACST cybersecurity findings.</p></section><section class="content"><h1>PeerLink / P2P Cybersecurity Remediation Report</h1>
+<p><strong>Project:</strong> PeerLink / P2P-V2   <strong>Report date:</strong> 2026-06-07   <strong>Production URL:</strong> https://p2p.iiotsolutions.sa   <strong>Scope:</strong> KACST cybersecurity review findings and remediation summary</p>
+<h2>Summary</h2>
+<p>KACST reported 11 cybersecurity findings for PeerLink/P2P. All findings have been reviewed and addressed. Below is the remediation summary for each security issue.</p>
+<h2>Remediation Summary</h2>
+<h3>1. Outdated NGINX 1.24.0 with critical/high vulnerabilities</h3>
+<p>The server package was checked and confirmed to be on the latest available patched Ubuntu release. The public version banner was also hidden to prevent scanner-based version exposure.</p>
+<h3>2. Login exposed over plain HTTP</h3>
+<p>HTTPS was enabled for the public website, and HTTP traffic is now redirected to HTTPS.</p>
+<h3>3. Unrestricted file upload vulnerability</h3>
+<p>File uploads were restricted and validated so unsafe, spoofed, oversized, or unauthorized uploads are blocked.</p>
+<h3>4. Login implemented without 2FA/MFA</h3>
+<p>Login security was strengthened with OTP-based verification/MFA behavior.</p>
+<h3>5. Outdated and vulnerable frontend libraries</h3>
+<p>Frontend dependencies were updated and verified until the audit showed no remaining vulnerabilities.</p>
+<h3>6. Web server version disclosure via HTTP response headers</h3>
+<p>The web server no longer exposes the exact NGINX/Ubuntu version in public response headers.</p>
+<h3>7. Missing HTTP Strict Transport Security / HSTS header</h3>
+<p>HSTS was added so browsers are instructed to use HTTPS for the site.</p>
+<h3>8. Missing Content Security Policy / CSP header</h3>
+<p>A safe CSP header was added to reduce the risk of browser-side script injection while keeping the site functional.</p>
+<h3>9. Lack of input validation across application fields</h3>
+<p>Application forms were hardened so suspicious input, invalid values, and common scanner payloads are rejected.</p>
+<h3>10. Application implemented using HTTP/1.1</h3>
+<p>HTTP/2 was enabled on the secure public endpoint.</p>
+<h3>11. Unauthorized change of corporate email to personal email after login</h3>
+<p>Email-change rules were strengthened so users cannot switch from an approved corporate email to a personal email.</p>
+<h2>Final Status</h2>
+<p>All 11 KACST cybersecurity findings have been addressed.</p>
+<p>Key security improvements now in place:</p>
+<ul><li>HTTPS enforced</li><li>HTTP/2 enabled</li><li>HSTS enabled</li><li>CSP enabled</li><li>Web server version hidden</li><li>Upload validation strengthened</li><li>Frontend vulnerabilities cleared</li><li>OTP/MFA behavior added</li><li>Input validation strengthened</li><li>Corporate email-change restrictions added</li></ul></section></article></main></body></html>

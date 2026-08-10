@@ -13,6 +13,8 @@ import type {
 export const authApi = {
   me: () => api.get<CurrentUserResponse>("/api/v1/auth/me"),
 
+  sessionActivity: () => api.post<void>("/api/v1/auth/session-activity"),
+
   signin: (credentials: LoginCredentials) =>
     api.post<SigninResponse>("/api/v1/auth/custom-signin", credentials),
 

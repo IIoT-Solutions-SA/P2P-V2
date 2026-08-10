@@ -23,6 +23,15 @@ from app.models.pg_models import User as PGUser
 
 router = APIRouter()
 
+
+@router.post("/session-activity", status_code=204)
+async def record_session_activity(
+    _session: SessionContainer = Depends(verify_session()),
+):
+    """Record genuine browser activity through the global session policy hook."""
+    return None
+
+
 class UpdateProfileRequest(BaseModel):
     firstName: Optional[Annotated[str, Field(max_length=50)]] = None
     lastName: Optional[Annotated[str, Field(max_length=50)]] = None

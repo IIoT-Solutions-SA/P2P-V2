@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     API_DOMAIN: str = "http://localhost:8000"
     WEBSITE_DOMAIN: str = "http://localhost:5173"
     COOKIE_DOMAIN: Optional[str] = None  # None = same domain as API
+
+    # Session security controls (KACST baseline)
+    SESSION_IDLE_TIMEOUT_MINUTES: int = 30
+    SESSION_ABSOLUTE_LIFETIME_HOURS: int = 8
+
+    @validator("SESSION_IDLE_TIMEOUT_MINUTES", "SESSION_ABSOLUTE_LIFETIME_HOURS")
+    def validate_positive_session_setting(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("Session security settings must be positive")
+        return value
     
     # Environment
     ENVIRONMENT: str = "development"

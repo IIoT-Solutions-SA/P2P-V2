@@ -4,6 +4,7 @@ import type { User, AuthState, LoginCredentials, SignupData } from '@/types/auth
 import { ApiError } from '@/lib/api/client';
 import { authApi } from '@/lib/api/auth';
 import type { MfaRequiredResponse, OtpErrorResponse, SigninResponse } from '@/lib/api/types';
+import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 
 export interface MfaChallenge {
   mfaRequired: true;
@@ -183,6 +184,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: false
     });
   };
+
+  const recordAuthenticatedActivity = async () => {
+    try {
+      await authApi.sessionActivity();
+    } catch (error) {
+      // A temporary network failure must not sign the user out. If SuperTokens
+      // has cleared an expired/revoked session, synchronize the local auth state.
+      if (!(await Session.doesSessionExist())) {
+        await logout();
+        return;
+      }
+      console.warn('Session activity heartbeat failed', error);
+    }
+  };
+
+  useSessionTimeout(authState.isAuthenticated, logout, recordAuthenticatedActivity);
 
   const updateUser = (user: User) => {
     setAuthState(prev => ({ ...prev, user }));

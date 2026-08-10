@@ -57,6 +57,8 @@ services:
       - "3567:3567"
     environment:
       - POSTGRESQL_CONNECTION_URI=postgresql://p2p_user:iiot123@postgres:5432/supertokens
+      - ACCESS_TOKEN_VALIDITY=1800
+      - REFRESH_TOKEN_VALIDITY=480
     depends_on:
       postgres: # <-- DEPENDS DIRECTLY ON POSTGRES
         condition: service_healthy # <-- The healthcheck guarantees the init script has run
@@ -109,6 +111,8 @@ services:
       - LOG_LEVEL=DEBUG
       - API_DOMAIN=http://localhost:8000
       - WEBSITE_DOMAIN=http://localhost:5173
+      - SESSION_IDLE_TIMEOUT_MINUTES=30
+      - SESSION_ABSOLUTE_LIFETIME_HOURS=8
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s

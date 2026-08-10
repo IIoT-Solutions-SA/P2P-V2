@@ -60,7 +60,10 @@ services:
       - "127.0.0.1:3567:3567"
     environment:
       - POSTGRESQL_CONNECTION_URI=postgresql://p2p_user:iiot123@postgres:5432/supertokens
-      - REFRESH_TOKEN_VALIDITY=10080 #super token expire in 7 days (default : 100days)
+      # Access tokens refresh at the idle boundary; application hooks enforce
+      # 30-minute inactivity and an 8-hour absolute lifetime in shared storage.
+      - ACCESS_TOKEN_VALIDITY=1800
+      - REFRESH_TOKEN_VALIDITY=480
     depends_on:
       postgres: # <-- DEPENDS DIRECTLY ON POSTGRES
         condition: service_healthy # <-- The healthcheck guarantees the init script has run
@@ -119,6 +122,8 @@ services:
       - EMAIL_VERIFICATION_SEND=true
       - DEV_EMAIL_VERIFICATION_ENDPOINT=false
       - DEV_SEND_EMAILS=true
+      - SESSION_IDLE_TIMEOUT_MINUTES=30
+      - SESSION_ABSOLUTE_LIFETIME_HOURS=8
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s

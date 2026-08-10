@@ -3,6 +3,7 @@ from supertokens_python.recipe import emailpassword, session, emailverification
 from supertokens_python.recipe.emailpassword import InputFormField
 from supertokens_python.ingredients.emaildelivery.types import EmailDeliveryConfig
 from app.core.config import settings
+from app.core.session_security import session_functions_override
 from typing import Dict, Any
 import logging
 
@@ -108,7 +109,7 @@ def init_supertokens():
                 cookie_same_site="lax",
                 cookie_secure=settings.ENVIRONMENT == "production",
                 override=session.InputOverrideConfig(
-                    functions=lambda original_implementation: original_implementation
+                    functions=session_functions_override
                 )
             )
         ],

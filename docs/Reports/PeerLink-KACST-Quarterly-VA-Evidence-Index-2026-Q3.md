@@ -14,7 +14,9 @@
 | Findings and remediation register | `docs/Reports/PeerLink-KACST-Quarterly-VA-Findings-Register-2026-Q3.md` | Severity, confidence, status, retest, open actions |
 | Public web/network baseline | `docs/Reports/evidence/2026-Q3/production-web-baseline.txt` | Redirect, TLS, cert, headers, CORS, methods, OpenAPI, ports |
 | Sanitized tool summary | `docs/Reports/evidence/2026-Q3/tool-results-summary.json` | Audit/scan counts and regression summary |
-| Real browser evidence | BrowserOps task `20260811-144834-peerlink-quarterly-va-production` | Rendered production site over HTTPS |
+| Initial real browser evidence | BrowserOps task `20260811-144834-peerlink-quarterly-va-production` | Rendered production site over HTTPS |
+| Final post-production browser evidence | BrowserOps task `20260812-004645-peerlink-post-production-full-verification` | Live rendered application after final browser-header remediation |
+| Final application/security workflow | GitHub Actions run `31539611417`, commit `bdb03b5` | Frontend rebuild, service verification, 32 tests and live lockout acceptance |
 | Quarterly process/architecture | `docs/architecture/quarterly-vulnerability-management.md` | Repeatable control, triage and evidence lifecycle |
 | Quarterly schedule | `docs/security/quarterly-vulnerability-assessment-schedule.md` | Future windows and responsibilities |
 | Repeatable runner | `scripts/run_quarterly_vulnerability_assessment.sh` | Safe evidence collection procedure |
@@ -35,6 +37,9 @@ The following working files were produced on the personal Mini PC during the ass
 | Gitleaks | `/tmp/peerlink-gitleaks-tracked.log` | Zero-result and bytes scanned summarized |
 | Public checks | `/tmp/peerlink-production-web-evidence.txt`, `/tmp/peerlink-public-port-evidence.txt` | Sanitized into committed baseline |
 | Build/test logs | `/tmp/peerlink-*build*.log`, `/tmp/peerlink-unittest.log`, `/tmp/peerlink-validation.log` | Pass/fail totals summarized |
+| Direct deployed-image scans | OCI VM `.security-assessment/production-direct-20260811T214422Z/` | Actual backend/frontend image Trivy JSON, repository scan and SHA-256 checksums |
+| Direct VM verification | Mini PC operational SSH audit on 12 August 2026 AST | Runtime commit/configuration, services, migration, backups, tests, ports, headers, package status and effective SSH controls |
+| GitHub alert reconciliation | `/tmp/peerlink-dependabot-open.json` on Mini PC | 24 default-branch npm alerts contrasted with zero current production-branch npm audit findings |
 
 Raw `/tmp` artifacts are working evidence, not durable records. Before any external submission, export approved raw evidence to the controlled internal evidence store if policy requires retention, redact identifiers, and calculate checksums.
 

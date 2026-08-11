@@ -106,18 +106,32 @@ The final evidence includes:
 - accelerated test overrides confirmed absent from production; and
 - controlled live failed-login production acceptance passed.
 
+### Direct post-production OCI VM verification
+
+After the application release, I established dedicated key-only operational SSH access from the Mini PC and audited the running OCI VM directly rather than relying only on CI output.
+
+The direct verification confirmed the deployed commit, all five running services, healthy backend/PostgreSQL/MongoDB checks, migration `f4a9c2d78110`, exact security settings, zero container restarts/OOM kills, valid backups, public TLS behavior, loopback-only internal services, and externally reachable TCP ports limited to 22, 80 and 443. The live application was also rendered through BrowserOps after the final release.
+
+A fresh Trivy scan of the actual deployed images reproduced the documented backend residual (4 Critical, 20 High, 56 Medium, 66 Low and 33 Unknown; no fix available for the four Critical records and only the constrained `cryptography` High has a feed fix) and returned zero findings for the deployed frontend image. Current production-branch `npm audit`, production repository Trivy, and tracked-source Gitleaks checks returned zero.
+
+The final public retest confirmed production OpenAPI is disabled (HTTP 404) and the app shell emits `nosniff`, `SAMEORIGIN`, strict-origin referrer policy, restrictive permissions policy, HSTS and CSP. During verification I found and corrected an NGINX header-inheritance gap; commit `bdb03b5` and workflow `31539611417` deployed and verified that correction.
+
+Open items remain explicit: OCI's latest managed host scan still contains 1,000 scanner records but only three package mappings; the host has 23 available upgrades; credential rotation remains pending; a fresh OCI CIS/VSS rescan is required; the backend image retains documented vendor-unfixed findings and the constrained `cryptography` advisory; RPC port 111 should be disabled for defense in depth although it is blocked externally; and GitHub's default branch has 24 npm Dependabot alerts even though the assessed production branch and deployed frontend image scan clean.
+
 ### Production release and rollback evidence
 
 The application release was deployed through the `hamza-backend` production branch.
 
 - deployed application commit: `c52558534938f4b7c66358685f437c86d6080fee`;
-- final verification/workflow commit: `6f532c3`;
+- final deployed production commit: `bdb03b512b56e6059ebd2c726b58bf8a64718006`;
 - deployment workflow run: `31530596370` — successful;
-- final production verification run: `31531595809` — successful.
+- production control verification run: `31531595809` — successful;
+- Mini PC operational SSH authorization/verification run: `31538887058` — successful; and
+- final browser-header remediation run: `31539611417` — successful.
 
 Before deployment, the workflow created validated PostgreSQL application, PostgreSQL SuperTokens, and MongoDB backups. The final backup set is stored on the OCI VM under:
 
-`/home/ubuntu/P2P-V2/deploy-backups/20260811-231100-AST-pre-kacst-controls/`
+`/home/ubuntu/P2P-V2/deploy-backups/20260812-004902-AST-pre-kacst-controls/`
 
 Existing credentials were moved out of tracked Compose source into the untracked production environment file without printing their values. Actual credential rotation remains a separate coordinated maintenance action because database-user passwords and every dependent connection string must change atomically.
 

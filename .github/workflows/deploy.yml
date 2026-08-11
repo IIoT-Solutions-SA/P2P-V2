@@ -141,7 +141,11 @@ jobs:
               http://localhost:8000/api/v1/auth/custom-signin)"
             status="${response##*$'\n'}"
             body="${response%$'\n'*}"
-            [ "$status" = 401 ]
+            if [ "$attempt" -lt 5 ]; then
+              [ "$status" = 401 ]
+            else
+              [ "$status" = 429 ]
+            fi
             response_fields="$(python3 -c \
               'import json,sys; data=json.load(sys.stdin); print(data.get("status", "") + "|" + data.get("message", ""))' \
               <<<"$body")"

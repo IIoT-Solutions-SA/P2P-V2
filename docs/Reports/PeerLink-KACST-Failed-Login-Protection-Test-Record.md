@@ -2,9 +2,9 @@
 
 **Classification:** Internal working evidence; sanitize before external submission
 **Test date:** 2026-08-11 AST
-**Environment:** Isolated local Docker Compose acceptance stack
-**Production impact:** None
-**Source branch:** `feature/kacst-failed-login-protection`
+**Environment:** Isolated local acceptance plus OCI production
+**Production release:** Application `c525585`; final verification `6f532c3`
+**Source branch:** `feature/kacst-failed-login-protection`, released through `hamza-backend`
 
 ## Acceptance Configuration
 
@@ -33,7 +33,10 @@ minutes.
 | Production Docker Compose validation | PASS |
 | Development Docker Compose validation | PASS |
 | Isolated acceptance Compose validation | PASS |
-| Alembic migration to `f4a9c2d78110` | PASS in isolated stack |
+| Alembic migration to `f4a9c2d78110` | PASS locally and in OCI production |
+| Deployed production image unit/regression suite | PASS — 32 tests |
+| Live production unknown-account threshold | PASS — 401 attempts 1–4; 429 attempts 5–6; generic body throughout |
+| Production test-row cleanup | PASS — unique HMAC-keyed acceptance row removed |
 | Source diff whitespace validation | PASS |
 
 ## Controlled Acceptance Results
@@ -77,22 +80,14 @@ failure, and active lockout is:
 
 The record intentionally excludes usable test credentials and response tokens.
 
-## Local Acceptance Conclusion
+## Acceptance Conclusion
 
-The Item 2 implementation is locally complete. The isolated test demonstrates that the
-fifth consecutive failure activates a shared lock for administrators and normal users,
-parallel requests do not bypass the threshold, unknown accounts receive equivalent
-feedback, timer recovery works, and a successful password resets the sequence.
+Item 2 is implemented locally and deployed to OCI production. The isolated test demonstrates administrator/member behavior, concurrency safety, recovery, reset, and anti-enumeration. Production workflow `31531595809` independently confirmed the five-attempt/15-minute runtime values, applied migration, passed 32 tests inside the deployed image, and proved the live unknown-account 401→429 threshold while preserving generic feedback.
 
-## Production Evidence Still Required
+## Remaining Review Evidence
 
-Do not mark Item 2 externally complete until all of the following exist:
+- Optional controlled real-account normal-user and administrator screenshots in an approved window.
+- Optional literal 15-minute wall-clock recovery capture.
+- Internal Hamza/Aadil sign-off.
 
-- Production release/deployment identifier and timestamp.
-- Sanitized production configuration showing five attempts and 15 minutes.
-- Confirmation that Alembic revision `f4a9c2d78110` is applied.
-- Controlled normal-user and administrator test evidence in the approved window.
-- Recovery evidence using the real 15-minute duration.
-- Sanitized frontend/API evidence and internal reviewer sign-off.
-
-Nothing in this record claims production deployment or KACST acceptance.
+This record claims production deployment and technical verification, not KACST acceptance or reviewer approval.

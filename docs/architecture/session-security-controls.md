@@ -80,6 +80,22 @@ REFRESH_TOKEN_VALIDITY=480
 
 Changing the frontend timer never weakens backend enforcement. Any exception to the baseline must be documented and approved before deployment.
 
+## Isolated Local Acceptance
+
+The dedicated `docker/session-control-acceptance-compose.yml` creates a separate Compose project with isolated PostgreSQL, MongoDB, SuperTokens, backend, frontend, network, and volumes. It publishes only the test frontend on `127.0.0.1:15173` and backend on `127.0.0.1:18000`; it does not reuse ordinary PeerLink databases or containers.
+
+For accelerated elapsed-time testing only, backend settings `SESSION_IDLE_TIMEOUT_SECONDS_TEST` and `SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST` are honored exclusively when `ENVIRONMENT=test`. The frontend seconds override is honored exclusively in Vite `test` mode. Automated tests prove production ignores these values and retains 30 minutes/eight hours.
+
+Run:
+
+```bash
+docker compose -p p2p-session-acceptance \
+  -f docker/session-control-acceptance-compose.yml up -d --build
+python3 scripts/run_session_control_acceptance.py
+```
+
+The runner creates disposable administrator/member accounts, performs real SuperTokens session creation against isolated databases, validates idle and absolute expiration, rotates tokens, signs out, and confirms replay rejection. It never prints credentials, cookies, session handles, or token values.
+
 ## Deployment Procedure
 
 1. Back up the production configuration and record the release identifier.

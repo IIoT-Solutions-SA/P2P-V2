@@ -38,10 +38,18 @@ class Settings(BaseSettings):
     # Session security controls (KACST baseline)
     SESSION_IDLE_TIMEOUT_MINUTES: int = 30
     SESSION_ABSOLUTE_LIFETIME_HOURS: int = 8
+    # Accelerated acceptance-test overrides. Ignored unless ENVIRONMENT=test.
+    SESSION_IDLE_TIMEOUT_SECONDS_TEST: Optional[int] = None
+    SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST: Optional[int] = None
 
-    @validator("SESSION_IDLE_TIMEOUT_MINUTES", "SESSION_ABSOLUTE_LIFETIME_HOURS")
-    def validate_positive_session_setting(cls, value: int) -> int:
-        if value <= 0:
+    @validator(
+        "SESSION_IDLE_TIMEOUT_MINUTES",
+        "SESSION_ABSOLUTE_LIFETIME_HOURS",
+        "SESSION_IDLE_TIMEOUT_SECONDS_TEST",
+        "SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST",
+    )
+    def validate_positive_session_setting(cls, value: Optional[int]) -> Optional[int]:
+        if value is not None and value <= 0:
             raise ValueError("Session security settings must be positive")
         return value
     

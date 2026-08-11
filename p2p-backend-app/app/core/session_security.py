@@ -29,6 +29,26 @@ def _session_created_seconds(created_at_ms: int) -> float:
     return created_at_ms / 1000.0
 
 
+def configured_idle_timeout_seconds() -> int:
+    """Return the production baseline or an explicit isolated-test override."""
+    if (
+        settings.ENVIRONMENT == "test"
+        and settings.SESSION_IDLE_TIMEOUT_SECONDS_TEST is not None
+    ):
+        return settings.SESSION_IDLE_TIMEOUT_SECONDS_TEST
+    return settings.SESSION_IDLE_TIMEOUT_MINUTES * 60
+
+
+def configured_absolute_lifetime_seconds() -> int:
+    """Return the production baseline or an explicit isolated-test override."""
+    if (
+        settings.ENVIRONMENT == "test"
+        and settings.SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST is not None
+    ):
+        return settings.SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST
+    return settings.SESSION_ABSOLUTE_LIFETIME_HOURS * 3600
+
+
 def session_expiry_reason(
     *,
     now: float,
@@ -69,8 +89,8 @@ async def enforce_session_limits(
         now=checked_at,
         created_at=created_at,
         last_activity_at=last_activity_at,
-        idle_timeout_seconds=settings.SESSION_IDLE_TIMEOUT_MINUTES * 60,
-        absolute_lifetime_seconds=settings.SESSION_ABSOLUTE_LIFETIME_HOURS * 3600,
+        idle_timeout_seconds=configured_idle_timeout_seconds(),
+        absolute_lifetime_seconds=configured_absolute_lifetime_seconds(),
     )
 
     if reason is not None:

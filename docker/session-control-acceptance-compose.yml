@@ -1,0 +1,117 @@
+# Isolated, accelerated local acceptance environment for KACST session controls.
+# Run with: docker compose -p p2p-session-acceptance -f docker/session-control-acceptance-compose.yml up -d --build
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: p2p_acceptance
+      POSTGRES_USER: p2p_test
+      POSTGRES_PASSWORD: acceptance-only
+    volumes:
+      - postgres_acceptance:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U p2p_test -d p2p_acceptance"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    networks: [acceptance]
+
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: p2p_test
+      MONGO_INITDB_ROOT_PASSWORD: acceptance-only
+      MONGO_INITDB_DATABASE: p2p_acceptance
+    volumes:
+      - mongodb_acceptance:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    networks: [acceptance]
+
+  supertokens:
+    image: registry.supertokens.io/supertokens/supertokens-postgresql:11.0
+    environment:
+      POSTGRESQL_CONNECTION_URI: postgresql://p2p_test:acceptance-only@postgres:5432/supertokens
+      ACCESS_TOKEN_VALIDITY: 300
+      REFRESH_TOKEN_VALIDITY: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [acceptance]
+
+  backend:
+    build:
+      context: ..
+      dockerfile: ./docker/backend.Dockerfile
+      target: development
+    user: "1000:1000"
+    ports:
+      - "18000:8000"
+    volumes:
+      - ../p2p-backend-app:/app
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://p2p_test:acceptance-only@postgres:5432/p2p_acceptance
+      MONGODB_URL: mongodb://p2p_test:acceptance-only@mongodb:27017/p2p_acceptance?authSource=admin
+      SUPERTOKENS_CONNECTION_URI: http://supertokens:3567
+      BACKEND_CORS_ORIGINS: '["http://localhost:15173","http://127.0.0.1:15173"]'
+      SECRET_KEY: isolated-acceptance-test-only
+      ENVIRONMENT: test
+      DEBUG: "false"
+      API_DOMAIN: http://localhost:18000
+      WEBSITE_DOMAIN: http://localhost:15173
+      SESSION_IDLE_TIMEOUT_MINUTES: 30
+      SESSION_ABSOLUTE_LIFETIME_HOURS: 8
+      SESSION_IDLE_TIMEOUT_SECONDS_TEST: 45
+      SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST: 150
+      EMAIL_VERIFICATION_SEND: "false"
+      DEV_SEND_EMAILS: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      supertokens:
+        condition: service_started
+    networks: [acceptance]
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: ./docker/frontend.Dockerfile
+      target: development
+    ports:
+      - "15173:5173"
+    volumes:
+      - ../p2p-frontend-app:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      VITE_API_BASE_URL: http://localhost:18000
+      VITE_WEBSITE_BASE_URL: http://localhost:15173
+      VITE_SESSION_IDLE_TIMEOUT_MINUTES: 30
+      VITE_SESSION_IDLE_TIMEOUT_SECONDS_TEST: 45
+    command: npm run dev -- --host --mode test
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [acceptance]
+
+volumes:
+  postgres_acceptance:
+  mongodb_acceptance:
+  frontend_node_modules:
+
+networks:
+  acceptance:
+    driver: bridge

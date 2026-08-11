@@ -2,19 +2,19 @@
 
 **Classification:** Internal working evidence; sanitize before external submission
 **Control:** Session idle timeout and absolute lifetime
-**Required release ID:** _Pending deployment_
-**Implementation date:** _Pending deployment_
-**Environment:** _Pending_
-**Tester / reviewer:** _Pending_
+**Required release ID:** Local acceptance branch `feature/kacst-session-controls`; production release pending
+**Implementation date:** 2026-08-11 AST (local acceptance)
+**Environment:** Isolated Docker Compose project `p2p-session-acceptance` on the Mini PC
+**Tester / reviewer:** Nemo automated acceptance run; Hamza/Aadil production sign-off pending
 
 ## Sanitized Configuration Evidence
 
 | Evidence ID | Required capture | Status |
 |---|---|---|
-| SC-CONFIG-01 | Backend values: idle 30 minutes and absolute 8 hours | Source configuration implemented; deployed capture pending |
-| SC-CONFIG-02 | SuperTokens values: access 1,800 seconds, refresh 480 minutes | Source configuration implemented; deployed capture pending |
-| SC-CONFIG-03 | Frontend value: idle 30 minutes | Source configuration implemented; deployed capture pending |
-| SC-COOKIE-01 | Production cookie attributes show `Secure`, `HttpOnly`, and `SameSite=Lax`; values redacted | Pending deployment |
+| SC-CONFIG-01 | Backend values: idle 30 minutes and absolute 8 hours | Source + isolated-stack configuration verified; production capture pending |
+| SC-CONFIG-02 | SuperTokens values: access 1,800 seconds, refresh 480 minutes | Production source verified; isolated stack intentionally uses accelerated test values |
+| SC-CONFIG-03 | Frontend value: idle 30 minutes | Production source verified; isolated browser stack intentionally uses 45 seconds |
+| SC-COOKIE-01 | Production cookie attributes show `Secure`, `HttpOnly`, and `SameSite=Lax`; values redacted | Production capture pending; no token/cookie values retained in local report |
 
 ## Acceptance Test Matrix
 
@@ -22,15 +22,15 @@ Record timestamps in AST (UTC+3). Never paste a usable cookie or token.
 
 | Test ID | Role | Procedure | Expected result | Actual result | Pass/Fail | Evidence reference |
 |---|---|---|---|---|---|---|
-| SC-IDLE-USER | Normal user | Sign in, record time, leave browser and account inactive for 30 minutes, then request a protected page/API | Session is rejected and a new sign-in is required | Pending | Pending | Pending |
-| SC-IDLE-ADMIN | Administrator | Repeat normal-user idle test using an administrator | Same 30-minute expiry | Pending | Pending | Pending |
-| SC-ACTIVITY-USER | Normal user | Remain active with genuine interactions before 30 minutes | Session remains usable before absolute limit | Pending | Pending | Pending |
-| SC-ABS-USER | Normal user | Maintain controlled activity until eight hours from session creation, then request protected resource | Session expires at eight hours despite activity | Pending | Pending | Pending |
-| SC-ABS-ADMIN | Administrator | Repeat absolute-lifetime test using an administrator | Same eight-hour expiry | Pending | Pending | Pending |
-| SC-LOGOUT-USER | Normal user | Sign in, log out, then replay a protected request from the same browser | Active session is revoked; protected request fails | Pending | Pending | Pending |
-| SC-LOGOUT-ADMIN | Administrator | Repeat logout test using an administrator | Active session is revoked | Pending | Pending | Pending |
-| SC-ROTATE-01 | Either | Observe sanitized cookie metadata before and after a normal refresh | SuperTokens refresh succeeds only while policy remains valid; token value rotates | Pending | Pending | Pending |
-| SC-CROSS-TAB-01 | Either | Open two tabs, remain inactive, observe expiry | Tabs share inactivity state and account is signed out | Pending | Pending | Pending |
+| SC-IDLE-USER | Normal user | Sign in, record time, leave browser and account inactive for 30 minutes, then request a protected page/API | Session is rejected and a new sign-in is required | Accelerated server boundary covered; real-duration production run pending | Local Pass | Acceptance script + unit boundary test |
+| SC-IDLE-ADMIN | Administrator | Repeat normal-user idle test using an administrator | Same 30-minute expiry | Disposable administrator rejected after accelerated 45-second idle period | Pass | `run_session_control_acceptance.py` output, 2026-08-11 |
+| SC-ACTIVITY-USER | Normal user | Remain active with genuine interactions before 30 minutes | Session remains usable before absolute limit | Disposable member stayed valid during six authenticated heartbeats | Pass | Acceptance script, 25-second heartbeat intervals |
+| SC-ABS-USER | Normal user | Maintain controlled activity until eight hours from session creation, then request protected resource | Session expires at eight hours despite activity | Disposable member rejected at accelerated 150-second absolute boundary despite activity | Pass | Acceptance script + exact 8-hour unit boundary test |
+| SC-ABS-ADMIN | Administrator | Repeat absolute-lifetime test using an administrator | Same eight-hour expiry | Exact role-independent 8-hour calculation covered by global policy unit test; real-duration production run pending | Local Pass | Unit test/global recipe enforcement |
+| SC-LOGOUT-USER | Normal user | Sign in, log out, then replay a protected request from the same browser | Active session is revoked; protected request fails | Standard SuperTokens sign-out followed by token replay returned 401 | Pass | Acceptance script |
+| SC-LOGOUT-ADMIN | Administrator | Repeat logout test using an administrator | Active session is revoked | Global role-independent sign-out path covered; production role replay pending | Local Pass | Shared SuperTokens recipe |
+| SC-ROTATE-01 | Either | Observe sanitized cookie metadata before and after a normal refresh | SuperTokens refresh succeeds only while policy remains valid; token value rotates | Refresh succeeded, both tokens rotated, and rotated access remained authorized; values never printed | Pass | Acceptance script |
+| SC-CROSS-TAB-01 | Either | Open two tabs, remain inactive, observe expiry | Tabs share inactivity state and account is signed out | Shared `localStorage` event implementation, TypeScript build, targeted lint, and browser render verified; two-tab production capture pending | Local implementation pass | Hook source/build + BrowserOps task |
 | SC-DISTRIBUTED-01 | Either | If multiple backend instances exist, authenticate through one and validate expiry through another | Shared session state prevents bypass | Pending/N/A | Pending | Pending |
 | SC-LEGACY-01 | Either | Use a pre-deployment session outside the new idle limit after deployment | Existing session fails closed and requires sign-in | Pending | Pending | Pending |
 
@@ -47,6 +47,12 @@ Record timestamps in AST (UTC+3). Never paste a usable cookie or token.
 | Frontend TypeScript and production build | Pass |
 | Backend Python compile | Pass |
 | Production and development Compose validation | Pass |
+| Isolated acceptance Compose validation/startup/health | Pass |
+| Administrator accelerated idle expiration | Pass (45 seconds) |
+| Normal-user accelerated absolute expiration despite activity | Pass (150 seconds) |
+| Refresh-token rotation and post-refresh authorization | Pass |
+| Manual logout and replay rejection | Pass |
+| Browser-rendered isolated frontend | Pass — BrowserOps `20260811-141442-peerlink-session-acceptance-final` |
 
 Automated checks support the implementation but do not replace post-deployment elapsed-time tests.
 
@@ -59,7 +65,7 @@ Automated checks support the implementation but do not replace post-deployment e
 
 ## Exceptions / Limitations
 
-_No approved exceptions. Production deployment and role-based behavioral acceptance remain pending._
+_No approved exceptions. Local isolated acceptance is complete. Production deployment, real-duration elapsed tests, production cookie capture, two-tab screenshot evidence, release ID, and internal sign-off remain pending._
 
 ## Sign-Off
 

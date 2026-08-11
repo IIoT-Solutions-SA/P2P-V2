@@ -64,7 +64,7 @@ Added `VITE_SESSION_IDLE_TIMEOUT_MINUTES=30` to development and production front
 
 ### Tests and documentation
 
-Added seven backend unit tests covering:
+Added eleven backend unit tests covering:
 
 - Valid active sessions.
 - Exact 30-minute idle expiry.
@@ -73,6 +73,8 @@ Added seven backend unit tests covering:
 - Revocation on expiry.
 - Shared activity persistence.
 - Fail-closed handling of legacy sessions.
+- Acceptance-only accelerated idle and absolute settings.
+- Proof that production ignores accelerated test overrides.
 
 Added:
 
@@ -85,13 +87,20 @@ The report template separates completed automated verification from post-deploym
 
 | Validation | Result |
 |---|---|
-| Backend session security unit tests | 7 passed |
+| Backend session security unit tests | 11 passed |
 | Backend Python compilation | Passed |
 | Frontend TypeScript + Vite production build | Passed |
 | Production Docker Compose validation | Passed |
 | Development Docker Compose validation | Passed |
 | Running development backend startup after hot reload | Passed |
 | Running development health route | Reachable; existing route redirects `/health` to `/health/` |
+| Isolated acceptance stack | Five services healthy/running under project `p2p-session-acceptance` |
+| Combined session + auth regression tests | 24 passed |
+| Administrator accelerated idle expiration | Passed at 45 seconds |
+| Normal-user accelerated absolute expiration | Passed at 150 seconds despite 25-second activity heartbeats |
+| Refresh-token rotation | Passed; rotated values intentionally not printed |
+| Logout revocation/token replay | Passed; replay returned 401 |
+| Browser-rendered isolated frontend | Passed; BrowserOps task `20260811-141442-peerlink-session-acceptance-final` |
 
 The frontend build retained its pre-existing warning that the main JavaScript chunk exceeds 500 kB; this is unrelated to session security. The repository-wide ESLint command remains blocked by 33 pre-existing errors and seven warnings in unrelated frontend files; the new session hook passes targeted ESLint validation.
 
@@ -99,31 +108,36 @@ The frontend build retained its pre-existing warning that the main JavaScript ch
 
 - `docker/docker-compose.yml`
 - `docker/development_docker-compose.yml`
+- `docker/session-control-acceptance-compose.yml`
 - `p2p-backend-app/.env.template`
 - `p2p-backend-app/app/core/config.py`
 - `p2p-backend-app/app/core/supertokens.py`
 - `p2p-backend-app/app/api/v1/endpoints/auth.py`
 - `p2p-backend-app/app/core/session_security.py`
+- `p2p-backend-app/app/services/email_verification_service.py`
 - `p2p-backend-app/tests/test_session_security.py`
 - `p2p-frontend-app/.env.development`
 - `p2p-frontend-app/.env.production`
 - `p2p-frontend-app/src/contexts/AuthContext.tsx`
 - `p2p-frontend-app/src/hooks/useSessionTimeout.ts`
 - `p2p-frontend-app/src/lib/api/auth.ts`
+- `scripts/run_session_control_acceptance.py`
 - `docs/architecture/session-security-controls.md`
 - `docs/Reports/PeerLink-KACST-Session-Control-Test-Record.md`
 - This implementation log.
 
 ## Deployment and Evidence Status
 
-Source implementation and automated verification are complete. The following cannot truthfully be marked complete before the branch is reviewed and deployed to the target environment:
+Source implementation, automated verification, and isolated local acceptance are complete. The isolated environment uses separate databases, network, containers, volumes, and ports (`18000`/`15173`) and cannot modify the ordinary local stack. Accelerated second-based settings are accepted only when backend `ENVIRONMENT=test` and frontend Vite mode is `test`; production ignores them by code and test.
+
+The following cannot truthfully be marked complete before the branch is reviewed and deployed to the target environment:
 
 1. Production release identifier and implementation timestamp.
 2. Sanitized screenshot/configuration capture from the deployed environment.
 3. Production cookie-attribute capture with values redacted.
-4. Elapsed-time idle tests for one normal user and one administrator.
-5. Elapsed-time absolute-lifetime tests for one normal user and one administrator.
-6. Post-deployment logout, rotation, cross-tab, and multi-instance checks.
+4. Real-duration idle tests for one normal user and one administrator (local accelerated behavior passed).
+5. Real-duration absolute-lifetime tests for one normal user and one administrator (local accelerated behavior passed).
+6. Post-deployment logout, rotation, two-tab visual evidence, and multi-instance checks.
 7. Aadil's internal review/sign-off.
 
 No email or package was sent to Dr. Ibrahim or KACST.

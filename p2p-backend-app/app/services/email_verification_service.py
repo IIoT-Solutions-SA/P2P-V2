@@ -224,9 +224,9 @@ async def send_otp_email(
         print(f"{'='*70}\n")
     logger.info(f"OTP generated for {email} (purpose={purpose})")
 
-    # ── Skip actual email send in dev mode unless explicitly enabled ─────────
-    if settings.ENVIRONMENT == "development" and not settings.DEV_SEND_EMAILS:
-        logger.info("DEV_SEND_EMAILS is False — skipping email send, code logged above.")
+    # ── Skip actual email send in local development/acceptance environments ──
+    if settings.ENVIRONMENT in {"development", "test"} and not settings.DEV_SEND_EMAILS:
+        logger.info("DEV_SEND_EMAILS is False — skipping email send in local environment.")
         return
 
     # ── Build HTML email ─────────────────────────────────────────────────────

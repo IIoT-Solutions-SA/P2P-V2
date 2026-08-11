@@ -7,10 +7,14 @@ const CHECK_INTERVAL_MS = 10_000
 const LAST_ACTIVITY_KEY = 'peerlink.session.lastActivityAt'
 
 const configuredMinutes = Number(import.meta.env.VITE_SESSION_IDLE_TIMEOUT_MINUTES)
+const acceptanceSeconds = Number(import.meta.env.VITE_SESSION_IDLE_TIMEOUT_SECONDS_TEST)
+const isAcceptanceTest = import.meta.env.MODE === 'test'
 export const SESSION_IDLE_TIMEOUT_MS =
-  (Number.isFinite(configuredMinutes) && configuredMinutes > 0
-    ? configuredMinutes
-    : DEFAULT_IDLE_TIMEOUT_MINUTES) * 60_000
+  isAcceptanceTest && Number.isFinite(acceptanceSeconds) && acceptanceSeconds > 0
+    ? acceptanceSeconds * 1_000
+    : (Number.isFinite(configuredMinutes) && configuredMinutes > 0
+        ? configuredMinutes
+        : DEFAULT_IDLE_TIMEOUT_MINUTES) * 60_000
 
 /**
  * Signs an authenticated user out after genuine browser inactivity.

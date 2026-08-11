@@ -8,7 +8,12 @@ from unittest.mock import AsyncMock, patch
 
 from supertokens_python.recipe.session.exceptions import UnauthorisedError
 
-from app.core.session_security import enforce_session_limits, session_expiry_reason
+from app.core.session_security import (
+    configured_absolute_lifetime_seconds,
+    configured_idle_timeout_seconds,
+    enforce_session_limits,
+    session_expiry_reason,
+)
 
 
 class FakeSession:
@@ -72,6 +77,31 @@ class TestExpiryCalculation(unittest.TestCase):
         )
 
 
+class TestAcceptanceOverrides(unittest.TestCase):
+    @patch("app.core.session_security.settings.SESSION_IDLE_TIMEOUT_SECONDS_TEST", 5)
+    @patch("app.core.session_security.settings.SESSION_IDLE_TIMEOUT_MINUTES", 30)
+    @patch("app.core.session_security.settings.ENVIRONMENT", "production")
+    def test_production_ignores_accelerated_idle_override(self):
+        self.assertEqual(configured_idle_timeout_seconds(), 1_800)
+
+    @patch("app.core.session_security.settings.SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST", 10)
+    @patch("app.core.session_security.settings.SESSION_ABSOLUTE_LIFETIME_HOURS", 8)
+    @patch("app.core.session_security.settings.ENVIRONMENT", "production")
+    def test_production_ignores_accelerated_absolute_override(self):
+        self.assertEqual(configured_absolute_lifetime_seconds(), 28_800)
+
+    @patch("app.core.session_security.settings.SESSION_IDLE_TIMEOUT_SECONDS_TEST", 5)
+    @patch("app.core.session_security.settings.ENVIRONMENT", "test")
+    def test_isolated_test_can_accelerate_idle_timeout(self):
+        self.assertEqual(configured_idle_timeout_seconds(), 5)
+
+    @patch("app.core.session_security.settings.SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST", 10)
+    @patch("app.core.session_security.settings.ENVIRONMENT", "test")
+    def test_isolated_test_can_accelerate_absolute_lifetime(self):
+        self.assertEqual(configured_absolute_lifetime_seconds(), 10)
+
+
+@patch("app.core.session_security.settings.ENVIRONMENT", "production")
 class TestSessionEnforcement(unittest.IsolatedAsyncioTestCase):
     @patch("app.core.session_security.settings.SESSION_ABSOLUTE_LIFETIME_HOURS", 8)
     @patch("app.core.session_security.settings.SESSION_IDLE_TIMEOUT_MINUTES", 30)

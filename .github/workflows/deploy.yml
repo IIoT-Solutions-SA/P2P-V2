@@ -104,13 +104,55 @@ jobs:
           echo "All services rebuilt and reconciled from Compose"
       - name: Verify deployment
         run: |
-          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} \
-            "cd /home/ubuntu/P2P-V2/docker && \
-             sleep 10 && \
-             docker compose ps && \
-             echo '---' && \
-             curl -sf http://localhost:8000/api/v1/health > /dev/null && echo 'Backend: OK' || echo 'Backend: FAILED' && \
-             curl -sf http://localhost:5173 > /dev/null && echo 'Frontend: OK' || echo 'Frontend: FAILED'"
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /home/ubuntu/P2P-V2/docker
+          sleep 10
+          docker compose ps
+          curl -fsS http://localhost:8000/api/v1/health/ >/dev/null
+          curl -fsS http://localhost:5173/ >/dev/null
+          echo 'Backend: OK'
+          echo 'Frontend: OK'
+
+          docker compose exec -T backend alembic current | grep -q 'f4a9c2d78110'
+          docker compose exec -T backend python - <<'PY'
+          from app.core.config import settings
+          assert settings.ENVIRONMENT == 'production'
+          assert settings.SESSION_IDLE_TIMEOUT_MINUTES == 30
+          assert settings.SESSION_ABSOLUTE_LIFETIME_HOURS == 8
+          assert settings.LOGIN_MAX_FAILED_ATTEMPTS == 5
+          assert settings.LOGIN_LOCKOUT_MINUTES == 15
+          assert settings.SESSION_IDLE_TIMEOUT_SECONDS_TEST is None
+          assert settings.SESSION_ABSOLUTE_LIFETIME_SECONDS_TEST is None
+          assert settings.LOGIN_LOCKOUT_SECONDS_TEST is None
+          print('Production controls: idle=30m absolute=8h failures=5 lockout=15m')
+          PY
+          docker compose exec -T backend python -m unittest \
+            tests.test_fixes tests.test_session_security tests.test_login_protection
+
+          # Controlled live endpoint check against a nonexistent address. This
+          # sends no email, touches no real user, verifies the fifth-attempt
+          # lock and generic anti-enumeration response, then removes its row.
+          acceptance_email="kacst-production-$(date +%s)@example.invalid"
+          expected='{"status":"ERROR","message":"Invalid email or password. Please try again later."}'
+          for attempt in 1 2 3 4 5 6; do
+            response="$(curl -sS -w '\n%{http_code}' -H 'Content-Type: application/json' \
+              -d "{\"email\":\"$acceptance_email\",\"password\":\"Wrong-password-123!\"}" \
+              http://localhost:8000/api/v1/auth/custom-signin)"
+            status="${response##*$'\n'}"
+            body="${response%$'\n'*}"
+            [ "$status" = 401 ]
+            [ "$body" = "$expected" ]
+          done
+          key="$(docker compose exec -T backend python -c \
+            "from app.services.login_protection_service import identity_key; print(identity_key('$acceptance_email'))")"
+          state="$(docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -Atc \
+            "SELECT failed_attempts || '|' || (locked_until > now()) FROM login_attempts WHERE identity_key='$key'")"
+          [ "$state" = '5|t' ]
+          docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -c \
+            "DELETE FROM login_attempts WHERE identity_key='$key'" >/dev/null
+          echo 'Live failed-login acceptance: fifth-attempt lock and generic response PASS'
+          REMOTE
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key

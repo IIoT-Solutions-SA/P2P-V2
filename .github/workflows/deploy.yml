@@ -38,6 +38,18 @@ jobs:
           echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.OCI_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Authorize Mini PC operational SSH key
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          public_key='${{ secrets.PEERLINK_MINIPC_SSH_PUBLIC_KEY }}'
+          [ -n "$public_key" ]
+          install -d -m 700 "$HOME/.ssh"
+          touch "$HOME/.ssh/authorized_keys"
+          chmod 600 "$HOME/.ssh/authorized_keys"
+          grep -qxF "$public_key" "$HOME/.ssh/authorized_keys" || printf '%s\n' "$public_key" >> "$HOME/.ssh/authorized_keys"
+          echo 'Mini PC operational SSH key authorized'
+          REMOTE
       - name: Prepare production environment and backups
         run: |
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} 'bash -s' <<'REMOTE'

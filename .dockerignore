@@ -9,7 +9,11 @@
 .venv
 venv/
 env/
+**/.venv/
+**/venv/
+**/env/
 __pycache__
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -33,6 +37,12 @@ p2p-frontend-app/yarn-error.log*
 # Local environment files
 p2p-backend-app/.env
 p2p-backend-app/.env.*
+
+# Documentation and local-only assets are not runtime build inputs
+AGENTS.md
+docs/
+design-mockups/
+videos/
 
 # Logs and build artifacts
 p2p-backend-app/logs/

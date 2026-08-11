@@ -1,0 +1,74 @@
+{
+  "assessment_id": "PeerLink-2026-Q3-VA",
+  "captured_at_utc": "2026-08-11T12:47:00Z",
+  "scope": "production-focused assessment with local remediation validation",
+  "tools": {
+    "trivy": "0.73.0",
+    "gitleaks": "8.30.1",
+    "node": "22.22.3",
+    "npm": "11.16.0",
+    "python_runner": "3.12.3",
+    "docker": "29.5.2"
+  },
+  "production_oci_vulnerability_scanning": {
+    "scan_finished_utc": "2026-08-11T01:13:39Z",
+    "reported_records": 1000,
+    "reported_severity": {"critical": 193, "high": 649, "medium": 158},
+    "records_with_vulnerable_package_mapping": 3,
+    "records_without_vulnerable_package_mapping": 997,
+    "validated_mapped_packages": ["python3-pip", "python3-wheel"],
+    "interpretation": "Scanner severities are not treated as 1000 confirmed host vulnerabilities; 997 records require package/applicability validation."
+  },
+  "production_oci_cis": {
+    "passed": 17,
+    "failed": 1,
+    "failed_check": "5.2.14 Ensure only strong MAC algorithms are used"
+  },
+  "production_external_ports": {
+    "reachable_tcp": [22, 80, 443],
+    "filtered_or_unreachable_tcp": [3567, 5173, 5432, 8000, 8520, 27017]
+  },
+  "frontend_dependency_audit": {
+    "baseline_total": 4,
+    "post_remediation_total": 0,
+    "production_and_development_trees_checked": true
+  },
+  "backend_dependency_audit": {
+    "baseline_findings": 34,
+    "post_remediation_findings": 1,
+    "residual": {
+      "package": "cryptography",
+      "installed": "49.0.0",
+      "advisory": "PYSEC-2026-3552",
+      "fixed": "50.0.0",
+      "constraint": "fastapi-mail 1.6.5 requires cryptography <50"
+    }
+  },
+  "source_analysis": {
+    "gitleaks_tracked_source_findings": 0,
+    "bandit": {
+      "high": 0,
+      "medium": 1,
+      "low": 10,
+      "medium_disposition": "False positive: B608 matched OCI object-storage URL interpolation, not a SQL query."
+    }
+  },
+  "container_images": {
+    "frontend": {"critical": 0, "high": 0, "fixable_critical": 0, "fixable_high": 0},
+    "backend": {
+      "critical": 4,
+      "high": 20,
+      "fixable_critical": 0,
+      "fixable_high": 1,
+      "notes": "Four Critical and 19 High OS records had no vendor fixed version in the scanner feed. The one fixable High is the residual cryptography advisory."
+    }
+  },
+  "local_regression": {
+    "backend_unit_tests": {"passed": 32, "failed": 0},
+    "security_validation_checks": {"passed": 126, "failed": 0},
+    "failed_login_acceptance": "PASS",
+    "session_control_acceptance": "PASS",
+    "frontend_build": "PASS",
+    "compose_validation": "PASS"
+  }
+}

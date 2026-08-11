@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import time
 import urllib.error
@@ -18,7 +19,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "docker/session-control-acceptance-compose.yml"
-BASE = "http://127.0.0.1:18000"
+COMPOSE_PROJECT = os.getenv("P2P_ACCEPTANCE_PROJECT", "p2p-session-acceptance")
+BASE = os.getenv("P2P_ACCEPTANCE_BASE_URL", "http://127.0.0.1:18000")
 
 
 @dataclass
@@ -48,7 +50,7 @@ def request(path: str, *, body=None, headers=None, expected=(200, 204)):
 def psql_scalar(sql: str) -> str:
     result = subprocess.run(
         [
-            "docker", "compose", "-p", "p2p-session-acceptance", "-f", str(COMPOSE),
+            "docker", "compose", "-p", COMPOSE_PROJECT, "-f", str(COMPOSE),
             "exec", "-T", "postgres", "psql", "-U", "p2p_test", "-d", "p2p_acceptance",
             "-Atc", sql,
         ],

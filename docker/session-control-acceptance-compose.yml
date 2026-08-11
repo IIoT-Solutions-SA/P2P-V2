@@ -33,7 +33,7 @@ services:
     networks: [acceptance]
 
   supertokens:
-    image: registry.supertokens.io/supertokens/supertokens-postgresql:11.0
+    image: registry.supertokens.io/supertokens/supertokens-postgresql:11.3.7
     environment:
       POSTGRESQL_CONNECTION_URI: postgresql://p2p_test:acceptance-only@postgres:5432/supertokens
       ACCESS_TOKEN_VALIDITY: 300

@@ -36,8 +36,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.API_TITLE,
     version=settings.API_VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
+    docs_url=None if settings.ENVIRONMENT == "production" else "/docs",
+    redoc_url=None if settings.ENVIRONMENT == "production" else "/redoc",
+    openapi_url=(
+        None
+        if settings.ENVIRONMENT == "production"
+        else f"{settings.API_V1_STR}/openapi.json"
+    ),
+    lifespan=lifespan,
 )
 
 # DEBUG: Request logging middleware removed
@@ -83,7 +89,7 @@ async def root():
     return {
         "name": settings.PROJECT_NAME,
         "version": settings.API_VERSION,
-        "environment": "development"
+        "environment": settings.ENVIRONMENT
     }
 
 # DEBUG: Catch-all OPTIONS handler removed

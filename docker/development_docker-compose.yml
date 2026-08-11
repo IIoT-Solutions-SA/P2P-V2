@@ -113,6 +113,8 @@ services:
       - WEBSITE_DOMAIN=http://localhost:5173
       - SESSION_IDLE_TIMEOUT_MINUTES=30
       - SESSION_ABSOLUTE_LIFETIME_HOURS=8
+      - LOGIN_MAX_FAILED_ATTEMPTS=5
+      - LOGIN_LOCKOUT_MINUTES=15
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s

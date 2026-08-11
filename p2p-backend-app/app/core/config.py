@@ -62,6 +62,22 @@ class Settings(BaseSettings):
     DEV_EMAIL_VERIFICATION_ENDPOINT: bool = True  # Kept for backward compatibility with existing .env files
     DEV_SEND_EMAILS: bool = False
 
+    # Password-login protection (KACST baseline)
+    LOGIN_MAX_FAILED_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_MINUTES: int = 15
+    # Accelerated acceptance-test override. Ignored unless ENVIRONMENT=test.
+    LOGIN_LOCKOUT_SECONDS_TEST: Optional[int] = None
+
+    @validator(
+        "LOGIN_MAX_FAILED_ATTEMPTS",
+        "LOGIN_LOCKOUT_MINUTES",
+        "LOGIN_LOCKOUT_SECONDS_TEST",
+    )
+    def validate_positive_login_protection_setting(cls, value: Optional[int]) -> Optional[int]:
+        if value is not None and value <= 0:
+            raise ValueError("Login protection settings must be positive")
+        return value
+
     # OTP / MFA settings
     OTP_EXPIRY_MINUTES: int = 7          # Code expires after N minutes
     OTP_MAX_ATTEMPTS: int = 5            # Lock code after N wrong attempts

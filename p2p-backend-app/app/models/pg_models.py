@@ -64,6 +64,22 @@ class SystemConfig(Base, TimestampMixin):
     description = Column(Text)
 
 
+class LoginAttempt(Base):
+    """Shared failed-login counter keyed by a non-plaintext account identifier."""
+    __tablename__ = "login_attempts"
+
+    identity_key = Column(String(64), primary_key=True)
+    failed_attempts = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime(timezone=True), nullable=True, index=True)
+    last_failed_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
 class OtpCode(Base):
     """
     Stores hashed 6-digit OTP codes for:

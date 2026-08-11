@@ -11,7 +11,7 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.core.email_domains import get_email_domain, is_blocked_domain
 from app.services.database_service import UserService
-from app.services import otp_service
+from app.services import login_protection_service, otp_service
 from app.services.email_verification_service import send_otp_email
 from app.models.mongo_models import Invitation, User as MongoUser
 
@@ -40,6 +40,17 @@ def sanitize_error_message(error: Exception) -> str:
 
 
 router = APIRouter()
+
+
+def generic_auth_failure(*, blocked: bool = False, retry_after_seconds: int = 0) -> JSONResponse:
+    """Return non-enumerating feedback for wrong credentials and lockout state."""
+    response = JSONResponse(
+        status_code=429 if blocked else 401,
+        content={"status": "ERROR", "message": login_protection_service.GENERIC_AUTH_MESSAGE},
+    )
+    if blocked:
+        response.headers["Retry-After"] = str(max(1, retry_after_seconds))
+    return response
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -383,11 +394,23 @@ async def post_signin(request: Request, response: Response, db: AsyncSession = D
                 content={"status": "ERROR", "message": "Personal email addresses are not allowed. Please use your company email."}
             )
 
+        protection = await login_protection_service.get_protection_state(db, email)
+        if protection.blocked:
+            logger.warning(
+                "Password sign-in blocked by failed-login protection; identity=%s",
+                login_protection_service.identity_key(email)[:12],
+            )
+            return generic_auth_failure(
+                blocked=True,
+                retry_after_seconds=protection.retry_after_seconds,
+            )
+
         result = await sign_in("public", email, password)
 
         from supertokens_python.recipe.emailpassword.interfaces import SignInOkResult
 
         if isinstance(result, SignInOkResult):
+            await login_protection_service.reset_failed_attempts(db, email)
             user = result.user
             logger.info(f"Password verified for user: {user.id}")
 
@@ -436,10 +459,19 @@ async def post_signin(request: Request, response: Response, db: AsyncSession = D
         else:
             result_type_name = type(result).__name__
             if "WrongCredentials" in result_type_name or "WRONG_CREDENTIALS" in str(result):
-                return JSONResponse(status_code=401, content={"status": "ERROR", "message": "Invalid email or password"})
-            else:
-                logger.error(f"Unexpected sign-in result type: {type(result)}")
-                return JSONResponse(status_code=500, content={"status": "ERROR", "message": "Authentication failed"})
+                protection = await login_protection_service.record_failed_attempt(db, email)
+                logger.warning(
+                    "Invalid password sign-in; identity=%s blocked=%s",
+                    login_protection_service.identity_key(email)[:12],
+                    protection.blocked,
+                )
+                return generic_auth_failure(
+                    blocked=protection.blocked,
+                    retry_after_seconds=protection.retry_after_seconds,
+                )
+
+            logger.error(f"Unexpected sign-in result type: {type(result)}")
+            return JSONResponse(status_code=500, content={"status": "ERROR", "message": "Authentication failed"})
 
     except Exception as e:
         logger.error(f"Sign-in error: {str(e)}", exc_info=True)

@@ -24,7 +24,7 @@ jobs:
           fi
           echo "Comparing $BEFORE_SHA..$AFTER_SHA"
           BACKEND_CHANGED=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'p2p-backend-app/' | head -1)
-          FRONTEND_CHANGED=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'p2p-frontend-app/' | head -1)
+          FRONTEND_CHANGED=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'p2p-frontend-app/' 'docker/nginx.conf' | head -1)
           COMPOSE_CHANGED=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'docker/docker-compose.yml' 'docker/*.Dockerfile' | head -1)
           echo "backend=$( [ -n "$BACKEND_CHANGED" ] && echo true || echo false )" >> $GITHUB_OUTPUT
           echo "frontend=$( [ -n "$FRONTEND_CHANGED" ] && echo true || echo false )" >> $GITHUB_OUTPUT

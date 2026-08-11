@@ -161,7 +161,7 @@ jobs:
           done
           state="$(docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -Atc \
             "SELECT failed_attempts || '|' || (locked_until > now()) FROM login_attempts WHERE identity_key='$key'" </dev/null)"
-          [ "$state" = '5|t' ]
+          [ "$state" = '5|true' ]
           cleanup_acceptance
           trap - EXIT
           echo 'Live failed-login acceptance: fifth-attempt lock and generic response PASS'

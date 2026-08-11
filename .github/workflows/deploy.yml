@@ -134,7 +134,7 @@ jobs:
           # sends no email, touches no real user, verifies the fifth-attempt
           # lock and generic anti-enumeration response, then removes its row.
           acceptance_email="kacst-production-$(date +%s)@example.invalid"
-          expected='{"status":"ERROR","message":"Invalid email or password. Please try again later."}'
+          expected_message='Invalid email or password. Please try again later.'
           for attempt in 1 2 3 4 5 6; do
             response="$(curl -sS -w '\n%{http_code}' -H 'Content-Type: application/json' \
               -d "{\"email\":\"$acceptance_email\",\"password\":\"Wrong-password-123!\"}" \
@@ -142,7 +142,10 @@ jobs:
             status="${response##*$'\n'}"
             body="${response%$'\n'*}"
             [ "$status" = 401 ]
-            [ "$body" = "$expected" ]
+            response_fields="$(python3 -c \
+              'import json,sys; data=json.load(sys.stdin); print(data.get("status", "") + "|" + data.get("message", ""))' \
+              <<<"$body")"
+            [ "$response_fields" = "ERROR|$expected_message" ]
           done
           key="$(docker compose exec -T backend python -c \
             "from app.services.login_protection_service import identity_key; print(identity_key('$acceptance_email'))" </dev/null)"

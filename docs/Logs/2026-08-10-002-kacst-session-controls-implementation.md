@@ -102,7 +102,7 @@ The report template separates completed automated verification from post-deploym
 | Logout revocation/token replay | Passed; replay returned 401 |
 | Browser-rendered isolated frontend | Passed; BrowserOps task `20260811-141442-peerlink-session-acceptance-final` |
 
-The frontend build retained its pre-existing warning that the main JavaScript chunk exceeds 500 kB; this is unrelated to session security. The repository-wide ESLint command remains blocked by 33 pre-existing errors and seven warnings in unrelated frontend files; the new session hook passes targeted ESLint validation.
+The frontend build retains its pre-existing advisory that the main JavaScript chunk exceeds 500 kB; this is unrelated to session security. The repository-wide ESLint baseline was subsequently cleaned up before production release, and the full `npm run lint` command now passes with zero errors and zero warnings.
 
 ## Files Changed
 

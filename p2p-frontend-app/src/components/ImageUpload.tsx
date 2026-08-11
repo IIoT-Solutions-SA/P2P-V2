@@ -26,8 +26,10 @@ export default function ImageUpload({
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [errors, setErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imagesRef = useRef<ImagePreview[]>([])
+  imagesRef.current = images
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     // Check file type
     if (!acceptedTypes.includes(file.type)) {
       return `Invalid file type. Only ${acceptedTypes.join(', ')} are allowed.`
@@ -40,7 +42,7 @@ export default function ImageUpload({
     }
 
     return null
-  }
+  }, [acceptedTypes, maxSizePerImage])
 
   const processFiles = useCallback((files: FileList | File[]) => {
     const fileArray = Array.from(files)
@@ -95,7 +97,7 @@ export default function ImageUpload({
     setImages(updatedImages)
     onImagesUpdate(updatedImages.map(img => img.file))
     setErrors([])
-  }, [images, maxImages, maxSizePerImage, acceptedTypes, onImagesUpdate])
+  }, [images, maxImages, onImagesUpdate, validateFile])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -140,7 +142,8 @@ export default function ImageUpload({
 
     // Remove from upload progress
     setUploadProgress(prev => {
-      const { [id]: removed, ...rest } = prev
+      const rest = { ...prev }
+      delete rest[id]
       return rest
     })
   }
@@ -152,7 +155,7 @@ export default function ImageUpload({
   // Cleanup object URLs on unmount
   React.useEffect(() => {
     return () => {
-      images.forEach(img => URL.revokeObjectURL(img.url))
+      imagesRef.current.forEach(img => URL.revokeObjectURL(img.url))
     }
   }, [])
 

@@ -26,10 +26,9 @@ export default function LocationPicker({
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markerRef = useRef<L.Marker | null>(null)
-  const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number}>({
-    lat: defaultLat,
-    lng: defaultLng
-  })
+  const initialLocationRef = useRef({ lat: defaultLat, lng: defaultLng })
+  const onLocationSelectRef = useRef(onLocationSelect)
+  onLocationSelectRef.current = onLocationSelect
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
@@ -38,7 +37,6 @@ export default function LocationPicker({
   const selectLocation = (lat: number, lng: number, zoom = 16) => {
     markerRef.current?.setLatLng([lat, lng])
     mapInstanceRef.current?.setView([lat, lng], zoom)
-    setSelectedLocation({ lat, lng })
     onLocationSelect(lat, lng)
     markerRef.current?.getPopup()?.setContent(`
       <div style="text-align: center; font-family: system-ui, -apple-system, sans-serif;">
@@ -79,7 +77,7 @@ export default function LocationPicker({
 
     // Initialize map centered on Saudi Arabia
     const map = L.map(mapRef.current, {
-      center: [selectedLocation.lat, selectedLocation.lng],
+      center: [initialLocationRef.current.lat, initialLocationRef.current.lng],
       zoom: 7,
       minZoom: 5,
       maxZoom: 18,
@@ -115,7 +113,7 @@ export default function LocationPicker({
     }
 
     // Add initial marker
-    const marker = L.marker([selectedLocation.lat, selectedLocation.lng], {
+    const marker = L.marker([initialLocationRef.current.lat, initialLocationRef.current.lng], {
       icon: createLocationIcon(),
       draggable: true
     }).addTo(map)
@@ -127,7 +125,7 @@ export default function LocationPicker({
       <div style="text-align: center; font-family: system-ui, -apple-system, sans-serif;">
         <strong style="color: #1e293b;">Factory Location</strong><br/>
         <span style="color: #64748b; font-size: 12px;">
-          ${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}
+          ${initialLocationRef.current.lat.toFixed(6)}, ${initialLocationRef.current.lng.toFixed(6)}
         </span>
       </div>
     `).openPopup()
@@ -150,8 +148,7 @@ export default function LocationPicker({
       `)
       
       // Update state and call callback
-      setSelectedLocation({ lat, lng })
-      onLocationSelect(lat, lng)
+      onLocationSelectRef.current(lat, lng)
     })
 
     // Handle marker drag
@@ -170,8 +167,7 @@ export default function LocationPicker({
       `)
       
       // Update state and call callback
-      setSelectedLocation({ lat, lng })
-      onLocationSelect(lat, lng)
+      onLocationSelectRef.current(lat, lng)
     })
 
     // Cleanup function
@@ -186,25 +182,16 @@ export default function LocationPicker({
   // Update marker position when defaultLat/defaultLng change
   useEffect(() => {
     if (markerRef.current && mapInstanceRef.current) {
-      const newLocation = { lat: defaultLat, lng: defaultLng }
-      
-      // Only update if the location actually changed
-      if (selectedLocation.lat !== defaultLat || selectedLocation.lng !== defaultLng) {
-        markerRef.current.setLatLng([defaultLat, defaultLng])
-        mapInstanceRef.current.setView([defaultLat, defaultLng])
-        
-        // Update popup content
-        markerRef.current.getPopup()?.setContent(`
-          <div style="text-align: center; font-family: system-ui, -apple-system, sans-serif;">
-            <strong style="color: #1e293b;">Factory Location</strong><br/>
-            <span style="color: #64748b; font-size: 12px;">
-              ${defaultLat.toFixed(6)}, ${defaultLng.toFixed(6)}
-            </span>
-          </div>
-        `)
-        
-        setSelectedLocation(newLocation)
-      }
+      markerRef.current.setLatLng([defaultLat, defaultLng])
+      mapInstanceRef.current.setView([defaultLat, defaultLng])
+      markerRef.current.getPopup()?.setContent(`
+        <div style="text-align: center; font-family: system-ui, -apple-system, sans-serif;">
+          <strong style="color: #1e293b;">Factory Location</strong><br/>
+          <span style="color: #64748b; font-size: 12px;">
+            ${defaultLat.toFixed(6)}, ${defaultLng.toFixed(6)}
+          </span>
+        </div>
+      `)
     }
   }, [defaultLat, defaultLng])
 

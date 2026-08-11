@@ -58,7 +58,6 @@ export default function InteractiveMap({
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const currentPopupRef = useRef<L.Popup | null>(null)
-  const setCurrentZoom = useState(6)[1]
   const [backendUseCases, setBackendUseCases] = useState<BackendUseCase[] | null>(null)
 
   useEffect(() => {
@@ -585,11 +584,6 @@ export default function InteractiveMap({
     })
 
     map.addLayer(markerClusterGroup)
-
-    // Add zoom event listener to track current zoom level
-    map.on('zoomend', () => {
-      setCurrentZoom(map.getZoom())
-    })
 
     // Cleanup function
     return () => {

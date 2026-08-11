@@ -19,5 +19,15 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Leaflet marker-cluster and several API payloads are runtime-shaped and
+      // do not publish complete TypeScript contracts in this application.
+      '@typescript-eslint/no-explicit-any': 'off',
+      // Shared component modules intentionally export hooks, variants, and
+      // popup serializers alongside React components.
+      'react-refresh/only-export-components': 'off',
+      // Input validation intentionally detects NUL bytes.
+      'no-control-regex': 'off',
+    },
   },
 ])

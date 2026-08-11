@@ -38,34 +38,70 @@ jobs:
           echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.OCI_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Prepare production environment and backups
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /home/ubuntu/P2P-V2
+          umask 077
+
+          # Preserve the currently deployed credentials while moving them out of
+          # tracked Compose source. Credential rotation is a separate controlled
+          # maintenance action because changing database passwords requires
+          # coordinated database-user updates.
+          touch docker/.env
+          current_compose="$(git show HEAD:docker/docker-compose.yml)"
+          read_env() { grep -m1 "^$1=" "$2" 2>/dev/null | cut -d= -f2- || true; }
+          pg_password="$(read_env P2P_POSTGRES_PASSWORD docker/.env)"
+          mongo_password="$(read_env P2P_MONGO_PASSWORD docker/.env)"
+          secret_key="$(read_env P2P_SECRET_KEY docker/.env)"
+          [ -n "$pg_password" ] || pg_password="$(printf '%s\n' "$current_compose" | sed -n 's/.*POSTGRES_PASSWORD=//p' | head -1)"
+          [ -n "$mongo_password" ] || mongo_password="$(printf '%s\n' "$current_compose" | sed -n 's/.*MONGO_INITDB_ROOT_PASSWORD=//p' | head -1)"
+          [ -n "$secret_key" ] || secret_key="$(read_env SECRET_KEY p2p-backend-app/.env)"
+          [ -n "$secret_key" ] || secret_key="$(printf '%s\n' "$current_compose" | sed -n 's/.*SECRET_KEY=//p' | head -1)"
+          [ -n "$pg_password" ] && [ -n "$mongo_password" ] && [ -n "$secret_key" ]
+          pg_encoded="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$pg_password")"
+          mongo_encoded="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$mongo_password")"
+          cat > docker/.env <<EOF
+          P2P_POSTGRES_PASSWORD=$pg_password
+          P2P_POSTGRES_PASSWORD_URLENCODED=$pg_encoded
+          P2P_MONGO_PASSWORD=$mongo_password
+          P2P_MONGO_PASSWORD_URLENCODED=$mongo_encoded
+          P2P_SECRET_KEY=$secret_key
+          EOF
+
+          backup_dir="deploy-backups/$(TZ=Asia/Riyadh date +%Y%m%d-%H%M%S-AST)-pre-kacst-controls"
+          mkdir -p "$backup_dir"
+          docker exec p2p-postgres pg_dump -U p2p_user -d p2p_sandbox -Fc > "$backup_dir/postgres.dump"
+          docker exec p2p-postgres pg_dump -U p2p_user -d supertokens -Fc > "$backup_dir/supertokens.dump"
+          docker exec p2p-mongodb mongodump --username p2p_user --password "$mongo_password" --authenticationDatabase admin --db p2p_sandbox --archive > "$backup_dir/mongodb.archive"
+          test -s "$backup_dir/postgres.dump"
+          test -s "$backup_dir/supertokens.dump"
+          test -s "$backup_dir/mongodb.archive"
+          echo "Production backups created in $backup_dir"
+          REMOTE
       - name: Pull latest code
         run: |
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} \
-            "cd /home/ubuntu/P2P-V2 && git pull origin hamza-backend"
+            "cd /home/ubuntu/P2P-V2 && git pull --ff-only origin hamza-backend"
       - name: Rebuild and restart backend
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.backend == 'true' && steps.changes.outputs.compose != 'true'
         run: |
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} \
-            "cd /home/ubuntu/P2P-V2/docker && docker compose restart backend"
-          echo "Backend restarted (source mounted as volume, auto-reloads)"
+            "cd /home/ubuntu/P2P-V2/docker && docker compose build --no-cache backend && docker compose up -d --no-deps backend"
+          echo "Backend rebuilt, migrated, and restarted"
       - name: Rebuild and restart frontend
-        if: steps.changes.outputs.frontend == 'true'
+        if: steps.changes.outputs.frontend == 'true' && steps.changes.outputs.compose != 'true'
         run: |
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} \
-            "cd /home/ubuntu/P2P-V2/docker && \
-             docker compose stop frontend && \
-             docker compose rm -f frontend && \
-             docker rmi docker-frontend -f 2>/dev/null; \
-             docker builder prune -af 2>/dev/null; \
-             docker compose build --no-cache frontend && \
-             docker compose up -d --no-deps frontend"
+            "cd /home/ubuntu/P2P-V2/docker && docker compose build --no-cache frontend && docker compose up -d --no-deps frontend"
           echo "Frontend rebuilt and restarted"
-      - name: Restart all services
+      - name: Rebuild and reconcile all changed services
         if: steps.changes.outputs.compose == 'true'
         run: |
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} \
-            "cd /home/ubuntu/P2P-V2/docker && docker compose up -d"
-          echo "All services reconciled from compose"
+            "cd /home/ubuntu/P2P-V2/docker && docker compose build --no-cache backend frontend && docker compose up -d"
+          echo "All services rebuilt and reconciled from Compose"
       - name: Verify deployment
         run: |
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.OCI_HOST }} \

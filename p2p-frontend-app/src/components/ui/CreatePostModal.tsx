@@ -117,7 +117,9 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
       }
       if (data?.message) return data.message
       if (data?.detail && typeof data.detail === 'string') return data.detail
-    } catch {}
+    } catch {
+      // Fall back to the HTTP status when the response body is not JSON.
+    }
     return `Request failed (${response.status})`
   }
 
@@ -130,7 +132,7 @@ export function CreatePostModal({ isOpen, onClose, categories, onPostSuccess, in
     let hasFieldError = false
 
     // Title validation
-    const titleSpecialChars = title.match(/[^\w\s\.\-,\u0600-\u06FF]/g) || [];
+    const titleSpecialChars = title.match(/[^\w\s.,\-\u0600-\u06FF]/g) || [];
     const titleLetters = title.match(/[a-zA-Z\u0600-\u06FF]/g) || [];
     const hasRepeatedChars = (val: string) => /(.)\1{4,}/.test(val);
     const hasConsecutiveConsonants = (val: string) => /[bcdfghjklmnpqrstvwxz]{6,}/i.test(val);

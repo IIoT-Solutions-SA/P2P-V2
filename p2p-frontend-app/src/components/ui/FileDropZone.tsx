@@ -1,4 +1,4 @@
-import React, { useState, type DragEvent } from 'react';
+import React, { useRef, useState, type DragEvent } from 'react';
 import { Upload, File, X } from 'lucide-react';
 
 interface SelectedFile {
@@ -31,6 +31,8 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectedFilesRef = useRef<SelectedFile[]>([]);
+  selectedFilesRef.current = selectedFiles;
 
   const validateFile = (file: File): string | null => {
     // Check if file type is accepted (support wildcards like 'image/*')
@@ -66,7 +68,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
   const addFiles = (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const newFiles: SelectedFile[] = [];
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     // Check total file count
     if (selectedFiles.length + fileArray.length > maxFiles) {
@@ -169,7 +171,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
   // Clean up preview URLs when component unmounts
   React.useEffect(() => {
     return () => {
-      selectedFiles.forEach(file => {
+      selectedFilesRef.current.forEach(file => {
         if (file.preview) {
           URL.revokeObjectURL(file.preview);
         }

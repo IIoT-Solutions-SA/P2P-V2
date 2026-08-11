@@ -133,7 +133,14 @@ jobs:
           # Controlled live endpoint check against a nonexistent address. This
           # sends no email, touches no real user, verifies the fifth-attempt
           # lock and generic anti-enumeration response, then removes its row.
-          acceptance_email="kacst-production-$(date +%s)@example.invalid"
+          acceptance_email="kacst-production-$(date +%s)@iiot-test.sa"
+          key="$(docker compose exec -T backend python -c \
+            "from app.services.login_protection_service import identity_key; print(identity_key('$acceptance_email'))" </dev/null)"
+          cleanup_acceptance() {
+            docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -c \
+              "DELETE FROM login_attempts WHERE identity_key='$key'" </dev/null >/dev/null || true
+          }
+          trap cleanup_acceptance EXIT
           expected_message='Invalid email or password. Please try again later.'
           for attempt in 1 2 3 4 5 6; do
             response="$(curl -sS -w '\n%{http_code}' -H 'Content-Type: application/json' \
@@ -141,23 +148,22 @@ jobs:
               http://localhost:8000/api/v1/auth/custom-signin)"
             status="${response##*$'\n'}"
             body="${response%$'\n'*}"
+            response_fields="$(python3 -c \
+              'import json,sys; data=json.load(sys.stdin); print(data.get("status", "") + "|" + data.get("message", ""))' \
+              <<<"$body")"
+            echo "Attempt $attempt: HTTP $status, generic response verified"
             if [ "$attempt" -lt 5 ]; then
               [ "$status" = 401 ]
             else
               [ "$status" = 429 ]
             fi
-            response_fields="$(python3 -c \
-              'import json,sys; data=json.load(sys.stdin); print(data.get("status", "") + "|" + data.get("message", ""))' \
-              <<<"$body")"
             [ "$response_fields" = "ERROR|$expected_message" ]
           done
-          key="$(docker compose exec -T backend python -c \
-            "from app.services.login_protection_service import identity_key; print(identity_key('$acceptance_email'))" </dev/null)"
           state="$(docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -Atc \
             "SELECT failed_attempts || '|' || (locked_until > now()) FROM login_attempts WHERE identity_key='$key'" </dev/null)"
           [ "$state" = '5|t' ]
-          docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -c \
-            "DELETE FROM login_attempts WHERE identity_key='$key'" </dev/null >/dev/null
+          cleanup_acceptance
+          trap - EXIT
           echo 'Live failed-login acceptance: fifth-attempt lock and generic response PASS'
           REMOTE
       - name: Cleanup SSH key

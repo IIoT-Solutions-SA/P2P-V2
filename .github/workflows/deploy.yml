@@ -114,7 +114,7 @@ jobs:
           echo 'Backend: OK'
           echo 'Frontend: OK'
 
-          docker compose exec -T backend alembic current | grep -q 'f4a9c2d78110'
+          docker compose exec -T backend alembic current </dev/null | grep -q 'f4a9c2d78110'
           docker compose exec -T backend python - <<'PY'
           from app.core.config import settings
           assert settings.ENVIRONMENT == 'production'
@@ -128,7 +128,7 @@ jobs:
           print('Production controls: idle=30m absolute=8h failures=5 lockout=15m')
           PY
           docker compose exec -T backend python -m unittest \
-            tests.test_fixes tests.test_session_security tests.test_login_protection
+            tests.test_fixes tests.test_session_security tests.test_login_protection </dev/null
 
           # Controlled live endpoint check against a nonexistent address. This
           # sends no email, touches no real user, verifies the fifth-attempt
@@ -145,12 +145,12 @@ jobs:
             [ "$body" = "$expected" ]
           done
           key="$(docker compose exec -T backend python -c \
-            "from app.services.login_protection_service import identity_key; print(identity_key('$acceptance_email'))")"
+            "from app.services.login_protection_service import identity_key; print(identity_key('$acceptance_email'))" </dev/null)"
           state="$(docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -Atc \
-            "SELECT failed_attempts || '|' || (locked_until > now()) FROM login_attempts WHERE identity_key='$key'")"
+            "SELECT failed_attempts || '|' || (locked_until > now()) FROM login_attempts WHERE identity_key='$key'" </dev/null)"
           [ "$state" = '5|t' ]
           docker exec p2p-postgres psql -U p2p_user -d p2p_sandbox -c \
-            "DELETE FROM login_attempts WHERE identity_key='$key'" >/dev/null
+            "DELETE FROM login_attempts WHERE identity_key='$key'" </dev/null >/dev/null
           echo 'Live failed-login acceptance: fifth-attempt lock and generic response PASS'
           REMOTE
       - name: Cleanup SSH key

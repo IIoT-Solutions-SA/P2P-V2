@@ -38,7 +38,7 @@
 | Q3-VA-016 | Informational/pass | High | TLS, redirect, CORS and unsafe method baseline is strong. | Public curl/OpenSSL checks. | No change required in this branch. | HTTP redirects to HTTPS; HTTP/2 200; TLS 1.0/1.1 rejected; TLS 1.2/1.3 accepted; untrusted CORS rejected; TRACE/PUT/DELETE return 405. | **Informational/pass** |
 | Q3-VA-017 | Informational/pass | High | No secret was detected in tracked source at assessment or post-release retest time. | Gitleaks 8.30.1 against an archive of deployed commit `bdb03b5`. | Continue secret scanning and rotate any credential ever committed regardless of scanner result. | Fresh post-release tracked-source scan: 0 findings. | **Informational/pass — production commit verified** |
 | Q3-VA-018 | High operational | High | The OCI host currently has 23 upgradable packages, including Docker/containerd, NGINX, AppArmor and cloud-init components. | Direct `apt-get -s upgrade` on 12 August 2026. | Assess release notes, create/reconfirm backups, apply in an approved host-maintenance window and complete service/reboot/retest decisions. | Pending maintenance. | **Open — production action** |
-| Q3-VA-019 | Repository/default-branch alerts | High | GitHub reports 24 open npm Dependabot alerts on the default-branch lockfile: 1 Critical, 12 High, 10 Medium, 1 Low. This differs from the assessed production branch. | GitHub Dependabot API and current production-branch `npm audit`. | Synchronize/triage the default branch. Do not misstate these alerts as deployed-image findings: production-branch `npm audit` and deployed frontend Trivy both return zero. | Pending default-branch synchronization/closure. | **Open — repository governance** |
+| Q3-VA-019 | Repository/default-branch alerts | High | GitHub reports 27 open npm Dependabot alerts on the default-branch lockfile: 1 Critical, 14 High, 11 Medium, 1 Low. This differs from the assessed production branch. | GitHub Dependabot API and current production-branch `npm audit`. | Synchronize/triage the default branch. Do not misstate these alerts as deployed-image findings: production-branch `npm audit` and deployed frontend Trivy both return zero. | Pending default-branch synchronization/closure. | **Open — repository governance** |
 
 ## Production action queue
 
@@ -46,7 +46,7 @@
 2. Assess/apply the 23 pending host upgrades and patch/remove mapped `python3-pip`/`python3-wheel` packages in an approved window.
 3. Run fresh OCI VSS/CIS after host maintenance and reconcile CIS 5.2.14 against effective SSH configuration.
 4. Disable unnecessary RPC port 111 listeners as defense in depth; external reachability is already blocked.
-5. Synchronize and triage the default branch's 24 Dependabot alerts.
+5. Synchronize and triage the default branch's 27 Dependabot alerts.
 6. Monitor Q3-VA-003 and Q3-VA-013 for vendor fixes.
 7. Complete optional literal-duration role evidence only if requested and obtain internal sign-off.
 

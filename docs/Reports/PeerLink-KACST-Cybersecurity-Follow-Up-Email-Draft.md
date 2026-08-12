@@ -116,7 +116,7 @@ A fresh Trivy scan of the actual deployed images reproduced the documented backe
 
 The final public retest confirmed production OpenAPI is disabled (HTTP 404) and the app shell emits `nosniff`, `SAMEORIGIN`, strict-origin referrer policy, restrictive permissions policy, HSTS and CSP. During verification I found and corrected an NGINX header-inheritance gap; commit `bdb03b5` and workflow `31539611417` deployed and verified that correction.
 
-Open items remain explicit: OCI's latest managed host scan still contains 1,000 scanner records but only three package mappings; the host has 23 available upgrades; credential rotation remains pending; a fresh OCI CIS/VSS rescan is required; the backend image retains documented vendor-unfixed findings and the constrained `cryptography` advisory; RPC port 111 should be disabled for defense in depth although it is blocked externally; and GitHub's default branch has 24 npm Dependabot alerts even though the assessed production branch and deployed frontend image scan clean.
+Open items remain explicit: OCI's latest managed host scan still contains 1,000 scanner records but only three package mappings; the host has 23 available upgrades; credential rotation remains pending; a fresh OCI CIS/VSS rescan is required; the backend image retains documented vendor-unfixed findings and the constrained `cryptography` advisory; RPC port 111 should be disabled for defense in depth although it is blocked externally; and GitHub's default branch has 27 npm Dependabot alerts even though the assessed production branch and deployed frontend image scan clean.
 
 ### Production release and rollback evidence
 

@@ -2,7 +2,7 @@
 
 **Classification:** Internal working evidence; sanitize before external submission
 **Control:** Session idle timeout and absolute lifetime
-**Release ID:** OCI production application `c525585`; final verification `6f532c3`
+**Release ID:** OCI production application `c525585`; final deployed verification `bdb03b5` (workflow `31539611417`)
 **Implementation date:** 2026-08-11 AST
 **Environment:** Isolated acceptance plus OCI production `https://p2p.iiotsolutions.sa`
 **Tester / reviewer:** Nemo automated acceptance and production verification; Hamza/Aadil sign-off pending
@@ -14,7 +14,7 @@
 | SC-CONFIG-01 | Backend values: idle 30 minutes and absolute 8 hours | Production runtime verified by workflow run `31531595809` |
 | SC-CONFIG-02 | SuperTokens values: access 1,800 seconds, refresh 480 minutes | Deployed through production Compose and SuperTokens 11.3.7 |
 | SC-CONFIG-03 | Frontend value: idle 30 minutes | Deployed production source/build verified; isolated browser stack used 45 seconds for behavioral acceptance |
-| SC-COOKIE-01 | Production cookie attributes show `Secure`, `HttpOnly`, and `SameSite=Lax`; values redacted | Production capture pending; no token/cookie values retained in local report |
+| SC-COOKIE-01 | Production cookie policy requires `Secure`, `HttpOnly`, and `SameSite=Lax`; values redacted | Production runtime configuration verified; optional sanitized browser-cookie metadata capture remains pending |
 
 ## Acceptance Test Matrix
 

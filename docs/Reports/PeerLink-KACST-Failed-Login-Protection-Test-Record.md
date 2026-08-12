@@ -3,7 +3,7 @@
 **Classification:** Internal working evidence; sanitize before external submission
 **Test date:** 2026-08-11 AST
 **Environment:** Isolated local acceptance plus OCI production
-**Production release:** Application `c525585`; final verification `6f532c3`
+**Production release:** Application `c525585`; final deployed verification `bdb03b5` (workflow `31539611417`)
 **Source branch:** `feature/kacst-failed-login-protection`, released through `hamza-backend`
 
 ## Acceptance Configuration

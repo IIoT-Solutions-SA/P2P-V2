@@ -108,9 +108,9 @@ The final evidence includes:
 
 ### Direct post-production OCI VM verification
 
-After the application release, I established dedicated key-only operational SSH access from the Mini PC and audited the running OCI VM directly rather than relying only on CI output.
+After deployment, I connected to the OCI VM over SSH and checked the production environment directly.
 
-The direct verification confirmed the deployed commit, all five running services, healthy backend/PostgreSQL/MongoDB checks, migration `f4a9c2d78110`, exact security settings, zero container restarts/OOM kills, valid backups, public TLS behavior, loopback-only internal services, and externally reachable TCP ports limited to 22, 80 and 443. The live application was also rendered through BrowserOps after the final release.
+The direct production verification confirmed the deployed commit, all five running services, healthy backend/PostgreSQL/MongoDB checks, migration `f4a9c2d78110`, exact security settings, zero container restarts/OOM kills, valid backups, public TLS behavior, loopback-only internal services, and externally reachable TCP ports limited to 22, 80 and 443. The live application was also rendered after the final release.
 
 A fresh Trivy scan of the actual deployed images reproduced the documented backend residual (4 Critical, 20 High, 56 Medium, 66 Low and 33 Unknown; no fix available for the four Critical records and only the constrained `cryptography` High has a feed fix) and returned zero findings for the deployed frontend image. Current production-branch `npm audit`, production repository Trivy, and tracked-source Gitleaks checks returned zero.
 
@@ -165,15 +165,15 @@ Hamza Feroze
 
 ## Proposed Attachments
 
-Attach or link the five primary review documents first:
+Attach the five final review deliverables in non-Markdown formats:
 
-- production release log;
-- quarterly vulnerability-assessment report;
-- findings register;
-- session-control test record; and
-- failed-login protection test record.
+- `PeerLink-KACST-Quarterly-Vulnerability-Assessment-2026-Q3.pdf`;
+- `PeerLink-KACST-Quarterly-VA-Findings-Register-2026-Q3.xlsx`;
+- `PeerLink-KACST-Session-Control-Test-Record.pdf`;
+- `PeerLink-KACST-Failed-Login-Protection-Test-Record.pdf`; and
+- `PeerLink-KACST-Quarterly-VA-Evidence-Index-2026-Q3.pdf`.
 
-Provide the remaining architecture, evidence-index, schedule, and implementation logs as a supporting folder or repository links to avoid an unnecessarily large email attachment set.
+A CSV copy of the findings register and a PDF rendering of that register are retained in the internal deliverables folder as optional compatibility copies. Do not attach Markdown source, implementation logs, architecture files, scripts, or unrelated historical reports.
 
 ## Send Control
 
